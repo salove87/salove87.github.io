@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สร้าง QR Code</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- qrcode.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <!-- Google Font: Inter -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        #qrcode {
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-md mx-auto bg-white rounded-xl shadow-lg p-8">
+        <div class="flex justify-between items-center mb-6">
+            <a href="index.html" class="text-blue-500 hover:text-blue-700">← กลับ</a>
+            <h1 class="text-3xl font-bold text-gray-800">สร้าง QR Code</h1>
+            <div></div>
+        </div>
+        
+        <p class="text-center text-gray-600 mb-6">ใส่ข้อความหรือลิงก์เพื่อสร้าง QR Code</p>
+        
+        <div class="mb-4">
+            <label for="text-input" class="block text-sm font-medium text-gray-700 mb-2">ข้อความหรือลิงก์</label>
+            <textarea id="text-input" rows="4" class="w-full p-3 border-2 border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="ใส่ข้อความหรือ URL ที่นี่..."></textarea>
+        </div>
+
+        <button id="generate-button" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors duration-300">
+            สร้าง QR Code
+        </button>
+        
+        <div id="qrcode" class="mt-6 p-4 bg-gray-100 rounded-lg hidden"></div>
+        <div class="text-center mt-2">
+            <button id="download-button" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg shadow-sm transition-colors duration-200 hidden">
+                ดาวน์โหลด QR Code
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const textInput = document.getElementById('text-input');
+        const generateButton = document.getElementById('generate-button');
+        const qrcodeDiv = document.getElementById('qrcode');
+        const downloadButton = document.getElementById('download-button');
+        let qrcode = null;
+
+        generateButton.addEventListener('click', () => {
+            const text = textInput.value.trim();
+            if (text) {
+                // Clear previous QR code if it exists
+                qrcodeDiv.innerHTML = '';
+                qrcodeDiv.classList.remove('hidden');
+
+                // Generate new QR code
+                qrcode = new QRCode(qrcodeDiv, {
+                    text: text,
+                    width: 256,
+                    height: 256,
+                    colorDark: "#000000",
+                    colorLight: "#f3f4f6", // Use a light gray to match the background
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+                downloadButton.classList.remove('hidden');
+            } else {
+                alert('กรุณาใส่ข้อความหรือลิงก์ที่ต้องการสร้าง QR Code');
+                qrcodeDiv.classList.add('hidden');
+                downloadButton.classList.add('hidden');
+            }
+        });
+
+        downloadButton.addEventListener('click', () => {
+            if (qrcode) {
+                const canvas = qrcodeDiv.querySelector('canvas');
+                const link = document.createElement('a');
+                link.download = 'qrcode.png';
+                link.href = canvas.toDataURL('image/png');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        });
+    </script>
+</body>
+</html>
