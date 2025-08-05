@@ -3,8 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เครื่องมือเว็บไซต์</title>
+    <title>Toolbox - เครื่องมือเว็บไซต์ครบวงจร</title>
+    <!-- โค้ด Google AdSense สำหรับยืนยันความเป็นเจ้าของ -->
     <meta name="google-adsense-account" content="ca-pub-3455272174981579">
+    <!-- สิ้นสุดโค้ด Google AdSense -->
+
+    <!-- โค้ดสถิติ Google Analytics -->
+    <!-- กรุณาเปลี่ยน 'G-XXXXXXXXXX' เป็นรหัส Measurement ID ของคุณ -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-XXXXXXXXXX');
+    </script>
+    <!-- สิ้นสุดโค้ดสถิติ -->
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Font: Inter -->
@@ -17,7 +32,7 @@
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
     <div class="w-full max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
-        <h1 class="text-4xl font-bold text-center text-gray-800 mb-6">เครื่องมือเว็บไซต์</h1>
+        <h1 class="text-4xl font-bold text-center text-gray-800 mb-6">Toolbox 🛠️</h1>
         <p class="text-center text-gray-600 mb-8">เลือกเครื่องมือที่คุณต้องการใช้งาน</p>
         
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -52,7 +67,11 @@
                 <div class="text-sm text-gray-500 mt-1">สร้าง QR Code จากข้อความ</div>
             </a>
         </div>
+
+        <footer class="mt-12 text-center text-sm text-gray-500">
+            <a href="about-us.html" class="hover:underline mx-2">เกี่ยวกับเรา</a> | 
+            <a href="privacy-policy.html" class="hover:underline mx-2">นโยบายความเป็นส่วนตัว</a>
+        </footer>
     </div>
 </body>
 </html>
-
