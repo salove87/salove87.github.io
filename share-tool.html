@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แชร์เครื่องมือ - Toolbox</title>
+    <!-- โค้ด Google AdSense สำหรับยืนยันความเป็นเจ้าของ -->
+    <meta name="google-adsense-account" content="ca-pub-3455272174981579">
+    <!-- สิ้นสุดโค้ด Google AdSense -->
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-77W0KWG800"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-77W0KWG800');
+    </script>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font: Inter -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .share-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            color: white;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .share-button:hover {
+            transform: translateY(-2px);
+        }
+        .share-button svg {
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-md mx-auto bg-white rounded-xl shadow-lg p-8">
+        <div class="flex justify-between items-center mb-6">
+            <a href="index.html" class="text-blue-500 hover:text-blue-700">← กลับ</a>
+            <h1 class="text-3xl font-bold text-gray-800">แชร์เครื่องมือ</h1>
+            <div></div>
+        </div>
+
+        <p class="text-center text-gray-600 mb-8">
+            ช่วยเราบอกต่อ! แชร์เว็บไซต์ Toolbox ให้เพื่อนๆ ของคุณ
+        </p>
+
+        <div class="grid grid-cols-1 gap-4">
+            <!-- Share to Facebook -->
+            <a id="share-facebook" href="#" target="_blank" class="share-button bg-blue-600 hover:bg-blue-700">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h3V2h-3c-3.15 0-4 2.39-4 4v2.5H9v4h2.5V22h4z"/></svg>
+                แชร์บน Facebook
+            </a>
+
+            <!-- Share to Twitter/X -->
+            <a id="share-twitter" href="#" target="_blank" class="share-button bg-blue-400 hover:bg-blue-500">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M22.46 6c-.77.35-1.6.58-2.46.69.88-.53 1.56-1.37 1.88-2.37-.83.49-1.75.85-2.72 1.05C18.37 4.5 17.26 4 16 4c-2.35 0-4.27 1.92-4.27 4.29 0 .34.04.67.11.98C8.28 9.1 5.3 7.5 3.31 4.79c-.36.62-.56 1.35-.56 2.13 0 1.48.75 2.8 1.91 3.56-.7-.02-1.37-.21-1.95-.5v.03c0 2.08 1.48 3.82 3.44 4.21-.36.1-.74.15-1.13.15-.28 0-.55-.03-.81-.08.55 1.71 2.16 2.95 4.07 2.98-1.47 1.15-3.33 1.84-5.36 1.84-.35 0-.69-.02-1.03-.06C3.17 20.35 5.3 21 7.5 21c8.55 0 13.24-7.07 13.24-13.24 0-.2-.01-.4-.02-.6.91-.65 1.7-1.47 2.32-2.4z"/></svg>
+                แชร์บน X (Twitter)
+            </a>
+
+            <!-- Share to Line -->
+            <a id="share-line" href="#" target="_blank" class="share-button bg-green-500 hover:bg-green-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.6 15.6c-.3.1-.6.1-.9.1-.5 0-.9-.1-1.2-.3-.3-.2-.5-.5-.5-.8 0-.4.1-.7.4-.9.2-.2.5-.3.8-.3.3 0 .6.1.9.3.3.2.5.5.5.8 0 .4-.1.7-.4.9zm-1.2-3.6c-.3.1-.6.1-.9.1-.5 0-.9-.1-1.2-.3-.3-.2-.5-.5-.5-.8 0-.4.1-.7.4-.9.2-.2.5-.3.8-.3.3 0 .6.1.9.3.3.2.5.5.5.8 0 .4-.1.7-.4.9zM12 5.5c-3.1 0-5.6 2.5-5.6 5.6 0 2.4 1.5 4.5 3.6 5.3v2.2c0 .2.1.3.3.3.1 0 .2-.1.3-.2l1.6-1.6c.4.1.8.2 1.2.2 3.1 0 5.6-2.5 5.6-5.6S15.1 5.5 12 5.5z"/></svg>
+                แชร์บน Line
+            </a>
+
+            <!-- Copy Link Button -->
+            <button id="copy-link-button" class="share-button bg-gray-500 hover:bg-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                คัดลอกลิงก์
+            </button>
+            <div id="copy-message" class="text-center text-sm text-green-600 mt-2 hidden">คัดลอกลิงก์แล้ว!</div>
+        </div>
+    </div>
+
+    <script>
+        const websiteUrl = "https://onlineutility.app/"; // เปลี่ยนเป็นโดเมนของคุณ
+        const shareText = "ลองใช้ Toolbox! เครื่องมือเว็บไซต์ฟรีครบวงจร: แปลงรูป, คำนวณ, สร้าง QR และอีกมากมาย!";
+
+        document.getElementById('share-facebook').href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(websiteUrl)}`;
+        document.getElementById('share-twitter').href = `https://twitter.com/intent/tweet?url=${encodeURIComponent(websiteUrl)}&text=${encodeURIComponent(shareText)}`;
+        document.getElementById('share-line').href = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(websiteUrl)}&text=${encodeURIComponent(shareText)}`;
+
+        document.getElementById('copy-link-button').addEventListener('click', () => {
+            navigator.clipboard.writeText(websiteUrl)
+                .then(() => {
+                    const copyMessage = document.getElementById('copy-message');
+                    copyMessage.classList.remove('hidden');
+                    setTimeout(() => {
+                        copyMessage.classList.add('hidden');
+                    }, 2000);
+                })
+                .catch(err => {
+                    alert('ไม่สามารถคัดลอกลิงก์ได้ กรุณาคัดลอกด้วยตนเอง');
+                });
+        });
+    </script>
+</body>
+</html>
