@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สร้างข้อความสุ่ม - Toolbox</title>
+    <meta name="description" content="เครื่องมือสร้างข้อความสุ่มสำหรับทดสอบงานออกแบบ, เว็บไซต์ หรือใช้เป็นข้อมูลจำลอง ใช้งานง่าย ปรับแต่งได้ตามต้องการ">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3455272174981579"
+      crossorigin="anonymous"></script>
+    <meta name="google-adsense-account" content="ca-pub-3455272174981579">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-77W0KWG800"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-77W0KWG800');
+    </script>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font: Inter -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-md mx-auto bg-white rounded-xl shadow-lg p-8 mb-8">
+        <div class="flex justify-between items-center mb-6">
+            <a href="index.html" class="text-blue-500 hover:text-blue-700">← กลับ</a>
+            <h1 class="text-3xl font-bold text-gray-800">สร้างข้อความสุ่ม</h1>
+            <div></div>
+        </div>
+        
+        <p class="text-center text-gray-600 mb-6">สร้างข้อความสุ่มเพื่อใช้ในการทดสอบ</p>
+        
+        <div class="mb-4">
+            <label for="paragraph-count-input" class="block text-sm font-medium text-gray-700 mb-2">จำนวนย่อหน้าที่ต้องการ</label>
+            <input type="number" id="paragraph-count-input" min="1" max="10" value="3" class="w-full p-3 border-2 border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-lime-500">
+        </div>
+
+        <button id="generate-button" class="w-full bg-lime-600 hover:bg-lime-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors duration-300">
+            สร้างข้อความ
+        </button>
+        
+        <div id="output-container" class="mt-6 p-4 bg-gray-100 rounded-lg hidden">
+            <textarea id="output-text" rows="8" class="w-full bg-transparent border-none focus:outline-none resize-none"></textarea>
+        </div>
+    </div>
+
+    <!-- ส่วนเนื้อหาเพิ่มเติม -->
+    <div class="w-full max-w-md mx-auto bg-white rounded-xl shadow-lg p-8 mt-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">ทำไมต้องใช้เครื่องมือสร้างข้อความสุ่ม?</h2>
+        <p class="text-gray-700 mb-4">
+            ข้อความสุ่มหรือ "Lorem Ipsum" เป็นเครื่องมือที่จำเป็นสำหรับนักออกแบบและนักพัฒนา
+            เพื่อใช้เติมเนื้อหาในส่วนต่างๆ ของเว็บไซต์หรือแอปพลิเคชัน
+            เมื่อต้องการดูการจัดวางหรือดีไซน์โดยไม่ต้องกังวลเรื่องเนื้อหาจริง
+        </p>
+        <p class="text-gray-700 mb-4">
+            เครื่องมือของเราช่วยให้คุณสร้างข้อความสุ่มได้อย่างรวดเร็ว
+            คุณสามารถกำหนดจำนวนย่อหน้าที่ต้องการได้ตามความเหมาะสม
+        </p>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">วิธีการใช้งาน</h3>
+        <ul class="list-disc list-inside text-gray-700">
+            <li>ใส่จำนวนย่อหน้าที่ต้องการในช่องด้านบน</li>
+            <li>กดปุ่ม "สร้างข้อความ"</li>
+            <li>ระบบจะสร้างข้อความสุ่มพร้อมให้คุณคัดลอกไปใช้งานได้ทันที</li>
+        </ul>
+    </div>
+
+    <script>
+        const paragraphCountInput = document.getElementById('paragraph-count-input');
+        const generateButton = document.getElementById('generate-button');
+        const outputContainer = document.getElementById('output-container');
+        const outputText = document.getElementById('output-text');
+        const loremIpsum = `
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+            
+            Neque porro quisquam est qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit. Etiam sit amet convallis lacus, at maximus arcu. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Vivamus sed auctor sem, et interdum enim.
+            
+            Aenean vel nisl quis quam scelerisque laoreet. Sed sit amet velit ac nunc elementum dignissim. Fusce varius mi vitae mauris dignissim, at iaculis lorem varius. Donec laoreet nunc a ex dignissim, nec dapibus turpis tristique. Integer quis nisi non erat efficitur faucibus ac nec velit.
+            
+            Proin eu purus eget magna euismod tincidunt. Nulla facilisi. Sed a odio id sapien malesuada laoreet. Curabitur vel leo at nisi luctus facilisis. Nam a odio in ligula eleifend consectetur. Vivamus feugiat, elit eu vestibulum viverra, dolor eros facilisis ipsum, a bibendum sapien turpis id sapien.
+        `.trim();
+
+        generateButton.addEventListener('click', () => {
+            const count = parseInt(paragraphCountInput.value);
+            if (isNaN(count) || count < 1 || count > 10) {
+                alert('กรุณาใส่จำนวนย่อหน้าตั้งแต่ 1 ถึง 10');
+                return;
+            }
+
+            const paragraphs = loremIpsum.split('\n\n').slice(0, count);
+            outputText.value = paragraphs.join('\n\n');
+            outputContainer.classList.remove('hidden');
+        });
+    </script>
+</body>
+</html>
