@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>นับคำและตัวอักษรออนไลน์ฟรี - Toolbox</title>
+    <meta name="description" content="เครื่องมือนับคำและตัวอักษรออนไลน์ฟรี! นับจำนวนคำ, ตัวอักษร, และย่อหน้าของข้อความได้แบบเรียลไทม์">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3455272174981579"
+      crossorigin="anonymous"></script>
+    <meta name="google-adsense-account" content="ca-pub-3455272174981579">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-77W0KWG800"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-77W0KWG800');
+    </script>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font: Inter -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-md mx-auto bg-white rounded-xl shadow-lg p-8 mb-8">
+        <div class="flex justify-between items-center mb-6">
+            <a href="index.html" class="text-blue-500 hover:text-blue-700">← กลับ</a>
+            <h1 class="text-3xl font-bold text-gray-800">นับคำ/ตัวอักษร</h1>
+            <div></div>
+        </div>
+        
+        <p class="text-center text-gray-600 mb-6">นับจำนวนคำและตัวอักษรของข้อความแบบเรียลไทม์</p>
+        
+        <div class="mb-4">
+            <label for="text-input" class="block text-sm font-medium text-gray-700 mb-2">ใส่ข้อความ</label>
+            <textarea id="text-input" rows="6" class="w-full p-3 border-2 border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="พิมพ์หรือวางข้อความที่นี่..."></textarea>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4 text-center text-gray-800 font-bold mt-4">
+            <div>
+                <p id="word-count" class="text-2xl">0</p>
+                <p class="text-sm text-gray-500">คำ</p>
+            </div>
+            <div>
+                <p id="char-count" class="text-2xl">0</p>
+                <p class="text-sm text-gray-500">ตัวอักษร</p>
+            </div>
+            <div>
+                <p id="paragraph-count" class="text-2xl">0</p>
+                <p class="text-sm text-gray-500">ย่อหน้า</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ส่วนเนื้อหาเพิ่มเติม -->
+    <div class="w-full max-w-md mx-auto bg-white rounded-xl shadow-lg p-8 mt-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">ทำไมต้องนับจำนวนคำ?</h2>
+        <p class="text-gray-700 mb-4">
+            การนับคำและตัวอักษรมีความจำเป็นในหลายสถานการณ์ เช่น เมื่อคุณต้องเขียนบทความหรือรายงานที่มีการจำกัดจำนวนคำ
+            หรือเมื่อคุณต้องการเขียนข้อความสำหรับโซเชียลมีเดียที่มีข้อจำกัดเรื่องตัวอักษร
+        </p>
+        <p class="text-gray-700 mb-4">
+            เครื่องมือของเราช่วยให้คุณทราบจำนวนคำและตัวอักษรได้ทันทีแบบเรียลไทม์ ทำให้คุณสามารถปรับแก้ข้อความได้สะดวกและรวดเร็ว
+        </p>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">วิธีการใช้งาน</h3>
+        <ul class="list-disc list-inside text-gray-700">
+            <li>พิมพ์หรือวางข้อความในช่องด้านบน</li>
+            <li>เครื่องมือจะแสดงผลลัพธ์จำนวนคำ, ตัวอักษร, และย่อหน้าโดยอัตโนมัติ</li>
+        </ul>
+    </div>
+
+    <script>
+        const textInput = document.getElementById('text-input');
+        const wordCountSpan = document.getElementById('word-count');
+        const charCountSpan = document.getElementById('char-count');
+        const paragraphCountSpan = document.getElementById('paragraph-count');
+
+        textInput.addEventListener('input', () => {
+            const text = textInput.value;
+            const wordCount = text.split(/\s+/).filter(word => word.length > 0).length;
+            const charCount = text.length;
+            const paragraphCount = text.split(/\n+/).filter(p => p.length > 0).length;
+
+            wordCountSpan.textContent = wordCount;
+            charCountSpan.textContent = charCount;
+            paragraphCountSpan.textContent = paragraphCount;
+        });
+    </script>
+</body>
+</html>
