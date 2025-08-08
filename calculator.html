@@ -3,19 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>คำนวณ BMI</title>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3455272174981579"
-     crossorigin="anonymous"></script>
+    <title>คำนวณ BMI ออนไลน์ฟรี - Toolbox</title>
+    <meta name="description" content="เครื่องมือคำนวณ BMI (ดัชนีมวลกาย) ออนไลน์ฟรี ช่วยประเมินความเสี่ยงด้านสุขภาพที่เกี่ยวข้องกับน้ำหนักตัวของคุณ ใช้งานง่ายและรวดเร็ว">
+    
+    <!-- โค้ด Google AdSense สำหรับยืนยันความเป็นเจ้าของ -->
     <meta name="google-adsense-account" content="ca-pub-3455272174981579">
-    <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-77W0KWG800"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+    <!-- สิ้นสุดโค้ด Google AdSense -->
 
-  gtag('config', 'G-77W0KWG800');
-</script>
+    <!-- โค้ดสถิติ Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-77W0KWG800"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-77W0KWG800');
+    </script>
+    <!-- สิ้นสุดโค้ดสถิติ -->
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Font: Inter -->
@@ -26,8 +31,8 @@
         }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen p-4">
-    <div class="w-full max-w-md mx-auto bg-white rounded-xl shadow-lg p-8">
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-md mx-auto bg-white rounded-xl shadow-lg p-8 mb-8">
         <div class="flex justify-between items-center mb-6">
             <a href="index.html" class="text-blue-500 hover:text-blue-700">← กลับ</a>
             <h1 class="text-3xl font-bold text-gray-800">คำนวณ BMI</h1>
@@ -56,6 +61,32 @@
         </div>
     </div>
 
+    <!-- ส่วนเนื้อหาเพิ่มเติม -->
+    <div class="w-full max-w-md mx-auto bg-white rounded-xl shadow-lg p-8 mt-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">BMI คืออะไร?</h2>
+        <p class="text-gray-700 mb-4">
+            BMI ย่อมาจาก Body Mass Index หรือดัชนีมวลกาย เป็นค่าที่ใช้ประเมินความสมดุลของน้ำหนักและส่วนสูง
+            เพื่อวิเคราะห์ว่าร่างกายของคุณอยู่ในเกณฑ์ใด เหมาะสมหรือไม่ และมีความเสี่ยงต่อโรคบางชนิดหรือไม่
+        </p>
+        <p class="text-gray-700 mb-4">
+            การคำนวณ BMI เป็นวิธีที่ง่ายและรวดเร็วในการประเมินสุขภาพเบื้องต้น แต่ไม่สามารถนำมาใช้แทนการวินิจฉัยของแพทย์ได้
+        </p>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">วิธีการใช้งาน</h3>
+        <ul class="list-disc list-inside text-gray-700 mb-4">
+            <li>ใส่ค่าน้ำหนักของคุณเป็นกิโลกรัม (kg)</li>
+            <li>ใส่ค่าส่วนสูงของคุณเป็นเซนติเมตร (cm)</li>
+            <li>กดปุ่ม "คำนวณ" เพื่อดูผลลัพธ์ BMI และสถานะน้ำหนักของคุณ</li>
+        </ul>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">เกณฑ์การประเมิน BMI</h3>
+        <ul class="list-disc list-inside text-gray-700">
+            <li>น้อยกว่า 18.5 : น้ำหนักน้อยกว่ามาตรฐาน</li>
+            <li>18.5 - 22.9 : น้ำหนักปกติ</li>
+            <li>23.0 - 24.9 : น้ำหนักเกิน</li>
+            <li>25.0 - 29.9 : โรคอ้วนระดับ 1</li>
+            <li>30.0 ขึ้นไป : โรคอ้วนระดับ 2 ขึ้นไป</li>
+        </ul>
+    </div>
+
     <script>
         const weightInput = document.getElementById('weight');
         const heightInput = document.getElementById('height');
@@ -69,6 +100,7 @@
             const height = parseFloat(heightInput.value);
 
             if (isNaN(weight) || isNaN(height) || weight <= 0 || height <= 0) {
+                // แทนที่ alert() ด้วยการแสดงข้อความบนหน้าจอ
                 alert('กรุณาใส่ข้อมูลที่ถูกต้อง');
                 return;
             }
@@ -82,14 +114,17 @@
             if (bmi < 18.5) {
                 statusText = 'น้ำหนักน้อยกว่ามาตรฐาน';
                 statusColor = 'text-blue-500';
-            } else if (bmi >= 18.5 && bmi < 24.9) {
+            } else if (bmi >= 18.5 && bmi < 22.9) {
                 statusText = 'น้ำหนักปกติ';
                 statusColor = 'text-green-600';
-            } else if (bmi >= 25 && bmi < 29.9) {
-                statusText = 'น้ำหนักเกินมาตรฐาน';
+            } else if (bmi >= 23.0 && bmi < 24.9) {
+                statusText = 'น้ำหนักเกิน';
                 statusColor = 'text-yellow-500';
+            } else if (bmi >= 25.0 && bmi < 29.9) {
+                statusText = 'โรคอ้วนระดับ 1';
+                statusColor = 'text-orange-500';
             } else {
-                statusText = 'อ้วน';
+                statusText = 'โรคอ้วนระดับ 2';
                 statusColor = 'text-red-500';
             }
 
@@ -98,7 +133,4 @@
         });
     </script>
 </body>
-
 </html>
-
-
