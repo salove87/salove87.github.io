@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตัวตรวจจับรหัสสีจากรูปภาพ - Toolbox</title>
+    <meta name="description" content="เครื่องมือตรวจจับรหัสสีจากรูปภาพออนไลน์ฟรี! อัปโหลดรูปภาพของคุณแล้วคลิกเพื่อรับรหัสสี HEX, RGB, HSL ได้อย่างง่ายดาย">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3455272174981579"
+      crossorigin="anonymous"></script>
+    <meta name="google-adsense-account" content="ca-pub-3455272174981579">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-77W0KWG800"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-77W0KWG800');
+    </script>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font: Inter -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        #image-container {
+            position: relative;
+            cursor: crosshair;
+            margin-bottom: 1rem;
+        }
+        #color-preview {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 2px #000;
+            border-radius: 50%;
+            position: absolute;
+            pointer-events: none;
+            display: none;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-md mx-auto bg-white rounded-xl shadow-lg p-8 mb-8">
+        <div class="flex justify-between items-center mb-6">
+            <a href="index.html" class="text-blue-500 hover:text-blue-700">← กลับ</a>
+            <h1 class="text-3xl font-bold text-gray-800">ตัวตรวจจับรหัสสี</h1>
+            <div></div>
+        </div>
+        
+        <p class="text-center text-gray-600 mb-6">อัปโหลดรูปภาพแล้วคลิกเพื่อรับรหัสสี</p>
+        
+        <div class="mb-4">
+            <label for="image-input" class="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg text-center file-input transition-colors duration-200 hover:border-fuchsia-500">
+                <p class="text-gray-500">ลากและวางไฟล์หรือคลิกเพื่อเลือก</p>
+                <input type="file" id="image-input" class="hidden" accept="image/*">
+            </label>
+        </div>
+
+        <div id="image-container" class="hidden">
+            <canvas id="image-canvas" class="w-full rounded-lg shadow-md"></canvas>
+            <div id="color-preview"></div>
+        </div>
+
+        <div id="color-results" class="grid grid-cols-1 gap-4 mt-6 hidden">
+            <div class="p-3 bg-gray-100 rounded-lg">
+                <p class="text-sm font-medium text-gray-600">HEX</p>
+                <p id="hex-code" class="text-lg font-bold text-gray-800 break-all"></p>
+            </div>
+            <div class="p-3 bg-gray-100 rounded-lg">
+                <p class="text-sm font-medium text-gray-600">RGB</p>
+                <p id="rgb-code" class="text-lg font-bold text-gray-800 break-all"></p>
+            </div>
+            <div class="p-3 bg-gray-100 rounded-lg">
+                <p class="text-sm font-medium text-gray-600">HSL</p>
+                <p id="hsl-code" class="text-lg font-bold text-gray-800 break-all"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ส่วนเนื้อหาเพิ่มเติม -->
+    <div class="w-full max-w-md mx-auto bg-white rounded-xl shadow-lg p-8 mt-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">ทำไมต้องใช้ตัวตรวจจับรหัสสี?</h2>
+        <p class="text-gray-700 mb-4">
+            ตัวตรวจจับรหัสสีเป็นเครื่องมือสำคัญสำหรับนักออกแบบ, นักพัฒนาเว็บไซต์, และผู้ที่ทำงานเกี่ยวกับศิลปะ
+            เพื่อหาค่าสีที่ต้องการได้อย่างแม่นยำจากรูปภาพ ทำให้สามารถนำรหัสสีนั้นไปใช้งานต่อในโปรเจกต์ต่างๆ ได้อย่างง่ายดาย
+        </p>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">วิธีการใช้งาน</h3>
+        <ul class="list-disc list-inside text-gray-700">
+            <li>คลิกเพื่อเลือกไฟล์รูปภาพที่ต้องการตรวจจับรหัสสี</li>
+            <li>รูปภาพจะแสดงขึ้นมาบนหน้าจอ</li>
+            <li>เลื่อนเมาส์ไปบนรูปภาพเพื่อดูสีที่ต้องการ แล้วคลิกเพื่อเลือก</li>
+            <li>รหัสสีในรูปแบบ HEX, RGB และ HSL จะแสดงขึ้นมาให้คุณคัดลอกไปใช้งานได้ทันที</li>
+        </ul>
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('image-input');
+        const imageContainer = document.getElementById('image-container');
+        const imageCanvas = document.getElementById('image-canvas');
+        const colorPreview = document.getElementById('color-preview');
+        const colorResults = document.getElementById('color-results');
+        const hexCode = document.getElementById('hex-code');
+        const rgbCode = document.getElementById('rgb-code');
+        const hslCode = document.getElementById('hsl-code');
+        const ctx = imageCanvas.getContext('2d');
+
+        function rgbToHex(r, g, b) {
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+        }
+
+        function rgbToHsl(r, g, b) {
+            r /= 255; g /= 255; b /= 255;
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+            if (max === min) {
+                h = s = 0;
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+            return `hsl(${Math.round(h * 360)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%)`;
+        }
+        
+        imageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    imageCanvas.width = img.naturalWidth;
+                    imageCanvas.height = img.naturalHeight;
+                    ctx.drawImage(img, 0, 0);
+                    imageContainer.classList.remove('hidden');
+                    colorResults.classList.add('hidden');
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        imageCanvas.addEventListener('mousemove', (e) => {
+            const rect = imageCanvas.getBoundingClientRect();
+            const x = Math.round((e.clientX - rect.left) / rect.width * imageCanvas.width);
+            const y = Math.round((e.clientY - rect.top) / rect.height * imageCanvas.height);
+
+            const imageData = ctx.getImageData(x, y, 1, 1).data;
+            const [r, g, b] = imageData;
+
+            const hex = rgbToHex(r, g, b);
+            const rgb = `rgb(${r}, ${g}, ${b})`;
+            const hsl = rgbToHsl(r, g, b);
+
+            colorPreview.style.backgroundColor = hex;
+            colorPreview.style.transform = `translate(${e.clientX - rect.left - 25}px, ${e.clientY - rect.top - 25}px)`;
+            colorPreview.style.display = 'block';
+
+            imageCanvas.addEventListener('click', () => {
+                hexCode.textContent = hex;
+                rgbCode.textContent = rgb;
+                hslCode.textContent = hsl;
+                colorResults.classList.remove('hidden');
+            });
+        });
+
+        imageCanvas.addEventListener('mouseout', () => {
+            colorPreview.style.display = 'none';
+        });
+    </script>
+</body>
+</html>
