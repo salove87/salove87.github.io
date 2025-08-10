@@ -1,0 +1,262 @@
+import { useState, useEffect } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, deleteDoc, getDocs } from 'firebase/firestore';
+import { getAuth, signInWithCustomToken, signInAnonymously } from 'firebase/auth';
+
+const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+// Ensure Firebase is initialized only once
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// Escape any value for safe CSV using JSON.stringify (handles quotes/commas/newlines)
+function toCSVField(v) {
+  return JSON.stringify(v ?? "");
+}
+
+function buildCSVFromRequests(requests) {
+  if (requests.length === 0) return null;
+  const header = toCSVField("ชื่อผู้เบิก") + "," + toCSVField("แผนก") + "," + toCSVField("รายการเบิกของ") + "," + toCSVField("ส่งเมื่อ");
+  const rows = requests.map(req => {
+    const requesterName = toCSVField(req.requesterName);
+    const department = toCSVField(req.department);
+    const items = toCSVField(req.items);
+    const timestamp = toCSVField(req.timestamp);
+    return `${requesterName},${department},${items},${timestamp}`;
+  }).join("\n");
+  const csv = "\uFEFF" + header + "\n" + rows; // BOM + newline
+  return csv;
+}
+
+// Department options for the form
+const departments = [
+  'ฝ่ายผลิต',
+  'ฝ่ายขาย',
+  'การเงิน',
+  'การตลาด',
+  'ฝ่ายบุคคล',
+  'ไอที'
+];
+
+// Main component for the supply request application
+export default function App() {
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [requests, setRequests] = useState([]);
+  const [newRequest, setNewRequest] = useState({
+    department: '',
+    items: '',
+    requesterName: '',
+  });
+
+  // Function to handle authentication
+  useEffect(() => {
+    async function authenticate() {
+      try {
+        if (typeof __initial_auth_token !== 'undefined') {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          // If no token, sign in anonymously
+          await signInAnonymously(auth);
+        }
+        setIsAuthReady(true);
+      } catch (error) {
+        console.error("Firebase authentication failed:", error);
+      }
+    }
+    authenticate();
+  }, []);
+
+  // Function to fetch and listen to requests from Firestore
+  useEffect(() => {
+    if (!isAuthReady) return;
+
+    const requestsCollection = collection(db, `artifacts/${appId}/public/data/supply-requests`);
+    const q = query(requestsCollection, orderBy('timestamp', 'desc'));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedRequests = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        timestamp: doc.data().timestamp ? new Date(doc.data().timestamp.toMillis()).toLocaleString() : 'N/A'
+      }));
+      setRequests(fetchedRequests);
+    });
+
+    return () => unsubscribe(); // Cleanup listener on unmount
+  }, [isAuthReady]);
+
+  // Function to handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!newRequest.department || !newRequest.items || !newRequest.requesterName) return;
+
+    try {
+      await addDoc(collection(db, `artifacts/${appId}/public/data/supply-requests`), {
+        ...newRequest,
+        timestamp: serverTimestamp(),
+        userId: auth.currentUser.uid,
+      });
+      setNewRequest({ department: '', items: '', requesterName: '' });
+    } catch (e) {
+      console.error("Error adding document: ", e);
+    }
+  };
+
+  // Function to delete all requests for a new month
+  const handleDeleteAll = async () => {
+    const today = new Date();
+    // Allow deletion only on the first day of the month
+    if (today.getDate() !== 1) {
+      alert('ฟังก์ชันนี้สามารถใช้งานได้เฉพาะวันที่ 1 ของทุกเดือน');
+      return;
+    }
+    
+    if (!window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบรายการเบิกทั้งหมด?')) return;
+    try {
+      const requestsCollection = collection(db, `artifacts/${appId}/public/data/supply-requests`);
+      const snapshot = await getDocs(requestsCollection);
+      const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deletePromises);
+      alert('ลบรายการเบิกทั้งหมดแล้ว');
+    } catch (e) {
+      console.error("Error deleting documents: ", e);
+    }
+  };
+
+  // Function to download requests as a CSV file
+  const handleDownload = () => {
+    const csv = buildCSVFromRequests(requests);
+    if (!csv) {
+      alert('ไม่มีข้อมูลให้ดาวน์โหลด');
+      return;
+    }
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `supply-requests-${new Date().toLocaleDateString('th-TH')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="p-8 bg-gray-100 min-h-screen font-sans">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold text-center mb-2">แบบฟอร์มเบิกเครื่องใช้สำนักงาน</h1>
+        <p className="text-center text-gray-600 mb-8">
+          สำหรับแจ้งรายการเบิกของใช้ในองค์กร
+        </p>
+        
+        {/* Request Form */}
+        <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="department" className="block text-sm font-medium text-gray-700">แผนกที่เบิก</label>
+              <input
+                type="text"
+                id="department"
+                value={newRequest.department}
+                onChange={(e) => setNewRequest({ ...newRequest, department: e.target.value })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                required
+                placeholder="เช่น แผนกการตลาด, แผนกบัญชี"
+              />
+            </div>
+            <div>
+              <label htmlFor="items" className="block text-sm font-medium text-gray-700">รายการเบิกของ (สามารถพิมพ์ได้)</label>
+              <textarea
+                id="items"
+                rows="4"
+                value={newRequest.items}
+                onChange={(e) => setNewRequest({ ...newRequest, items: e.target.value })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                placeholder="ตัวอย่าง: กระดาษ A4 จำนวน 2 รีม, ปากกาหมึกแห้งสีน้ำเงิน 10 ด้าม"
+                required
+              ></textarea>
+            </div>
+            <div>
+              <label htmlFor="requesterName" className="block text-sm font-medium text-gray-700">ชื่อผู้เบิก</label>
+              <input
+                type="text"
+                id="requesterName"
+                value={newRequest.requesterName}
+                onChange={(e) => setNewRequest({ ...newRequest, requesterName: e.target.value })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              ส่งรายการเบิก
+            </button>
+          </form>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-end space-x-2 mb-4">
+          <button
+            onClick={handleDownload}
+            className="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+          >
+            ดาวน์โหลดข้อมูล
+          </button>
+          <button
+            onClick={handleDeleteAll}
+            className="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+          >
+            ลบรายการเบิกทั้งหมด (สิ้นเดือน)
+          </button>
+        </div>
+
+        {/* Request List - Horizontal Table */}
+        <h2 className="text-2xl font-bold mb-4">รายการเบิกของทั้งหมด</h2>
+        <div className="bg-white p-6 rounded-lg shadow-md overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  ชื่อผู้เบิก
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  แผนก
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  รายการเบิกของ
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  ส่งเมื่อ
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {requests.map(req => (
+                <tr key={req.id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {req.requesterName}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {req.department}
+                  </td>
+                  <td className="px-6 py-4 whitespace-pre-wrap text-sm text-gray-500">
+                    {req.items}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {req.timestamp}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {requests.length === 0 && (
+            <p className="text-center text-gray-500 mt-4">ไม่มีรายการเบิกของ</p>
+          )}
+        </div>
+
+      </div>
+    </div>
+  );
+}
