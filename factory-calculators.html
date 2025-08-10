@@ -1,1144 +1,664 @@
-import React, { useMemo, useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Download, Calculator, FileText, Printer, CheckCircle2, XCircle } from "lucide-react";
-import { ArrowLeft } from 'lucide-react';
-
-// ---------------- Utilities ----------------
-function NumberField({ id, label, value, onChange, suffix, min = 0, step = "any" }) {
-  return (
-    <div className="grid gap-1.5">
-      <Label htmlFor={id}>{label}</Label>
-      <div className="flex items-center gap-2">
-        <Input
-          id={id}
-          type="number"
-          inputMode="decimal"
-          step={step}
-          min={min}
-          value={Number.isFinite(value) ? value : ""}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="text-right"
-        />
-        {suffix ? <span className="text-sm text-muted-foreground w-14 text-right">{suffix}</span> : null}
-      </div>
-    </div>
-  );
-}
-
-function Stat({ label, value, suffix }) {
-  return (
-    <div className="flex items-baseline justify-between py-1">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="font-semibold tabular-nums">{value}{suffix}</span>
-    </div>
-  );
-}
-
-function Section({ title, children, right }) {
-  return (
-    <Card className="shadow-md">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2"><Calculator className="h-5 w-5"/>{title}</CardTitle>
-          {right}
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เครื่องมือคำนวณสถิติโรงงาน - Toolbox</title>
+    <meta name="description" content="รวมเครื่องมือคำนวณสถิติโรงงานที่สำคัญ เช่น CPK, OEE, EOQ และอื่นๆ ในหน้าเดียว ใช้งานง่ายและรวดเร็ว">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font: Inter -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .input {
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            border-width: 1px;
+            border-color: rgb(209 213 219);
+        }
+        .button {
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="p-4">
+    <header class="sticky top-0 z-10 backdrop-blur border-b bg-background/70">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+            <a href="index.html" class="flex items-center gap-2 text-xl font-bold">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                <span class="hidden md:block">กลับ</span>
+            </a>
+            <div class="flex-1 text-center">
+                <h1 class="text-xl font-bold">Factory Calculators Hub</h1>
+                <p class="text-sm text-muted-foreground">รวมเครื่องมือคำนวณหลักสำหรับโรงงาน – ในหน้าเดียว</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button class="button bg-gray-200" onclick="window.print()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-printer"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+                    พิมพ์เป็น PDF
+                </button>
+            </div>
         </div>
-      </CardHeader>
-      <CardContent>{children}</CardContent>
-    </Card>
-  );
-}
-
-// Escape any value for safe CSV using JSON.stringify (handles quotes/commas/newlines)
-function toCSVField(v) {
-  return JSON.stringify(v ?? "");
-}
-
-function buildCSVFromObject(data) {
-  const entries = Object.entries(data || {});
-  if (entries.length === 0) return null;
-  const header = entries.map(([k]) => toCSVField(k)).join(",");
-  const row = entries.map(([, v]) => toCSVField(v)).join(",");
-  const csv = "\uFEFF" + header + "\n" + row; // BOM + newline
-  return csv;
-}
-
-function ExportButtons({ filename, data }) {
-  const downloadJSON = () => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename + ".json";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const downloadCSV = () => {
-    const csv = buildCSVFromObject(data);
-    if (!csv) return;
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename + ".csv";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  return (
-    <div className="flex gap-2">
-      <Button variant="secondary" size="sm" onClick={downloadJSON}><Download className="h-4 w-4 mr-2"/>JSON</Button>
-      <Button variant="secondary" size="sm" onClick={downloadCSV}><FileText className="h-4 w-4 mr-2"/>CSV</Button>
-      <Button variant="secondary" size="sm" onClick={() => window.print()}><Printer className="h-4 w-4 mr-2"/>PDF</Button>
-    </div>
-  );
-}
-
-// ---------------- Calculators ----------------
-function OEECalculator() {
-  const [plannedTimeMin, setPlannedTimeMin] = useState(480);
-  const [downtimeMin, setDowntimeMin] = useState(60);
-  const [idealCycleTimeSec, setIdealCycleTimeSec] = useState(30);
-  const [totalUnits, setTotalUnits] = useState(800);
-  const [goodUnits, setGoodUnits] = useState(760);
-
-  const results = useMemo(() => {
-    const runtimeMin = Math.max(plannedTimeMin - downtimeMin, 0);
-    const availability = plannedTimeMin > 0 ? runtimeMin / plannedTimeMin : 0;
-    const idealTimeMin = (totalUnits * idealCycleTimeSec) / 60;
-    const performance = runtimeMin > 0 ? idealTimeMin / runtimeMin : 0;
-    const quality = totalUnits > 0 ? goodUnits / totalUnits : 0;
-    const oee = availability * performance * quality;
-    return { runtimeMin, availability, performance, quality, oee };
-  }, [plannedTimeMin, downtimeMin, idealCycleTimeSec, totalUnits, goodUnits]);
-
-  return (
-    <Section title="OEE – Overall Equipment Effectiveness" right={<ExportButtons filename="oee" data={{ plannedTimeMin, downtimeMin, idealCycleTimeSec, totalUnits, goodUnits, ...results }} />}>  
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="grid gap-4">
-          <NumberField id="planned" label="Planned Production Time" value={plannedTimeMin} onChange={setPlannedTimeMin} suffix="min" />
-          <NumberField id="downtime" label="Downtime" value={downtimeMin} onChange={setDowntimeMin} suffix="min" />
-          <NumberField id="ideal" label="Ideal Cycle Time" value={idealCycleTimeSec} onChange={setIdealCycleTimeSec} suffix="sec/unit" />
-          <NumberField id="total" label="Total Units" value={totalUnits} onChange={setTotalUnits} suffix="units" />
-          <NumberField id="good" label="Good Units" value={goodUnits} onChange={setGoodUnits} suffix="units" />
+    </header>
+    <main class="max-w-6xl mx-auto p-4 md:p-6 grid gap-6">
+        <!-- OEE Calculator -->
+        <div class="card p-4">
+            <h2 class="text-lg font-bold">OEE – Overall Equipment Effectiveness</h2>
+            <div class="grid md:grid-cols-2 gap-6 mt-4">
+                <div class="grid gap-4">
+                    <div>
+                        <label for="oee-planned" class="block text-sm font-medium text-gray-700">Planned Production Time</label>
+                        <input type="number" id="oee-planned" value="480" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="oee-downtime" class="block text-sm font-medium text-gray-700">Downtime</label>
+                        <input type="number" id="oee-downtime" value="60" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="oee-ideal" class="block text-sm font-medium text-gray-700">Ideal Cycle Time</label>
+                        <input type="number" id="oee-ideal" value="30" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="oee-total" class="block text-sm font-medium text-gray-700">Total Units</label>
+                        <input type="number" id="oee-total" value="800" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="oee-good" class="block text-sm font-medium text-gray-700">Good Units</label>
+                        <input type="number" id="oee-good" value="760" class="w-full input mt-1">
+                    </div>
+                </div>
+                <div class="grid gap-2">
+                    <div class="flex justify-between items-baseline py-1">
+                        <span class="text-sm text-gray-500">Runtime</span>
+                        <span id="oee-runtime" class="font-semibold">0</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="card p-3"><div class="text-sm text-gray-500">Availability</div><div id="oee-availability" class="text-2xl font-bold">0%</div></div>
+                        <div class="card p-3"><div class="text-sm text-gray-500">Performance</div><div id="oee-performance" class="text-2xl font-bold">0%</div></div>
+                        <div class="card p-3"><div class="text-sm text-gray-500">Quality</div><div id="oee-quality" class="text-2xl font-bold">0%</div></div>
+                    </div>
+                    <div class="rounded-2xl border p-4 bg-gray-100">
+                        <div class="text-sm text-gray-500">OEE</div>
+                        <div id="oee-result" class="text-4xl font-extrabold">0%</div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div className="grid gap-2">
-          <Stat label="Runtime" value={results.runtimeMin.toFixed(2)} suffix=" min" />
-          <div className="grid grid-cols-3 gap-2">
-            <Card className="p-3"><div className="text-sm text-muted-foreground">Availability</div><div className="text-2xl font-bold">{(results.availability*100).toFixed(1)}%</div></Card>
-            <Card className="p-3"><div className="text-sm text-muted-foreground">Performance</div><div className="text-2xl font-bold">{(results.performance*100).toFixed(1)}%</div></Card>
-            <Card className="p-3"><div className="text-sm text-muted-foreground">Quality</div><div className="text-2xl font-bold">{(results.quality*100).toFixed(1)}%</div></Card>
-          </div>
-          <div className="rounded-2xl border p-4 bg-muted/40">
-            <div className="text-sm text-muted-foreground">OEE</div>
-            <div className="text-4xl font-extrabold">{(results.oee*100).toFixed(1)}%</div>
-          </div>
+
+        <!-- EOQ Calculator -->
+        <div class="card p-4">
+            <h2 class="text-lg font-bold">EOQ – Economic Order Quantity</h2>
+            <div class="grid md:grid-cols-2 gap-6 mt-4">
+                <div class="grid gap-4">
+                    <div>
+                        <label for="eoq-demand" class="block text-sm font-medium text-gray-700">Annual Demand</label>
+                        <input type="number" id="eoq-demand" value="12000" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="eoq-ordercost" class="block text-sm font-medium text-gray-700">Order Cost</label>
+                        <input type="number" id="eoq-ordercost" value="500" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="eoq-holdingcost" class="block text-sm font-medium text-gray-700">Holding Cost per Unit</label>
+                        <input type="number" id="eoq-holdingcost" value="20" class="w-full input mt-1">
+                    </div>
+                </div>
+                <div class="grid gap-2">
+                    <div class="flex justify-between items-baseline py-1">
+                        <span class="text-sm text-gray-500">EOQ</span>
+                        <span id="eoq-result" class="font-semibold">0</span>
+                    </div>
+                    <div class="rounded-2xl border p-6 bg-gray-100">
+                        <div class="text-sm text-gray-500">EOQ</div>
+                        <div id="eoq-value" class="text-4xl font-extrabold">0</div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </Section>
-  );
-}
 
-function EOQCalculator() {
-  const [demand, setDemand] = useState(12000);
-  const [orderCost, setOrderCost] = useState(500);
-  const [holdingCost, setHoldingCost] = useState(20);
-
-  const eoq = useMemo(() => {
-    return holdingCost > 0 ? Math.sqrt((2 * demand * orderCost) / holdingCost) : 0;
-  }, [demand, orderCost, holdingCost]);
-
-  return (
-    <Section title="EOQ – Economic Order Quantity" right={<ExportButtons filename="eoq" data={{ demand, orderCost, holdingCost, eoq }} />}>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="grid gap-4">
-          <NumberField id="demand" label="Annual Demand" value={demand} onChange={setDemand} suffix="units" />
-          <NumberField id="orderCost" label="Order Cost" value={orderCost} onChange={setOrderCost} suffix="฿" />
-          <NumberField id="holdingCost" label="Holding Cost per Unit" value={holdingCost} onChange={setHoldingCost} suffix="฿" />
+        <!-- Takt Time Calculator -->
+        <div class="card p-4">
+            <h2 class="text-lg font-bold">Takt Time</h2>
+            <div class="grid md:grid-cols-2 gap-6 mt-4">
+                <div class="grid gap-4">
+                    <div>
+                        <label for="takt-time" class="block text-sm font-medium text-gray-700">Available Production Time per Period</label>
+                        <input type="number" id="takt-time" value="420" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="takt-demand" class="block text-sm font-medium text-gray-700">Customer Demand per Period</label>
+                        <input type="number" id="takt-demand" value="600" class="w-full input mt-1">
+                    </div>
+                </div>
+                <div class="grid gap-2">
+                    <div class="rounded-2xl border p-6 bg-gray-100">
+                        <div class="text-sm text-gray-500">Takt Time</div>
+                        <div id="takt-result" class="text-4xl font-extrabold">0 sec/unit</div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div className="grid gap-2">
-          <Stat label="EOQ" value={eoq.toFixed(2)} suffix=" units" />
+
+        <!-- Capacity Planner -->
+        <div class="card p-4">
+            <h2 class="text-lg font-bold">Capacity Planning</h2>
+            <div class="grid md:grid-cols-2 gap-6 mt-4">
+                <div class="grid gap-4">
+                    <div>
+                        <label for="capacity-machines" class="block text-sm font-medium text-gray-700">Machines</label>
+                        <input type="number" id="capacity-machines" value="3" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="capacity-shifts" class="block text-sm font-medium text-gray-700">Shifts per Day</label>
+                        <input type="number" id="capacity-shifts" value="2" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="capacity-hours" class="block text-sm font-medium text-gray-700">Hours per Shift</label>
+                        <input type="number" id="capacity-hours" value="8" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="capacity-efficiency" class="block text-sm font-medium text-gray-700">Efficiency</label>
+                        <input type="number" id="capacity-efficiency" value="85" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="capacity-cycle" class="block text-sm font-medium text-gray-700">Cycle Time</label>
+                        <input type="number" id="capacity-cycle" value="20" class="w-full input mt-1">
+                    </div>
+                </div>
+                <div class="grid gap-2">
+                    <div class="flex justify-between items-baseline py-1">
+                        <span class="text-sm text-gray-500">Units per Machine per Day</span>
+                        <span id="capacity-units" class="font-semibold">0</span>
+                    </div>
+                    <div class="flex justify-between items-baseline py-1">
+                        <span class="text-sm text-gray-500">Hourly Throughput (all machines)</span>
+                        <span id="capacity-hourly" class="font-semibold">0</span>
+                    </div>
+                    <div class="rounded-2xl border p-6 bg-gray-100">
+                        <div class="text-sm text-gray-500">Daily Capacity (all machines)</div>
+                        <div id="capacity-daily" class="text-4xl font-extrabold">0 units/day</div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </Section>
-  );
-}
 
-function TaktTimeCalculator() {
-  const [availableTimeMin, setAvailableTimeMin] = useState(420);
-  const [customerDemand, setCustomerDemand] = useState(600);
-  const takt = useMemo(() => (customerDemand > 0 ? (availableTimeMin * 60) / customerDemand : 0), [availableTimeMin, customerDemand]);
-
-  return (
-    <Section title="Takt Time" right={<ExportButtons filename="takt" data={{ availableTimeMin, customerDemand, takt }} />}>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="grid gap-4">
-          <NumberField id="avail" label="Available Production Time per Period" value={availableTimeMin} onChange={setAvailableTimeMin} suffix="min" />
-          <NumberField id="demand" label="Customer Demand per Period" value={customerDemand} onChange={setCustomerDemand} suffix="units" />
+        <!-- Quality Yield -->
+        <div class="card p-4">
+            <h2 class="text-lg font-bold">Quality – Yield / Scrap / PPM</h2>
+            <div class="grid md:grid-cols-2 gap-6 mt-4">
+                <div class="grid gap-4">
+                    <div>
+                        <label for="quality-total" class="block text-sm font-medium text-gray-700">Total Units</label>
+                        <input type="number" id="quality-total" value="1000" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="quality-good" class="block text-sm font-medium text-gray-700">Good Units</label>
+                        <input type="number" id="quality-good" value="980" class="w-full input mt-1">
+                    </div>
+                </div>
+                <div class="grid gap-2">
+                    <div class="flex justify-between items-baseline py-1">
+                        <span class="text-sm text-gray-500">Scrap Units</span>
+                        <span id="quality-scrap" class="font-semibold">0</span>
+                    </div>
+                    <div class="flex justify-between items-baseline py-1">
+                        <span class="text-sm text-gray-500">Yield</span>
+                        <span id="quality-yield" class="font-semibold">0%</span>
+                    </div>
+                    <div class="flex justify-between items-baseline py-1">
+                        <span class="text-sm text-gray-500">Defect Rate</span>
+                        <span id="quality-defect" class="font-semibold">0%</span>
+                    </div>
+                    <div class="rounded-2xl border p-6 bg-gray-100">
+                        <div class="text-sm text-gray-500">Defects per Million (PPM)</div>
+                        <div id="quality-ppm" class="text-4xl font-extrabold">0</div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div className="grid gap-2">
-          <div className="rounded-2xl border p-6 bg-muted/40">
-            <div className="text-sm text-muted-foreground">Takt Time</div>
-            <div className="text-4xl font-extrabold">{takt.toFixed(2)} sec/unit</div>
-          </div>
+        
+        <!-- MTBF/MTTR -->
+        <div class="card p-4">
+            <h2 class="text-lg font-bold">Reliability – MTBF / MTTR / Availability</h2>
+            <div class="grid md:grid-cols-2 gap-6 mt-4">
+                <div class="grid gap-4">
+                    <div>
+                        <label for="mtbf-hours" class="block text-sm font-medium text-gray-700">MTBF</label>
+                        <input type="number" id="mtbf-hours" value="120" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="mttr-hours" class="block text-sm font-medium text-gray-700">MTTR</label>
+                        <input type="number" id="mttr-hours" value="2" class="w-full input mt-1">
+                    </div>
+                </div>
+                <div class="grid gap-2">
+                    <div class="rounded-2xl border p-6 bg-gray-100">
+                        <div class="text-sm text-gray-500">Availability</div>
+                        <div id="mtbf-availability" class="text-4xl font-extrabold">0%</div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </Section>
-  );
-}
 
-function CapacityPlanner() {
-  const [machines, setMachines] = useState(3);
-  const [shiftsPerDay, setShiftsPerDay] = useState(2);
-  const [hoursPerShift, setHoursPerShift] = useState(8);
-  const [efficiency, setEfficiency] = useState(85);
-  const [cycleSec, setCycleSec] = useState(20);
-
-  const results = useMemo(() => {
-    const eff = Math.max(Math.min(efficiency, 100), 0) / 100;
-    const secondsPerDay = shiftsPerDay * hoursPerShift * 3600;
-    const unitsPerMachinePerDay = cycleSec > 0 ? (secondsPerDay * eff) / cycleSec : 0;
-    const dailyCapacity = unitsPerMachinePerDay * machines;
-    const hourlyRate = cycleSec > 0 ? (3600 * eff) / cycleSec * machines : 0;
-    return { unitsPerMachinePerDay, dailyCapacity, hourlyRate };
-  }, [machines, shiftsPerDay, hoursPerShift, efficiency, cycleSec]);
-
-  return (
-    <Section title="Capacity Planning" right={<ExportButtons filename="capacity" data={{ machines, shiftsPerDay, hoursPerShift, efficiency, cycleSec, ...results }} />}>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="grid gap-4">
-          <NumberField id="machines" label="Machines" value={machines} onChange={setMachines} min={0} suffix="ea" />
-          <NumberField id="shifts" label="Shifts per Day" value={shiftsPerDay} onChange={setShiftsPerDay} min={0} suffix="shifts" />
-          <NumberField id="hours" label="Hours per Shift" value={hoursPerShift} onChange={setHoursPerShift} min={0} suffix="h" />
-          <NumberField id="eff" label="Efficiency" value={efficiency} onChange={setEfficiency} min={0} step={0.1} suffix="%" />
-          <NumberField id="cycle" label="Cycle Time" value={cycleSec} onChange={setCycleSec} min={0} step={0.1} suffix="sec/unit" />
+        <!-- Finance ROI -->
+        <div class="card p-4">
+            <h2 class="text-lg font-bold">Financial – ROI & Payback</h2>
+            <div class="grid md:grid-cols-2 gap-6 mt-4">
+                <div class="grid gap-4">
+                    <div>
+                        <label for="roi-investment" class="block text-sm font-medium text-gray-700">Initial Investment</label>
+                        <input type="number" id="roi-investment" value="500000" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="roi-benefit" class="block text-sm font-medium text-gray-700">Annual Benefit (savings + profit)</label>
+                        <input type="number" id="roi-benefit" value="250000" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="roi-cost" class="block text-sm font-medium text-gray-700">Annual Operating Cost</label>
+                        <input type="number" id="roi-cost" value="50000" class="w-full input mt-1">
+                    </div>
+                </div>
+                <div class="grid gap-2">
+                    <div class="flex justify-between items-baseline py-1">
+                        <span class="text-sm text-gray-500">Net Annual Benefit</span>
+                        <span id="roi-net" class="font-semibold">0</span>
+                    </div>
+                    <div class="flex justify-between items-baseline py-1">
+                        <span class="text-sm text-gray-500">ROI</span>
+                        <span id="roi-result" class="font-semibold">0%</span>
+                    </div>
+                    <div class="rounded-2xl border p-6 bg-gray-100">
+                        <div class="text-sm text-gray-500">Payback Period</div>
+                        <div id="roi-payback" class="text-4xl font-extrabold">0 years</div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div className="grid gap-2">
-          <Stat label="Units per Machine per Day" value={results.unitsPerMachinePerDay.toFixed(1)} />
-          <Stat label="Hourly Throughput (all machines)" value={results.hourlyRate.toFixed(1)} suffix=" units/h" />
-          <div className="rounded-2xl border p-6 bg-muted/40">
-            <div className="text-sm text-muted-foreground">Daily Capacity (all machines)</div>
-            <div className="text-4xl font-extrabold">{results.dailyCapacity.toFixed(0)} units/day</div>
-          </div>
+
+        <!-- Break Even -->
+        <div class="card p-4">
+            <h2 class="text-lg font-bold">Break-even Point</h2>
+            <div class="grid md:grid-cols-2 gap-6 mt-4">
+                <div class="grid gap-4">
+                    <div>
+                        <label for="be-fixed" class="block text-sm font-medium text-gray-700">Fixed Costs</label>
+                        <input type="number" id="be-fixed" value="1200000" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="be-price" class="block text-sm font-medium text-gray-700">Unit Price</label>
+                        <input type="number" id="be-price" value="150" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="be-variable" class="block text-sm font-medium text-gray-700">Variable Cost per Unit</label>
+                        <input type="number" id="be-variable" value="85" class="w-full input mt-1">
+                    </div>
+                </div>
+                <div class="grid gap-2">
+                    <div class="flex justify-between items-baseline py-1">
+                        <span class="text-sm text-gray-500">Contribution Margin</span>
+                        <span id="be-margin" class="font-semibold">0</span>
+                    </div>
+                    <div class="rounded-2xl border p-6 bg-gray-100">
+                        <div class="text-sm text-gray-500">Break-even Volume</div>
+                        <div id="be-result" class="text-4xl font-extrabold">0 units</div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </Section>
-  );
-}
 
-function QualityYield() {
-  const [total, setTotal] = useState(1000);
-  const [good, setGood] = useState(980);
-
-  const results = useMemo(() => {
-    const scrap = Math.max(total - good, 0);
-    const yieldPct = total > 0 ? (good / total) * 100 : 0;
-    const defectRatePct = 100 - yieldPct;
-    const ppm = total > 0 ? (scrap / total) * 1_000_000 : 0;
-    return { scrap, yieldPct, defectRatePct, ppm };
-  }, [total, good]);
-
-  return (
-    <Section title="Quality – Yield / Scrap / PPM" right={<ExportButtons filename="quality" data={{ total, good, ...results }} />}>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="grid gap-4">
-          <NumberField id="qt-total" label="Total Units" value={total} onChange={setTotal} suffix="units" />
-          <NumberField id="qt-good" label="Good Units" value={good} onChange={setGood} suffix="units" />
+        <!-- Downtime Cost -->
+        <div class="card p-4">
+            <h2 class="text-lg font-bold">Downtime Cost</h2>
+            <div class="grid md:grid-cols-2 gap-6 mt-4">
+                <div class="grid gap-4">
+                    <div>
+                        <label for="dt-rate" class="block text-sm font-medium text-gray-700">Cost per Hour</label>
+                        <input type="number" id="dt-rate" value="15000" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="dt-hours" class="block text-sm font-medium text-gray-700">Downtime Hours</label>
+                        <input type="number" id="dt-hours" value="3" class="w-full input mt-1">
+                    </div>
+                </div>
+                <div class="grid gap-2">
+                    <div class="rounded-2xl border p-6 bg-gray-100">
+                        <div class="text-sm text-gray-500">Total Downtime Cost</div>
+                        <div id="dt-result" class="text-4xl font-extrabold">0 ฿</div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div className="grid gap-2">
-          <Stat label="Scrap Units" value={results.scrap.toFixed(0)} />
-          <Stat label="Yield" value={results.yieldPct.toFixed(2)} suffix=" %" />
-          <Stat label="Defect Rate" value={results.defectRatePct.toFixed(2)} suffix=" %" />
-          <div className="rounded-2xl border p-6 bg-muted/40">
-            <div className="text-sm text-muted-foreground">Defects per Million (PPM)</div>
-            <div className="text-4xl font-extrabold">{results.ppm.toFixed(0)}</div>
-          </div>
+
+        <!-- SPC Cp/Cpk -->
+        <div class="card p-4">
+            <h2 class="text-lg font-bold">SPC – Cp / Cpk</h2>
+            <div class="grid md:grid-cols-2 gap-6 mt-4">
+                <div class="grid gap-4">
+                    <div>
+                        <label for="spc-lsl" class="block text-sm font-medium text-gray-700">Lower Spec Limit (LSL)</label>
+                        <input type="number" id="spc-lsl" value="9.5" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="spc-usl" class="block text-sm font-medium text-gray-700">Upper Spec Limit (USL)</label>
+                        <input type="number" id="spc-usl" value="10.5" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="spc-mean" class="block text-sm font-medium text-gray-700">Process Mean</label>
+                        <input type="number" id="spc-mean" value="10" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="spc-stdev" class="block text-sm font-medium text-gray-700">Standard Deviation (σ)</label>
+                        <input type="number" id="spc-stdev" value="0.2" class="w-full input mt-1">
+                    </div>
+                </div>
+                <div class="grid gap-2">
+                    <div class="flex justify-between items-baseline py-1">
+                        <span class="text-sm text-gray-500">Cp</span>
+                        <span id="spc-cp" class="font-semibold">0</span>
+                    </div>
+                    <div class="flex justify-between items-baseline py-1">
+                        <span class="text-sm text-gray-500">Cpu</span>
+                        <span id="spc-cpu" class="font-semibold">0</span>
+                    </div>
+                    <div class="flex justify-between items-baseline py-1">
+                        <span class="text-sm text-gray-500">Cpl</span>
+                        <span id="spc-cpl" class="font-semibold">0</span>
+                    </div>
+                    <div class="rounded-2xl border p-6 bg-gray-100">
+                        <div class="text-sm text-gray-500">Cpk</div>
+                        <div id="spc-cpk" class="text-4xl font-extrabold">0</div>
+                        <div id="spc-cpk-status" class="text-base font-medium mt-1"></div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </Section>
-  );
-}
 
-function MTBF_MTTR() {
-  const [mtbfHours, setMtbfHours] = useState(120);
-  const [mttrHours, setMttrHours] = useState(2);
-
-  const availability = useMemo(() => {
-    const denom = mtbfHours + mttrHours;
-    return denom > 0 ? mtbfHours / denom : 0;
-  }, [mtbfHours, mttrHours]);
-
-  return (
-    <Section title="Reliability – MTBF / MTTR / Availability" right={<ExportButtons filename="reliability" data={{ mtbfHours, mttrHours, availability }} />}>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="grid gap-4">
-          <NumberField id="mtbf" label="MTBF" value={mtbfHours} onChange={setMtbfHours} suffix="h" />
-          <NumberField id="mttr" label="MTTR" value={mttrHours} onChange={setMttrHours} suffix="h" />
+        <!-- CPK Calculator -->
+        <div class="card p-4">
+            <h2 class="text-lg font-bold">CPK Calculator</h2>
+            <div class="grid md:grid-cols-2 gap-6 mt-4">
+                <div class="grid gap-4">
+                    <div>
+                        <label for="cpk-lsl" class="block text-sm font-medium text-gray-700">Lower Spec Limit (LSL)</label>
+                        <input type="number" id="cpk-lsl" value="9.5" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="cpk-usl" class="block text-sm font-medium text-gray-700">Upper Spec Limit (USL)</label>
+                        <input type="number" id="cpk-usl" value="10.5" class="w-full input mt-1">
+                    </div>
+                    <div>
+                        <label for="cpk-data" class="block text-sm font-medium text-gray-700">Data (comma or newline separated)</label>
+                        <textarea id="cpk-data" class="resize-y min-h-[100px] border rounded-md p-2 text-sm">10.1, 10.5, 9.8, 10.3, 10.2, 9.9, 10.0, 10.1, 10.4, 10.2</textarea>
+                    </div>
+                </div>
+                <div class="grid gap-2">
+                    <div class="flex justify-between items-baseline py-1">
+                        <span class="text-sm text-gray-500">Data Points</span>
+                        <span id="cpk-datapoints" class="font-semibold">0</span>
+                    </div>
+                    <div class="flex justify-between items-baseline py-1">
+                        <span class="text-sm text-gray-500">Mean (X̄)</span>
+                        <span id="cpk-mean" class="font-semibold">0</span>
+                    </div>
+                    <div class="flex justify-between items-baseline py-1">
+                        <span class="text-sm text-gray-500">Std Dev (σ)</span>
+                        <span id="cpk-stdev" class="font-semibold">0</span>
+                    </div>
+                    <div class="rounded-2xl border p-6 bg-gray-100">
+                        <div class="text-sm text-gray-500">Cpk</div>
+                        <div id="cpk-result" class="text-4xl font-extrabold">0</div>
+                        <div id="cpk-status" class="text-base font-medium mt-1"></div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div className="grid gap-2">
-          <div className="rounded-2xl border p-6 bg-muted/40">
-            <div className="text-sm text-muted-foreground">Availability</div>
-            <div className="text-4xl font-extrabold">{(availability * 100).toFixed(2)}%</div>
-          </div>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function FinanceROI() {
-  const [investment, setInvestment] = useState(500000);
-  const [annualBenefit, setAnnualBenefit] = useState(250000);
-  const [annualCost, setAnnualCost] = useState(50_000);
-
-  const results = useMemo(() => {
-    const net = annualBenefit - annualCost;
-    const roi = investment > 0 ? (net / investment) * 100 : 0;
-    const paybackYears = net > 0 ? investment / net : Infinity;
-    return { net, roi, paybackYears };
-  }, [investment, annualBenefit, annualCost]);
-
-  return (
-    <Section title="Financial – ROI & Payback" right={<ExportButtons filename="finance" data={{ investment, annualBenefit, annualCost, ...results }} />}>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="grid gap-4">
-          <NumberField id="inv" label="Initial Investment" value={investment} onChange={setInvestment} suffix="฿" />
-          <NumberField id="benefit" label="Annual Benefit (savings + profit)" value={annualBenefit} onChange={setAnnualBenefit} suffix="฿/yr" />
-          <NumberField id="cost" label="Annual Operating Cost" value={annualCost} onChange={setAnnualCost} suffix="฿/yr" />
-        </div>
-        <div className="grid gap-2">
-          <Stat label="Net Annual Benefit" value={results.net.toLocaleString()} suffix=" ฿/yr" />
-          <Stat label="ROI" value={results.roi.toFixed(2)} suffix=" %" />
-          <div className="rounded-2xl border p-6 bg-muted/40">
-            <div className="text-sm text-muted-foreground">Payback Period</div>
-            <div className="text-4xl font-extrabold">{Number.isFinite(results.paybackYears) ? `${results.paybackYears.toFixed(2)} years` : "—"}</div>
-          </div>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function BreakEven() {
-  const [fixed, setFixed] = useState(1_200_000);
-  const [price, setPrice] = useState(150);
-  const [variable, setVariable] = useState(85);
-
-  const results = useMemo(() => {
-    const cm = price - variable; // contribution margin per unit
-    const units = cm > 0 ? fixed / cm : Infinity;
-    return { cm, units };
-  }, [fixed, price, variable]);
-
-  return (
-    <Section title="Break-even Point" right={<ExportButtons filename="breakeven" data={{ fixed, price, variable, ...results }} />}>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="grid gap-4">
-          <NumberField id="fixed" label="Fixed Costs" value={fixed} onChange={setFixed} suffix="฿" />
-          <NumberField id="price" label="Unit Price" value={price} onChange={setPrice} suffix="฿/unit" />
-          <NumberField id="var" label="Variable Cost per Unit" value={variable} onChange={setVariable} suffix="฿/unit" />
-        </div>
-        <div className="grid gap-2">
-          <Stat label="Contribution Margin" value={results.cm.toFixed(2)} suffix=" ฿/unit" />
-          <div className="rounded-2xl border p-6 bg-muted/40">
-            <div className="text-sm text-muted-foreground">Break-even Volume</div>
-            <div className="text-4xl font-extrabold">{Number.isFinite(results.units) ? `${Math.ceil(results.units).toLocaleString()} units` : "—"}</div>
-          </div>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function DowntimeCost() {
-  const [rate, setRate] = useState(15000); // cost per hour
-  const [hours, setHours] = useState(3);
-  const cost = useMemo(() => rate * hours, [rate, hours]);
-  return (
-    <Section title="Downtime Cost" right={<ExportButtons filename="downtime" data={{ rate, hours, cost }} />}>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="grid gap-4">
-          <NumberField id="rate" label="Cost per Hour" value={rate} onChange={setRate} suffix="฿/h" />
-          <NumberField id="hours" label="Downtime Hours" value={hours} onChange={setHours} suffix="h" />
-        </div>
-        <div className="grid gap-2">
-          <div className="rounded-2xl border p-6 bg-muted/40">
-            <div className="text-sm text-muted-foreground">Total Downtime Cost</div>
-            <div className="text-4xl font-extrabold">{cost.toLocaleString()} ฿</div>
-          </div>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function SPC_CpCpk() {
-  const [lsl, setLsl] = useState(9.5);
-  const [usl, setUsl] = useState(10.5);
-  const [mean, setMean] = useState(10);
-  const [stdev, setStdev] = useState(0.2);
-
-  const results = useMemo(() => {
-    const cp = stdev > 0 ? (usl - lsl) / (6 * stdev) : 0;
-    const cpu = stdev > 0 ? (usl - mean) / (3 * stdev) : 0;
-    const cpl = stdev > 0 ? (mean - lsl) / (3 * stdev) : 0;
-    const cpk = Math.min(cpu, cpl);
-    return { cp, cpu, cpl, cpk };
-  }, [lsl, usl, mean, stdev]);
-
-  const status = useMemo(() => {
-    if (results.cpk >= 2.00) return { text: "ระดับโลก (World Class)", color: "text-blue-600" };
-    if (results.cpk >= 1.67) return { text: "มีความสามารถสูงมาก (Highly Capable)", color: "text-indigo-600" };
-    if (results.cpk >= 1.33) return { text: "มีความสามารถสูง (Capable)", color: "text-green-600" };
-    if (results.cpk >= 1.00) return { text: "รองรับได้ (Adequate)", color: "text-yellow-600" };
-    return { text: "ไม่สามารถรองรับได้ (Not Capable)", color: "text-red-600" };
-  }, [results.cpk]);
-
-  return (
-    <Section title="SPC – Cp / Cpk" right={<ExportButtons filename="spc" data={{ lsl, usl, mean, stdev, ...results }} />}>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="grid gap-4">
-          <NumberField id="lsl" label="Lower Spec Limit (LSL)" value={lsl} onChange={setLsl} />
-          <NumberField id="usl" label="Upper Spec Limit (USL)" value={usl} onChange={setUsl} />
-          <NumberField id="mean" label="Process Mean" value={mean} onChange={setMean} />
-          <NumberField id="stdev" label="Standard Deviation (σ)" value={stdev} onChange={setStdev} step={0.01} />
-        </div>
-        <div className="grid gap-2">
-          <Stat label="Cp" value={results.cp.toFixed(3)} />
-          <Stat label="Cpu" value={results.cpu.toFixed(3)} />
-          <Stat label="Cpl" value={results.cpl.toFixed(3)} />
-          <div className="rounded-2xl border p-6 bg-muted/40">
-            <div className="text-sm text-muted-foreground">Cpk</div>
-            <div className={`text-4xl font-extrabold ${status.color}`}>{results.cpk.toFixed(3)}</div>
-            <div className={`text-base font-medium mt-1 ${status.color}`}>{status.text}</div>
-          </div>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function CPKCalculator() {
-  const [lsl, setLsl] = useState(9.5);
-  const [usl, setUsl] = useState(10.5);
-  const [dataInput, setDataInput] = useState("10.1, 10.5, 9.8, 10.3, 10.2, 9.9, 10.0, 10.1, 10.4, 10.2");
-
-  const results = useMemo(() => {
-    const data = dataInput.split(/[\s,]+/).filter(Boolean).map(Number);
-    if (data.length < 2) return null;
-    const mean = data.reduce((sum, val) => sum + val, 0) / data.length;
-    const stdev = Math.sqrt(data.reduce((sum, val) => sum + (val - mean) ** 2, 0) / (data.length - 1));
-    const cpu = stdev > 0 ? (usl - mean) / (3 * stdev) : 0;
-    const cpl = stdev > 0 ? (mean - lsl) / (3 * stdev) : 0;
-    const cpk = Math.min(cpu, cpl);
-    return { data, mean, stdev, cpu, cpl, cpk };
-  }, [lsl, usl, dataInput]);
-
-  const status = useMemo(() => {
-    if (!results) return null;
-    if (results.cpk >= 2.00) return { text: "อยู่ในระดับโลก (World Class)", color: "text-blue-600" };
-    if (results.cpk >= 1.67) return { text: "มีความสามารถสูงมาก (Highly Capable)", color: "text-indigo-600" };
-    if (results.cpk >= 1.33) return { text: "มีความสามารถสูง (Capable)", color: "text-green-600" };
-    if (results.cpk >= 1.00) return { text: "รองรับได้ (Adequate)", color: "text-yellow-600" };
-    return { text: "ไม่สามารถรองรับได้ (Not Capable)", color: "text-red-600" };
-  }, [results]);
-
-  return (
-    <Section title="CPK Calculator" right={<ExportButtons filename="cpk_from_data" data={{ lsl, usl, dataInput, ...results }} />}>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="grid gap-4">
-          <NumberField id="lsl-data" label="Lower Spec Limit (LSL)" value={lsl} onChange={setLsl} />
-          <NumberField id="usl-data" label="Upper Spec Limit (USL)" value={usl} onChange={setUsl} />
-          <div className="grid gap-1.5">
-            <Label htmlFor="data-input">Data (comma or newline separated)</Label>
-            <textarea
-              id="data-input"
-              className="resize-y min-h-[100px] border rounded-md p-2 text-sm"
-              value={dataInput}
-              onChange={(e) => setDataInput(e.target.value)}
-              placeholder="e.g., 10.1, 10.5, 9.8..."
-            />
-          </div>
-        </div>
-        <div className="grid gap-2">
-          {results && (
-            <>
-              <Stat label="Data Points" value={results.data.length} />
-              <Stat label="Mean (X̄)" value={results.mean.toFixed(3)} />
-              <Stat label="Std Dev (σ)" value={results.stdev.toFixed(3)} />
-              <div className="rounded-2xl border p-6 bg-muted/40 mt-auto">
-                <div className="text-sm text-muted-foreground">Cpk</div>
-                <div className={`text-4xl font-extrabold ${status.color}`}>{results.cpk.toFixed(3)}</div>
-                <div className={`text-base font-medium mt-1 ${status.color}`}>{status.text}</div>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function PrintStyles() {
-  return (
-    <style>{`@media print { button, [role=tablist] { display:none !important;} header, footer { box-shadow:none; border:none; } body { background:white !important; } .shadow-md { box-shadow: none !important; } }`}</style>
-  );
-}
-
-// ---------------- Developer Tests ----------------
-function DevTests() {
-  const [results, setResults] = useState([]);
-  useEffect(() => {
-    const cases = [];
-
-    // Case 1: newline present
-    const d1 = { a: 1, b: 2 };
-    const c1 = buildCSVFromObject(d1);
-    cases.push({ name: "CSV newline present", pass: !!c1 && c1.includes("\n"), detail: c1 });
-
-    // Case 2: comma value quoted
-    const d2 = { name: "a,b", qty: 5 };
-    const c2 = buildCSVFromObject(d2);
-    cases.push({ name: "Comma value quoted", pass: !!c2 && c2.includes('"a,b"'), detail: c2 });
-
-    // Case 3: quotes escaped
-    const d3 = { note: 'He said "Hi"' };
-    const c3 = buildCSVFromObject(d3);
-    cases.push({ name: "Quotes escaped", pass: !!c3 && c3.includes('He said ""Hi""'), detail: c3 });
-
-    // Case 4: empty object -> null
-    const d4 = {};
-    const c4 = buildCSVFromObject(d4);
-    cases.push({ name: "Empty data returns null", pass: c4 === null, detail: String(c4) });
-
-    setResults(cases);
-  }, []);
-  return (
-    <div className="max-w-6xl mx-auto px-4 pb-2">
-      <div className="mt-2 rounded-lg border p-3 bg-muted/30">
-        <div className="text-xs font-medium mb-2">Developer self-tests</div>
-        <ul className="grid gap-1">
-          {results.map((r, i) => (
-            <li key={i} className="flex items-start gap-2 text-xs">
-              {r.pass ? <CheckCircle2 className="h-4 w-4"/> : <XCircle className="h-4 w-4"/>}
-              <span>{r.name}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
-
-export default function FactoryCalculators() {
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 text-foreground">
-      <PrintStyles />
-      <header className="sticky top-0 z-10 backdrop-blur border-b bg-background/70">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <a href="index.html" className="flex items-center gap-2 text-xl font-bold">
-            <ArrowLeft className="h-5 w-5" />
-            <span className="hidden md:block">กลับ</span>
-          </a>
-          <div className="flex-1 text-center">
-            <h1 className="text-xl font-bold">Factory Calculators Hub</h1>
-            <p className="text-sm text-muted-foreground">รวมเครื่องมือคำนวณหลักสำหรับโรงงาน – ในหน้าเดียว</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={() => window.print()}>
-              <Printer className="h-4 w-4 mr-2"/>พิมพ์เป็น PDF
-            </Button>
-          </div>
-        </div>
-      </header>
-      <main className="max-w-6xl mx-auto p-4 md:p-6 grid gap-6">
-        <OEECalculator />
-        <EOQCalculator />
-        <TaktTimeCalculator />
-        <CapacityPlanner />
-        <QualityYield />
-        <MTBF_MTTR />
-        <FinanceROI />
-        <BreakEven />
-        <DowntimeCost />
-        <SPC_CpCpk />
-        <CPKCalculator />
-      </main>
-    </div>
-  );
-}
-import React, { useMemo, useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Download, Calculator, FileText, Printer, CheckCircle2, XCircle } from "lucide-react";
-import { ArrowLeft } from 'lucide-react';
-
-// ---------------- Utilities ----------------
-function NumberField({ id, label, value, onChange, suffix, min = 0, step = "any" }) {
-  return (
-    <div className="grid gap-1.5">
-      <Label htmlFor={id}>{label}</Label>
-      <div className="flex items-center gap-2">
-        <Input
-          id={id}
-          type="number"
-          inputMode="decimal"
-          step={step}
-          min={min}
-          value={Number.isFinite(value) ? value : ""}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="text-right"
-        />
-        {suffix ? <span className="text-sm text-muted-foreground w-14 text-right">{suffix}</span> : null}
-      </div>
-    </div>
-  );
-}
-
-function Stat({ label, value, suffix }) {
-  return (
-    <div className="flex items-baseline justify-between py-1">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="font-semibold tabular-nums">{value}{suffix}</span>
-    </div>
-  );
-}
-
-function Section({ title, children, right }) {
-  return (
-    <Card className="shadow-md">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2"><Calculator className="h-5 w-5"/>{title}</CardTitle>
-          {right}
-        </div>
-      </CardHeader>
-      <CardContent>{children}</CardContent>
-    </Card>
-  );
-}
-
-// Escape any value for safe CSV using JSON.stringify (handles quotes/commas/newlines)
-function toCSVField(v) {
-  return JSON.stringify(v ?? "");
-}
-
-function buildCSVFromObject(data) {
-  const entries = Object.entries(data || {});
-  if (entries.length === 0) return null;
-  const header = entries.map(([k]) => toCSVField(k)).join(",");
-  const row = entries.map(([, v]) => toCSVField(v)).join(",");
-  const csv = "\uFEFF" + header + "\n" + row; // BOM + newline
-  return csv;
-}
-
-function ExportButtons({ filename, data }) {
-  const downloadJSON = () => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename + ".json";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const downloadCSV = () => {
-    const csv = buildCSVFromObject(data);
-    if (!csv) return;
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename + ".csv";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  return (
-    <div className="flex gap-2">
-      <Button variant="secondary" size="sm" onClick={downloadJSON}><Download className="h-4 w-4 mr-2"/>JSON</Button>
-      <Button variant="secondary" size="sm" onClick={downloadCSV}><FileText className="h-4 w-4 mr-2"/>CSV</Button>
-      <Button variant="secondary" size="sm" onClick={() => window.print()}><Printer className="h-4 w-4 mr-2"/>PDF</Button>
-    </div>
-  );
-}
-
-// ---------------- Calculators ----------------
-function OEECalculator() {
-  const [plannedTimeMin, setPlannedTimeMin] = useState(480);
-  const [downtimeMin, setDowntimeMin] = useState(60);
-  const [idealCycleTimeSec, setIdealCycleTimeSec] = useState(30);
-  const [totalUnits, setTotalUnits] = useState(800);
-  const [goodUnits, setGoodUnits] = useState(760);
-
-  const results = useMemo(() => {
-    const runtimeMin = Math.max(plannedTimeMin - downtimeMin, 0);
-    const availability = plannedTimeMin > 0 ? runtimeMin / plannedTimeMin : 0;
-    const idealTimeMin = (totalUnits * idealCycleTimeSec) / 60;
-    const performance = runtimeMin > 0 ? idealTimeMin / runtimeMin : 0;
-    const quality = totalUnits > 0 ? goodUnits / totalUnits : 0;
-    const oee = availability * performance * quality;
-    return { runtimeMin, availability, performance, quality, oee };
-  }, [plannedTimeMin, downtimeMin, idealCycleTimeSec, totalUnits, goodUnits]);
-
-  return (
-    <Section title="OEE – Overall Equipment Effectiveness" right={<ExportButtons filename="oee" data={{ plannedTimeMin, downtimeMin, idealCycleTimeSec, totalUnits, goodUnits, ...results }} />}>  
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="grid gap-4">
-          <NumberField id="planned" label="Planned Production Time" value={plannedTimeMin} onChange={setPlannedTimeMin} suffix="min" />
-          <NumberField id="downtime" label="Downtime" value={downtimeMin} onChange={setDowntimeMin} suffix="min" />
-          <NumberField id="ideal" label="Ideal Cycle Time" value={idealCycleTimeSec} onChange={setIdealCycleTimeSec} suffix="sec/unit" />
-          <NumberField id="total" label="Total Units" value={totalUnits} onChange={setTotalUnits} suffix="units" />
-          <NumberField id="good" label="Good Units" value={goodUnits} onChange={setGoodUnits} suffix="units" />
-        </div>
-        <div className="grid gap-2">
-          <Stat label="Runtime" value={results.runtimeMin.toFixed(2)} suffix=" min" />
-          <div className="grid grid-cols-3 gap-2">
-            <Card className="p-3"><div className="text-sm text-muted-foreground">Availability</div><div className="text-2xl font-bold">{(results.availability*100).toFixed(1)}%</div></Card>
-            <Card className="p-3"><div className="text-sm text-muted-foreground">Performance</div><div className="text-2xl font-bold">{(results.performance*100).toFixed(1)}%</div></Card>
-            <Card className="p-3"><div className="text-sm text-muted-foreground">Quality</div><div className="text-2xl font-bold">{(results.quality*100).toFixed(1)}%</div></Card>
-          </div>
-          <div className="rounded-2xl border p-4 bg-muted/40">
-            <div className="text-sm text-muted-foreground">OEE</div>
-            <div className="text-4xl font-extrabold">{(results.oee*100).toFixed(1)}%</div>
-          </div>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function EOQCalculator() {
-  const [demand, setDemand] = useState(12000);
-  const [orderCost, setOrderCost] = useState(500);
-  const [holdingCost, setHoldingCost] = useState(20);
-
-  const eoq = useMemo(() => {
-    return holdingCost > 0 ? Math.sqrt((2 * demand * orderCost) / holdingCost) : 0;
-  }, [demand, orderCost, holdingCost]);
-
-  return (
-    <Section title="EOQ – Economic Order Quantity" right={<ExportButtons filename="eoq" data={{ demand, orderCost, holdingCost, eoq }} />}>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="grid gap-4">
-          <NumberField id="demand" label="Annual Demand" value={demand} onChange={setDemand} suffix="units" />
-          <NumberField id="orderCost" label="Order Cost" value={orderCost} onChange={setOrderCost} suffix="฿" />
-          <NumberField id="holdingCost" label="Holding Cost per Unit" value={holdingCost} onChange={setHoldingCost} suffix="฿" />
-        </div>
-        <div className="grid gap-2">
-          <Stat label="EOQ" value={eoq.toFixed(2)} suffix=" units" />
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function TaktTimeCalculator() {
-  const [availableTimeMin, setAvailableTimeMin] = useState(420);
-  const [customerDemand, setCustomerDemand] = useState(600);
-  const takt = useMemo(() => (customerDemand > 0 ? (availableTimeMin * 60) / customerDemand : 0), [availableTimeMin, customerDemand]);
-
-  return (
-    <Section title="Takt Time" right={<ExportButtons filename="takt" data={{ availableTimeMin, customerDemand, takt }} />}>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="grid gap-4">
-          <NumberField id="avail" label="Available Production Time per Period" value={availableTimeMin} onChange={setAvailableTimeMin} suffix="min" />
-          <NumberField id="demand" label="Customer Demand per Period" value={customerDemand} onChange={setCustomerDemand} suffix="units" />
-        </div>
-        <div className="grid gap-2">
-          <div className="rounded-2xl border p-6 bg-muted/40">
-            <div className="text-sm text-muted-foreground">Takt Time</div>
-            <div className="text-4xl font-extrabold">{takt.toFixed(2)} sec/unit</div>
-          </div>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function CapacityPlanner() {
-  const [machines, setMachines] = useState(3);
-  const [shiftsPerDay, setShiftsPerDay] = useState(2);
-  const [hoursPerShift, setHoursPerShift] = useState(8);
-  const [efficiency, setEfficiency] = useState(85);
-  const [cycleSec, setCycleSec] = useState(20);
-
-  const results = useMemo(() => {
-    const eff = Math.max(Math.min(efficiency, 100), 0) / 100;
-    const secondsPerDay = shiftsPerDay * hoursPerShift * 3600;
-    const unitsPerMachinePerDay = cycleSec > 0 ? (secondsPerDay * eff) / cycleSec : 0;
-    const dailyCapacity = unitsPerMachinePerDay * machines;
-    const hourlyRate = cycleSec > 0 ? (3600 * eff) / cycleSec * machines : 0;
-    return { unitsPerMachinePerDay, dailyCapacity, hourlyRate };
-  }, [machines, shiftsPerDay, hoursPerShift, efficiency, cycleSec]);
-
-  return (
-    <Section title="Capacity Planning" right={<ExportButtons filename="capacity" data={{ machines, shiftsPerDay, hoursPerShift, efficiency, cycleSec, ...results }} />}>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="grid gap-4">
-          <NumberField id="machines" label="Machines" value={machines} onChange={setMachines} min={0} suffix="ea" />
-          <NumberField id="shifts" label="Shifts per Day" value={shiftsPerDay} onChange={setShiftsPerDay} min={0} suffix="shifts" />
-          <NumberField id="hours" label="Hours per Shift" value={hoursPerShift} onChange={setHoursPerShift} min={0} suffix="h" />
-          <NumberField id="eff" label="Efficiency" value={efficiency} onChange={setEfficiency} min={0} step={0.1} suffix="%" />
-          <NumberField id="cycle" label="Cycle Time" value={cycleSec} onChange={setCycleSec} min={0} step={0.1} suffix="sec/unit" />
-        </div>
-        <div className="grid gap-2">
-          <Stat label="Units per Machine per Day" value={results.unitsPerMachinePerDay.toFixed(1)} />
-          <Stat label="Hourly Throughput (all machines)" value={results.hourlyRate.toFixed(1)} suffix=" units/h" />
-          <div className="rounded-2xl border p-6 bg-muted/40">
-            <div className="text-sm text-muted-foreground">Daily Capacity (all machines)</div>
-            <div className="text-4xl font-extrabold">{results.dailyCapacity.toFixed(0)} units/day</div>
-          </div>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function QualityYield() {
-  const [total, setTotal] = useState(1000);
-  const [good, setGood] = useState(980);
-
-  const results = useMemo(() => {
-    const scrap = Math.max(total - good, 0);
-    const yieldPct = total > 0 ? (good / total) * 100 : 0;
-    const defectRatePct = 100 - yieldPct;
-    const ppm = total > 0 ? (scrap / total) * 1_000_000 : 0;
-    return { scrap, yieldPct, defectRatePct, ppm };
-  }, [total, good]);
-
-  return (
-    <Section title="Quality – Yield / Scrap / PPM" right={<ExportButtons filename="quality" data={{ total, good, ...results }} />}>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="grid gap-4">
-          <NumberField id="qt-total" label="Total Units" value={total} onChange={setTotal} suffix="units" />
-          <NumberField id="qt-good" label="Good Units" value={good} onChange={setGood} suffix="units" />
-        </div>
-        <div className="grid gap-2">
-          <Stat label="Scrap Units" value={results.scrap.toFixed(0)} />
-          <Stat label="Yield" value={results.yieldPct.toFixed(2)} suffix=" %" />
-          <Stat label="Defect Rate" value={results.defectRatePct.toFixed(2)} suffix=" %" />
-          <div className="rounded-2xl border p-6 bg-muted/40">
-            <div className="text-sm text-muted-foreground">Defects per Million (PPM)</div>
-            <div className="text-4xl font-extrabold">{results.ppm.toFixed(0)}</div>
-          </div>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function MTBF_MTTR() {
-  const [mtbfHours, setMtbfHours] = useState(120);
-  const [mttrHours, setMttrHours] = useState(2);
-
-  const availability = useMemo(() => {
-    const denom = mtbfHours + mttrHours;
-    return denom > 0 ? mtbfHours / denom : 0;
-  }, [mtbfHours, mttrHours]);
-
-  return (
-    <Section title="Reliability – MTBF / MTTR / Availability" right={<ExportButtons filename="reliability" data={{ mtbfHours, mttrHours, availability }} />}>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="grid gap-4">
-          <NumberField id="mtbf" label="MTBF" value={mtbfHours} onChange={setMtbfHours} suffix="h" />
-          <NumberField id="mttr" label="MTTR" value={mttrHours} onChange={setMttrHours} suffix="h" />
-        </div>
-        <div className="grid gap-2">
-          <div className="rounded-2xl border p-6 bg-muted/40">
-            <div className="text-sm text-muted-foreground">Availability</div>
-            <div className="text-4xl font-extrabold">{(availability * 100).toFixed(2)}%</div>
-          </div>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function FinanceROI() {
-  const [investment, setInvestment] = useState(500000);
-  const [annualBenefit, setAnnualBenefit] = useState(250000);
-  const [annualCost, setAnnualCost] = useState(50_000);
-
-  const results = useMemo(() => {
-    const net = annualBenefit - annualCost;
-    const roi = investment > 0 ? (net / investment) * 100 : 0;
-    const paybackYears = net > 0 ? investment / net : Infinity;
-    return { net, roi, paybackYears };
-  }, [investment, annualBenefit, annualCost]);
-
-  return (
-    <Section title="Financial – ROI & Payback" right={<ExportButtons filename="finance" data={{ investment, annualBenefit, annualCost, ...results }} />}>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="grid gap-4">
-          <NumberField id="inv" label="Initial Investment" value={investment} onChange={setInvestment} suffix="฿" />
-          <NumberField id="benefit" label="Annual Benefit (savings + profit)" value={annualBenefit} onChange={setAnnualBenefit} suffix="฿/yr" />
-          <NumberField id="cost" label="Annual Operating Cost" value={annualCost} onChange={setAnnualCost} suffix="฿/yr" />
-        </div>
-        <div className="grid gap-2">
-          <Stat label="Net Annual Benefit" value={results.net.toLocaleString()} suffix=" ฿/yr" />
-          <Stat label="ROI" value={results.roi.toFixed(2)} suffix=" %" />
-          <div className="rounded-2xl border p-6 bg-muted/40">
-            <div className="text-sm text-muted-foreground">Payback Period</div>
-            <div className="text-4xl font-extrabold">{Number.isFinite(results.paybackYears) ? `${results.paybackYears.toFixed(2)} years` : "—"}</div>
-          </div>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function BreakEven() {
-  const [fixed, setFixed] = useState(1_200_000);
-  const [price, setPrice] = useState(150);
-  const [variable, setVariable] = useState(85);
-
-  const results = useMemo(() => {
-    const cm = price - variable; // contribution margin per unit
-    const units = cm > 0 ? fixed / cm : Infinity;
-    return { cm, units };
-  }, [fixed, price, variable]);
-
-  return (
-    <Section title="Break-even Point" right={<ExportButtons filename="breakeven" data={{ fixed, price, variable, ...results }} />}>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="grid gap-4">
-          <NumberField id="fixed" label="Fixed Costs" value={fixed} onChange={setFixed} suffix="฿" />
-          <NumberField id="price" label="Unit Price" value={price} onChange={setPrice} suffix="฿/unit" />
-          <NumberField id="var" label="Variable Cost per Unit" value={variable} onChange={setVariable} suffix="฿/unit" />
-        </div>
-        <div className="grid gap-2">
-          <Stat label="Contribution Margin" value={results.cm.toFixed(2)} suffix=" ฿/unit" />
-          <div className="rounded-2xl border p-6 bg-muted/40">
-            <div className="text-sm text-muted-foreground">Break-even Volume</div>
-            <div className="text-4xl font-extrabold">{Number.isFinite(results.units) ? `${Math.ceil(results.units).toLocaleString()} units` : "—"}</div>
-          </div>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function DowntimeCost() {
-  const [rate, setRate] = useState(15000); // cost per hour
-  const [hours, setHours] = useState(3);
-  const cost = useMemo(() => rate * hours, [rate, hours]);
-  return (
-    <Section title="Downtime Cost" right={<ExportButtons filename="downtime" data={{ rate, hours, cost }} />}>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="grid gap-4">
-          <NumberField id="rate" label="Cost per Hour" value={rate} onChange={setRate} suffix="฿/h" />
-          <NumberField id="hours" label="Downtime Hours" value={hours} onChange={setHours} suffix="h" />
-        </div>
-        <div className="grid gap-2">
-          <div className="rounded-2xl border p-6 bg-muted/40">
-            <div className="text-sm text-muted-foreground">Total Downtime Cost</div>
-            <div className="text-4xl font-extrabold">{cost.toLocaleString()} ฿</div>
-          </div>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function SPC_CpCpk() {
-  const [lsl, setLsl] = useState(9.5);
-  const [usl, setUsl] = useState(10.5);
-  const [mean, setMean] = useState(10);
-  const [stdev, setStdev] = useState(0.2);
-
-  const results = useMemo(() => {
-    const cp = stdev > 0 ? (usl - lsl) / (6 * stdev) : 0;
-    const cpu = stdev > 0 ? (usl - mean) / (3 * stdev) : 0;
-    const cpl = stdev > 0 ? (mean - lsl) / (3 * stdev) : 0;
-    const cpk = Math.min(cpu, cpl);
-    return { cp, cpu, cpl, cpk };
-  }, [lsl, usl, mean, stdev]);
-
-  const status = useMemo(() => {
-    if (results.cpk >= 2.00) return { text: "ระดับโลก (World Class)", color: "text-blue-600" };
-    if (results.cpk >= 1.67) return { text: "มีความสามารถสูงมาก (Highly Capable)", color: "text-indigo-600" };
-    if (results.cpk >= 1.33) return { text: "มีความสามารถสูง (Capable)", color: "text-green-600" };
-    if (results.cpk >= 1.00) return { text: "รองรับได้ (Adequate)", color: "text-yellow-600" };
-    return { text: "ไม่สามารถรองรับได้ (Not Capable)", color: "text-red-600" };
-  }, [results.cpk]);
-
-  return (
-    <Section title="SPC – Cp / Cpk" right={<ExportButtons filename="spc" data={{ lsl, usl, mean, stdev, ...results }} />}>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="grid gap-4">
-          <NumberField id="lsl" label="Lower Spec Limit (LSL)" value={lsl} onChange={setLsl} />
-          <NumberField id="usl" label="Upper Spec Limit (USL)" value={usl} onChange={setUsl} />
-          <NumberField id="mean" label="Process Mean" value={mean} onChange={setMean} />
-          <NumberField id="stdev" label="Standard Deviation (σ)" value={stdev} onChange={setStdev} step={0.01} />
-        </div>
-        <div className="grid gap-2">
-          <Stat label="Cp" value={results.cp.toFixed(3)} />
-          <Stat label="Cpu" value={results.cpu.toFixed(3)} />
-          <Stat label="Cpl" value={results.cpl.toFixed(3)} />
-          <div className="rounded-2xl border p-6 bg-muted/40">
-            <div className="text-sm text-muted-foreground">Cpk</div>
-            <div className={`text-4xl font-extrabold ${status.color}`}>{results.cpk.toFixed(3)}</div>
-            <div className={`text-base font-medium mt-1 ${status.color}`}>{status.text}</div>
-          </div>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function CPKCalculator() {
-  const [lsl, setLsl] = useState(9.5);
-  const [usl, setUsl] = useState(10.5);
-  const [dataInput, setDataInput] = useState("10.1, 10.5, 9.8, 10.3, 10.2, 9.9, 10.0, 10.1, 10.4, 10.2");
-
-  const results = useMemo(() => {
-    const data = dataInput.split(/[\s,]+/).filter(Boolean).map(Number);
-    if (data.length < 2) return null;
-    const mean = data.reduce((sum, val) => sum + val, 0) / data.length;
-    const stdev = Math.sqrt(data.reduce((sum, val) => sum + (val - mean) ** 2, 0) / (data.length - 1));
-    const cpu = stdev > 0 ? (usl - mean) / (3 * stdev) : 0;
-    const cpl = stdev > 0 ? (mean - lsl) / (3 * stdev) : 0;
-    const cpk = Math.min(cpu, cpl);
-    return { data, mean, stdev, cpu, cpl, cpk };
-  }, [lsl, usl, dataInput]);
-
-  const status = useMemo(() => {
-    if (!results) return null;
-    if (results.cpk >= 2.00) return { text: "อยู่ในระดับโลก (World Class)", color: "text-blue-600" };
-    if (results.cpk >= 1.67) return { text: "มีความสามารถสูงมาก (Highly Capable)", color: "text-indigo-600" };
-    if (results.cpk >= 1.33) return { text: "มีความสามารถสูง (Capable)", color: "text-green-600" };
-    if (results.cpk >= 1.00) return { text: "รองรับได้ (Adequate)", color: "text-yellow-600" };
-    return { text: "ไม่สามารถรองรับได้ (Not Capable)", color: "text-red-600" };
-  }, [results]);
-
-  return (
-    <Section title="CPK Calculator" right={<ExportButtons filename="cpk_from_data" data={{ lsl, usl, dataInput, ...results }} />}>
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="grid gap-4">
-          <NumberField id="lsl-data" label="Lower Spec Limit (LSL)" value={lsl} onChange={setLsl} />
-          <NumberField id="usl-data" label="Upper Spec Limit (USL)" value={usl} onChange={setUsl} />
-          <div className="grid gap-1.5">
-            <Label htmlFor="data-input">Data (comma or newline separated)</Label>
-            <textarea
-              id="data-input"
-              className="resize-y min-h-[100px] border rounded-md p-2 text-sm"
-              value={dataInput}
-              onChange={(e) => setDataInput(e.target.value)}
-              placeholder="e.g., 10.1, 10.5, 9.8..."
-            />
-          </div>
-        </div>
-        <div className="grid gap-2">
-          {results && (
-            <>
-              <Stat label="Data Points" value={results.data.length} />
-              <Stat label="Mean (X̄)" value={results.mean.toFixed(3)} />
-              <Stat label="Std Dev (σ)" value={results.stdev.toFixed(3)} />
-              <div className="rounded-2xl border p-6 bg-muted/40 mt-auto">
-                <div className="text-sm text-muted-foreground">Cpk</div>
-                <div className={`text-4xl font-extrabold ${status.color}`}>{results.cpk.toFixed(3)}</div>
-                <div className={`text-base font-medium mt-1 ${status.color}`}>{status.text}</div>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function PrintStyles() {
-  return (
-    <style>{`@media print { button, [role=tablist] { display:none !important;} header, footer { box-shadow:none; border:none; } body { background:white !important; } .shadow-md { box-shadow: none !important; } }`}</style>
-  );
-}
-
-// ---------------- Developer Tests ----------------
-function DevTests() {
-  const [results, setResults] = useState([]);
-  useEffect(() => {
-    const cases = [];
-
-    // Case 1: newline present
-    const d1 = { a: 1, b: 2 };
-    const c1 = buildCSVFromObject(d1);
-    cases.push({ name: "CSV newline present", pass: !!c1 && c1.includes("\n"), detail: c1 });
-
-    // Case 2: comma value quoted
-    const d2 = { name: "a,b", qty: 5 };
-    const c2 = buildCSVFromObject(d2);
-    cases.push({ name: "Comma value quoted", pass: !!c2 && c2.includes('"a,b"'), detail: c2 });
-
-    // Case 3: quotes escaped
-    const d3 = { note: 'He said "Hi"' };
-    const c3 = buildCSVFromObject(d3);
-    cases.push({ name: "Quotes escaped", pass: !!c3 && c3.includes('He said ""Hi""'), detail: c3 });
-
-    // Case 4: empty object -> null
-    const d4 = {};
-    const c4 = buildCSVFromObject(d4);
-    cases.push({ name: "Empty data returns null", pass: c4 === null, detail: String(c4) });
-
-    setResults(cases);
-  }, []);
-  return (
-    <div className="max-w-6xl mx-auto px-4 pb-2">
-      <div className="mt-2 rounded-lg border p-3 bg-muted/30">
-        <div className="text-xs font-medium mb-2">Developer self-tests</div>
-        <ul className="grid gap-1">
-          {results.map((r, i) => (
-            <li key={i} className="flex items-start gap-2 text-xs">
-              {r.pass ? <CheckCircle2 className="h-4 w-4"/> : <XCircle className="h-4 w-4"/>}
-              <span>{r.name}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
-
-export default function FactoryCalculators() {
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 text-foreground">
-      <PrintStyles />
-      <header className="sticky top-0 z-10 backdrop-blur border-b bg-background/70">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <a href="index.html" className="flex items-center gap-2 text-xl font-bold">
-            <ArrowLeft className="h-5 w-5" />
-            <span className="hidden md:block">กลับ</span>
-          </a>
-          <div className="flex-1 text-center">
-            <h1 className="text-xl font-bold">Factory Calculators Hub</h1>
-            <p className="text-sm text-muted-foreground">รวมเครื่องมือคำนวณหลักสำหรับโรงงาน – ในหน้าเดียว</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={() => window.print()}>
-              <Printer className="h-4 w-4 mr-2"/>พิมพ์เป็น PDF
-            </Button>
-          </div>
-        </div>
-      </header>
-      <main className="max-w-6xl mx-auto p-4 md:p-6 grid gap-6">
-        <OEECalculator />
-        <EOQCalculator />
-        <TaktTimeCalculator />
-        <CapacityPlanner />
-        <QualityYield />
-        <MTBF_MTTR />
-        <FinanceROI />
-        <BreakEven />
-        <DowntimeCost />
-        <SPC_CpCpk />
-        <CPKCalculator />
-      </main>
-    </div>
-  );
-}
+    </main>
+    <script>
+        // OEE Calculator Logic
+        function updateOEE() {
+            const planned = parseFloat(document.getElementById('oee-planned').value) || 0;
+            const downtime = parseFloat(document.getElementById('oee-downtime').value) || 0;
+            const ideal = parseFloat(document.getElementById('oee-ideal').value) || 0;
+            const total = parseFloat(document.getElementById('oee-total').value) || 0;
+            const good = parseFloat(document.getElementById('oee-good').value) || 0;
+            const runtime = Math.max(planned - downtime, 0);
+            const availability = planned > 0 ? runtime / planned : 0;
+            const idealTime = (total * ideal) / 60;
+            const performance = runtime > 0 ? idealTime / runtime : 0;
+            const quality = total > 0 ? good / total : 0;
+            const oee = availability * performance * quality;
+            document.getElementById('oee-runtime').textContent = runtime.toFixed(2) + ' min';
+            document.getElementById('oee-availability').textContent = (availability * 100).toFixed(1) + '%';
+            document.getElementById('oee-performance').textContent = (performance * 100).toFixed(1) + '%';
+            document.getElementById('oee-quality').textContent = (quality * 100).toFixed(1) + '%';
+            document.getElementById('oee-result').textContent = (oee * 100).toFixed(1) + '%';
+        }
+        document.getElementById('oee-planned').addEventListener('input', updateOEE);
+        document.getElementById('oee-downtime').addEventListener('input', updateOEE);
+        document.getElementById('oee-ideal').addEventListener('input', updateOEE);
+        document.getElementById('oee-total').addEventListener('input', updateOEE);
+        document.getElementById('oee-good').addEventListener('input', updateOEE);
+        updateOEE();
+
+        // EOQ Calculator Logic
+        function updateEOQ() {
+            const demand = parseFloat(document.getElementById('eoq-demand').value) || 0;
+            const orderCost = parseFloat(document.getElementById('eoq-ordercost').value) || 0;
+            const holdingCost = parseFloat(document.getElementById('eoq-holdingcost').value) || 0;
+            const eoq = holdingCost > 0 ? Math.sqrt((2 * demand * orderCost) / holdingCost) : 0;
+            document.getElementById('eoq-result').textContent = eoq.toFixed(2) + ' units';
+            document.getElementById('eoq-value').textContent = eoq.toFixed(0);
+        }
+        document.getElementById('eoq-demand').addEventListener('input', updateEOQ);
+        document.getElementById('eoq-ordercost').addEventListener('input', updateEOQ);
+        document.getElementById('eoq-holdingcost').addEventListener('input', updateEOQ);
+        updateEOQ();
+
+        // Takt Time Calculator Logic
+        function updateTakt() {
+            const availableTimeMin = parseFloat(document.getElementById('takt-time').value) || 0;
+            const customerDemand = parseFloat(document.getElementById('takt-demand').value) || 0;
+            const takt = customerDemand > 0 ? (availableTimeMin * 60) / customerDemand : 0;
+            document.getElementById('takt-result').textContent = takt.toFixed(2) + ' sec/unit';
+        }
+        document.getElementById('takt-time').addEventListener('input', updateTakt);
+        document.getElementById('takt-demand').addEventListener('input', updateTakt);
+        updateTakt();
+
+        // Capacity Planner Logic
+        function updateCapacity() {
+            const machines = parseFloat(document.getElementById('capacity-machines').value) || 0;
+            const shifts = parseFloat(document.getElementById('capacity-shifts').value) || 0;
+            const hours = parseFloat(document.getElementById('capacity-hours').value) || 0;
+            const efficiency = parseFloat(document.getElementById('capacity-efficiency').value) || 0;
+            const cycle = parseFloat(document.getElementById('capacity-cycle').value) || 0;
+            const eff = Math.max(Math.min(efficiency, 100), 0) / 100;
+            const secondsPerDay = shifts * hours * 3600;
+            const unitsPerMachinePerDay = cycle > 0 ? (secondsPerDay * eff) / cycle : 0;
+            const dailyCapacity = unitsPerMachinePerDay * machines;
+            const hourlyRate = cycle > 0 ? (3600 * eff) / cycle * machines : 0;
+            document.getElementById('capacity-units').textContent = unitsPerMachinePerDay.toFixed(1);
+            document.getElementById('capacity-hourly').textContent = hourlyRate.toFixed(1) + ' units/h';
+            document.getElementById('capacity-daily').textContent = dailyCapacity.toFixed(0) + ' units/day';
+        }
+        document.getElementById('capacity-machines').addEventListener('input', updateCapacity);
+        document.getElementById('capacity-shifts').addEventListener('input', updateCapacity);
+        document.getElementById('capacity-hours').addEventListener('input', updateCapacity);
+        document.getElementById('capacity-efficiency').addEventListener('input', updateCapacity);
+        document.getElementById('capacity-cycle').addEventListener('input', updateCapacity);
+        updateCapacity();
+
+        // Quality Yield Logic
+        function updateQuality() {
+            const total = parseFloat(document.getElementById('quality-total').value) || 0;
+            const good = parseFloat(document.getElementById('quality-good').value) || 0;
+            const scrap = Math.max(total - good, 0);
+            const yieldPct = total > 0 ? (good / total) * 100 : 0;
+            const defectRatePct = 100 - yieldPct;
+            const ppm = total > 0 ? (scrap / total) * 1_000_000 : 0;
+            document.getElementById('quality-scrap').textContent = scrap.toFixed(0);
+            document.getElementById('quality-yield').textContent = yieldPct.toFixed(2) + '%';
+            document.getElementById('quality-defect').textContent = defectRatePct.toFixed(2) + '%';
+            document.getElementById('quality-ppm').textContent = ppm.toFixed(0);
+        }
+        document.getElementById('quality-total').addEventListener('input', updateQuality);
+        document.getElementById('quality-good').addEventListener('input', updateQuality);
+        updateQuality();
+        
+        // MTBF/MTTR Logic
+        function updateReliability() {
+            const mtbfHours = parseFloat(document.getElementById('mtbf-hours').value) || 0;
+            const mttrHours = parseFloat(document.getElementById('mttr-hours').value) || 0;
+            const denom = mtbfHours + mttrHours;
+            const availability = denom > 0 ? mtbfHours / denom : 0;
+            document.getElementById('mtbf-availability').textContent = (availability * 100).toFixed(2) + '%';
+        }
+        document.getElementById('mtbf-hours').addEventListener('input', updateReliability);
+        document.getElementById('mttr-hours').addEventListener('input', updateReliability);
+        updateReliability();
+
+        // Finance ROI Logic
+        function updateFinance() {
+            const investment = parseFloat(document.getElementById('roi-investment').value) || 0;
+            const annualBenefit = parseFloat(document.getElementById('roi-benefit').value) || 0;
+            const annualCost = parseFloat(document.getElementById('roi-cost').value) || 0;
+            const net = annualBenefit - annualCost;
+            const roi = investment > 0 ? (net / investment) * 100 : 0;
+            const paybackYears = net > 0 ? investment / net : Infinity;
+            document.getElementById('roi-net').textContent = net.toLocaleString() + ' ฿/yr';
+            document.getElementById('roi-result').textContent = roi.toFixed(2) + '%';
+            document.getElementById('roi-payback').textContent = Number.isFinite(paybackYears) ? paybackYears.toFixed(2) + ' years' : '—';
+        }
+        document.getElementById('roi-investment').addEventListener('input', updateFinance);
+        document.getElementById('roi-benefit').addEventListener('input', updateFinance);
+        document.getElementById('roi-cost').addEventListener('input', updateFinance);
+        updateFinance();
+
+        // Break Even Logic
+        function updateBreakEven() {
+            const fixed = parseFloat(document.getElementById('be-fixed').value) || 0;
+            const price = parseFloat(document.getElementById('be-price').value) || 0;
+            const variable = parseFloat(document.getElementById('be-variable').value) || 0;
+            const cm = price - variable;
+            const units = cm > 0 ? fixed / cm : Infinity;
+            document.getElementById('be-margin').textContent = cm.toFixed(2) + ' ฿/unit';
+            document.getElementById('be-result').textContent = Number.isFinite(units) ? Math.ceil(units).toLocaleString() + ' units' : '—';
+        }
+        document.getElementById('be-fixed').addEventListener('input', updateBreakEven);
+        document.getElementById('be-price').addEventListener('input', updateBreakEven);
+        document.getElementById('be-variable').addEventListener('input', updateBreakEven);
+        updateBreakEven();
+
+        // Downtime Cost Logic
+        function updateDowntimeCost() {
+            const rate = parseFloat(document.getElementById('dt-rate').value) || 0;
+            const hours = parseFloat(document.getElementById('dt-hours').value) || 0;
+            const cost = rate * hours;
+            document.getElementById('dt-result').textContent = cost.toLocaleString() + ' ฿';
+        }
+        document.getElementById('dt-rate').addEventListener('input', updateDowntimeCost);
+        document.getElementById('dt-hours').addEventListener('input', updateDowntimeCost);
+        updateDowntimeCost();
+
+        // SPC Cp/Cpk Logic
+        function updateSPC() {
+            const lsl = parseFloat(document.getElementById('spc-lsl').value) || 0;
+            const usl = parseFloat(document.getElementById('spc-usl').value) || 0;
+            const mean = parseFloat(document.getElementById('spc-mean').value) || 0;
+            const stdev = parseFloat(document.getElementById('spc-stdev').value) || 0;
+            const cp = stdev > 0 ? (usl - lsl) / (6 * stdev) : 0;
+            const cpu = stdev > 0 ? (usl - mean) / (3 * stdev) : 0;
+            const cpl = stdev > 0 ? (mean - lsl) / (3 * stdev) : 0;
+            const cpk = Math.min(cpu, cpl);
+            document.getElementById('spc-cp').textContent = cp.toFixed(3);
+            document.getElementById('spc-cpu').textContent = cpu.toFixed(3);
+            document.getElementById('spc-cpl').textContent = cpl.toFixed(3);
+            document.getElementById('spc-cpk').textContent = cpk.toFixed(3);
+
+            let statusText = '';
+            let statusColor = '';
+            if (cpk >= 2.00) {
+                statusText = "ระดับโลก (World Class)";
+                statusColor = "text-blue-600";
+            } else if (cpk >= 1.67) {
+                statusText = "มีความสามารถสูงมาก (Highly Capable)";
+                statusColor = "text-indigo-600";
+            } else if (cpk >= 1.33) {
+                statusText = "มีความสามารถสูง (Capable)";
+                statusColor = "text-green-600";
+            } else if (cpk >= 1.00) {
+                statusText = "รองรับได้ (Adequate)";
+                statusColor = "text-yellow-600";
+            } else {
+                statusText = "ไม่สามารถรองรับได้ (Not Capable)";
+                statusColor = "text-red-600";
+            }
+            // Fix: Added `id` attributes to the HTML elements
+            document.getElementById('spc-cpk').className = `text-4xl font-extrabold ${statusColor}`;
+            document.getElementById('spc-cpk-status').textContent = statusText;
+            document.getElementById('spc-cpk-status').className = `text-base font-medium mt-1 ${statusColor}`;
+        }
+        document.getElementById('spc-lsl').addEventListener('input', updateSPC);
+        document.getElementById('spc-usl').addEventListener('input', updateSPC);
+        document.getElementById('spc-mean').addEventListener('input', updateSPC);
+        document.getElementById('spc-stdev').addEventListener('input', updateSPC);
+        updateSPC();
+        
+        // CPK Calculator Logic
+        function updateCPK() {
+            const lsl = parseFloat(document.getElementById('cpk-lsl').value) || 0;
+            const usl = parseFloat(document.getElementById('cpk-usl').value) || 0;
+            const dataText = document.getElementById('cpk-data').value;
+            const data = dataText.split(/[\s,]+/).filter(Boolean).map(Number);
+            
+            if (data.length < 2) return;
+            
+            const mean = data.reduce((sum, val) => sum + val, 0) / data.length;
+            const stdev = Math.sqrt(data.reduce((sum, val) => sum + (val - mean) ** 2, 0) / (data.length - 1));
+            const cpu = stdev > 0 ? (usl - mean) / (3 * stdev) : 0;
+            const cpl = stdev > 0 ? (mean - lsl) / (3 * stdev) : 0;
+            const cpk = Math.min(cpu, cpl);
+            
+            document.getElementById('cpk-datapoints').textContent = data.length;
+            document.getElementById('cpk-mean').textContent = mean.toFixed(3);
+            document.getElementById('cpk-stdev').textContent = stdev.toFixed(3);
+            document.getElementById('cpk-result').textContent = cpk.toFixed(3);
+
+            let statusText = '';
+            let statusColor = '';
+            if (cpk >= 2.00) {
+                statusText = "อยู่ในระดับโลก (World Class)";
+                statusColor = "text-blue-600";
+            } else if (cpk >= 1.67) {
+                statusText = "มีความสามารถสูงมาก (Highly Capable)";
+                statusColor = "text-indigo-600";
+            } else if (cpk >= 1.33) {
+                statusText = "มีความสามารถสูง (Capable)";
+                statusColor = "text-green-600";
+            } else if (cpk >= 1.00) {
+                statusText = "รองรับได้ (Adequate)";
+                statusColor = "text-yellow-600";
+            } else {
+                statusText = "ไม่สามารถรองรับได้ (Not Capable)";
+                statusColor = "text-red-600";
+            }
+            document.getElementById('cpk-result').className = `text-4xl font-extrabold ${statusColor}`;
+            document.getElementById('cpk-status').textContent = statusText;
+            document.getElementById('cpk-status').className = `text-base font-medium mt-1 ${statusColor}`;
+        }
+        document.getElementById('cpk-lsl').addEventListener('input', updateCPK);
+        document.getElementById('cpk-usl').addEventListener('input', updateCPK);
+        document.getElementById('cpk-data').addEventListener('input', updateCPK);
+        updateCPK();
+    </script>
+</body>
+</html>
