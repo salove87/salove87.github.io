@@ -1,0 +1,1144 @@
+import React, { useMemo, useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Download, Calculator, FileText, Printer, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft } from 'lucide-react';
+
+// ---------------- Utilities ----------------
+function NumberField({ id, label, value, onChange, suffix, min = 0, step = "any" }) {
+  return (
+    <div className="grid gap-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <div className="flex items-center gap-2">
+        <Input
+          id={id}
+          type="number"
+          inputMode="decimal"
+          step={step}
+          min={min}
+          value={Number.isFinite(value) ? value : ""}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="text-right"
+        />
+        {suffix ? <span className="text-sm text-muted-foreground w-14 text-right">{suffix}</span> : null}
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value, suffix }) {
+  return (
+    <div className="flex items-baseline justify-between py-1">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="font-semibold tabular-nums">{value}{suffix}</span>
+    </div>
+  );
+}
+
+function Section({ title, children, right }) {
+  return (
+    <Card className="shadow-md">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2"><Calculator className="h-5 w-5"/>{title}</CardTitle>
+          {right}
+        </div>
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  );
+}
+
+// Escape any value for safe CSV using JSON.stringify (handles quotes/commas/newlines)
+function toCSVField(v) {
+  return JSON.stringify(v ?? "");
+}
+
+function buildCSVFromObject(data) {
+  const entries = Object.entries(data || {});
+  if (entries.length === 0) return null;
+  const header = entries.map(([k]) => toCSVField(k)).join(",");
+  const row = entries.map(([, v]) => toCSVField(v)).join(",");
+  const csv = "\uFEFF" + header + "\n" + row; // BOM + newline
+  return csv;
+}
+
+function ExportButtons({ filename, data }) {
+  const downloadJSON = () => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename + ".json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadCSV = () => {
+    const csv = buildCSVFromObject(data);
+    if (!csv) return;
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename + ".csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="flex gap-2">
+      <Button variant="secondary" size="sm" onClick={downloadJSON}><Download className="h-4 w-4 mr-2"/>JSON</Button>
+      <Button variant="secondary" size="sm" onClick={downloadCSV}><FileText className="h-4 w-4 mr-2"/>CSV</Button>
+      <Button variant="secondary" size="sm" onClick={() => window.print()}><Printer className="h-4 w-4 mr-2"/>PDF</Button>
+    </div>
+  );
+}
+
+// ---------------- Calculators ----------------
+function OEECalculator() {
+  const [plannedTimeMin, setPlannedTimeMin] = useState(480);
+  const [downtimeMin, setDowntimeMin] = useState(60);
+  const [idealCycleTimeSec, setIdealCycleTimeSec] = useState(30);
+  const [totalUnits, setTotalUnits] = useState(800);
+  const [goodUnits, setGoodUnits] = useState(760);
+
+  const results = useMemo(() => {
+    const runtimeMin = Math.max(plannedTimeMin - downtimeMin, 0);
+    const availability = plannedTimeMin > 0 ? runtimeMin / plannedTimeMin : 0;
+    const idealTimeMin = (totalUnits * idealCycleTimeSec) / 60;
+    const performance = runtimeMin > 0 ? idealTimeMin / runtimeMin : 0;
+    const quality = totalUnits > 0 ? goodUnits / totalUnits : 0;
+    const oee = availability * performance * quality;
+    return { runtimeMin, availability, performance, quality, oee };
+  }, [plannedTimeMin, downtimeMin, idealCycleTimeSec, totalUnits, goodUnits]);
+
+  return (
+    <Section title="OEE – Overall Equipment Effectiveness" right={<ExportButtons filename="oee" data={{ plannedTimeMin, downtimeMin, idealCycleTimeSec, totalUnits, goodUnits, ...results }} />}>  
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4">
+          <NumberField id="planned" label="Planned Production Time" value={plannedTimeMin} onChange={setPlannedTimeMin} suffix="min" />
+          <NumberField id="downtime" label="Downtime" value={downtimeMin} onChange={setDowntimeMin} suffix="min" />
+          <NumberField id="ideal" label="Ideal Cycle Time" value={idealCycleTimeSec} onChange={setIdealCycleTimeSec} suffix="sec/unit" />
+          <NumberField id="total" label="Total Units" value={totalUnits} onChange={setTotalUnits} suffix="units" />
+          <NumberField id="good" label="Good Units" value={goodUnits} onChange={setGoodUnits} suffix="units" />
+        </div>
+        <div className="grid gap-2">
+          <Stat label="Runtime" value={results.runtimeMin.toFixed(2)} suffix=" min" />
+          <div className="grid grid-cols-3 gap-2">
+            <Card className="p-3"><div className="text-sm text-muted-foreground">Availability</div><div className="text-2xl font-bold">{(results.availability*100).toFixed(1)}%</div></Card>
+            <Card className="p-3"><div className="text-sm text-muted-foreground">Performance</div><div className="text-2xl font-bold">{(results.performance*100).toFixed(1)}%</div></Card>
+            <Card className="p-3"><div className="text-sm text-muted-foreground">Quality</div><div className="text-2xl font-bold">{(results.quality*100).toFixed(1)}%</div></Card>
+          </div>
+          <div className="rounded-2xl border p-4 bg-muted/40">
+            <div className="text-sm text-muted-foreground">OEE</div>
+            <div className="text-4xl font-extrabold">{(results.oee*100).toFixed(1)}%</div>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function EOQCalculator() {
+  const [demand, setDemand] = useState(12000);
+  const [orderCost, setOrderCost] = useState(500);
+  const [holdingCost, setHoldingCost] = useState(20);
+
+  const eoq = useMemo(() => {
+    return holdingCost > 0 ? Math.sqrt((2 * demand * orderCost) / holdingCost) : 0;
+  }, [demand, orderCost, holdingCost]);
+
+  return (
+    <Section title="EOQ – Economic Order Quantity" right={<ExportButtons filename="eoq" data={{ demand, orderCost, holdingCost, eoq }} />}>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4">
+          <NumberField id="demand" label="Annual Demand" value={demand} onChange={setDemand} suffix="units" />
+          <NumberField id="orderCost" label="Order Cost" value={orderCost} onChange={setOrderCost} suffix="฿" />
+          <NumberField id="holdingCost" label="Holding Cost per Unit" value={holdingCost} onChange={setHoldingCost} suffix="฿" />
+        </div>
+        <div className="grid gap-2">
+          <Stat label="EOQ" value={eoq.toFixed(2)} suffix=" units" />
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function TaktTimeCalculator() {
+  const [availableTimeMin, setAvailableTimeMin] = useState(420);
+  const [customerDemand, setCustomerDemand] = useState(600);
+  const takt = useMemo(() => (customerDemand > 0 ? (availableTimeMin * 60) / customerDemand : 0), [availableTimeMin, customerDemand]);
+
+  return (
+    <Section title="Takt Time" right={<ExportButtons filename="takt" data={{ availableTimeMin, customerDemand, takt }} />}>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4">
+          <NumberField id="avail" label="Available Production Time per Period" value={availableTimeMin} onChange={setAvailableTimeMin} suffix="min" />
+          <NumberField id="demand" label="Customer Demand per Period" value={customerDemand} onChange={setCustomerDemand} suffix="units" />
+        </div>
+        <div className="grid gap-2">
+          <div className="rounded-2xl border p-6 bg-muted/40">
+            <div className="text-sm text-muted-foreground">Takt Time</div>
+            <div className="text-4xl font-extrabold">{takt.toFixed(2)} sec/unit</div>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function CapacityPlanner() {
+  const [machines, setMachines] = useState(3);
+  const [shiftsPerDay, setShiftsPerDay] = useState(2);
+  const [hoursPerShift, setHoursPerShift] = useState(8);
+  const [efficiency, setEfficiency] = useState(85);
+  const [cycleSec, setCycleSec] = useState(20);
+
+  const results = useMemo(() => {
+    const eff = Math.max(Math.min(efficiency, 100), 0) / 100;
+    const secondsPerDay = shiftsPerDay * hoursPerShift * 3600;
+    const unitsPerMachinePerDay = cycleSec > 0 ? (secondsPerDay * eff) / cycleSec : 0;
+    const dailyCapacity = unitsPerMachinePerDay * machines;
+    const hourlyRate = cycleSec > 0 ? (3600 * eff) / cycleSec * machines : 0;
+    return { unitsPerMachinePerDay, dailyCapacity, hourlyRate };
+  }, [machines, shiftsPerDay, hoursPerShift, efficiency, cycleSec]);
+
+  return (
+    <Section title="Capacity Planning" right={<ExportButtons filename="capacity" data={{ machines, shiftsPerDay, hoursPerShift, efficiency, cycleSec, ...results }} />}>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4">
+          <NumberField id="machines" label="Machines" value={machines} onChange={setMachines} min={0} suffix="ea" />
+          <NumberField id="shifts" label="Shifts per Day" value={shiftsPerDay} onChange={setShiftsPerDay} min={0} suffix="shifts" />
+          <NumberField id="hours" label="Hours per Shift" value={hoursPerShift} onChange={setHoursPerShift} min={0} suffix="h" />
+          <NumberField id="eff" label="Efficiency" value={efficiency} onChange={setEfficiency} min={0} step={0.1} suffix="%" />
+          <NumberField id="cycle" label="Cycle Time" value={cycleSec} onChange={setCycleSec} min={0} step={0.1} suffix="sec/unit" />
+        </div>
+        <div className="grid gap-2">
+          <Stat label="Units per Machine per Day" value={results.unitsPerMachinePerDay.toFixed(1)} />
+          <Stat label="Hourly Throughput (all machines)" value={results.hourlyRate.toFixed(1)} suffix=" units/h" />
+          <div className="rounded-2xl border p-6 bg-muted/40">
+            <div className="text-sm text-muted-foreground">Daily Capacity (all machines)</div>
+            <div className="text-4xl font-extrabold">{results.dailyCapacity.toFixed(0)} units/day</div>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function QualityYield() {
+  const [total, setTotal] = useState(1000);
+  const [good, setGood] = useState(980);
+
+  const results = useMemo(() => {
+    const scrap = Math.max(total - good, 0);
+    const yieldPct = total > 0 ? (good / total) * 100 : 0;
+    const defectRatePct = 100 - yieldPct;
+    const ppm = total > 0 ? (scrap / total) * 1_000_000 : 0;
+    return { scrap, yieldPct, defectRatePct, ppm };
+  }, [total, good]);
+
+  return (
+    <Section title="Quality – Yield / Scrap / PPM" right={<ExportButtons filename="quality" data={{ total, good, ...results }} />}>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4">
+          <NumberField id="qt-total" label="Total Units" value={total} onChange={setTotal} suffix="units" />
+          <NumberField id="qt-good" label="Good Units" value={good} onChange={setGood} suffix="units" />
+        </div>
+        <div className="grid gap-2">
+          <Stat label="Scrap Units" value={results.scrap.toFixed(0)} />
+          <Stat label="Yield" value={results.yieldPct.toFixed(2)} suffix=" %" />
+          <Stat label="Defect Rate" value={results.defectRatePct.toFixed(2)} suffix=" %" />
+          <div className="rounded-2xl border p-6 bg-muted/40">
+            <div className="text-sm text-muted-foreground">Defects per Million (PPM)</div>
+            <div className="text-4xl font-extrabold">{results.ppm.toFixed(0)}</div>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function MTBF_MTTR() {
+  const [mtbfHours, setMtbfHours] = useState(120);
+  const [mttrHours, setMttrHours] = useState(2);
+
+  const availability = useMemo(() => {
+    const denom = mtbfHours + mttrHours;
+    return denom > 0 ? mtbfHours / denom : 0;
+  }, [mtbfHours, mttrHours]);
+
+  return (
+    <Section title="Reliability – MTBF / MTTR / Availability" right={<ExportButtons filename="reliability" data={{ mtbfHours, mttrHours, availability }} />}>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4">
+          <NumberField id="mtbf" label="MTBF" value={mtbfHours} onChange={setMtbfHours} suffix="h" />
+          <NumberField id="mttr" label="MTTR" value={mttrHours} onChange={setMttrHours} suffix="h" />
+        </div>
+        <div className="grid gap-2">
+          <div className="rounded-2xl border p-6 bg-muted/40">
+            <div className="text-sm text-muted-foreground">Availability</div>
+            <div className="text-4xl font-extrabold">{(availability * 100).toFixed(2)}%</div>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function FinanceROI() {
+  const [investment, setInvestment] = useState(500000);
+  const [annualBenefit, setAnnualBenefit] = useState(250000);
+  const [annualCost, setAnnualCost] = useState(50_000);
+
+  const results = useMemo(() => {
+    const net = annualBenefit - annualCost;
+    const roi = investment > 0 ? (net / investment) * 100 : 0;
+    const paybackYears = net > 0 ? investment / net : Infinity;
+    return { net, roi, paybackYears };
+  }, [investment, annualBenefit, annualCost]);
+
+  return (
+    <Section title="Financial – ROI & Payback" right={<ExportButtons filename="finance" data={{ investment, annualBenefit, annualCost, ...results }} />}>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4">
+          <NumberField id="inv" label="Initial Investment" value={investment} onChange={setInvestment} suffix="฿" />
+          <NumberField id="benefit" label="Annual Benefit (savings + profit)" value={annualBenefit} onChange={setAnnualBenefit} suffix="฿/yr" />
+          <NumberField id="cost" label="Annual Operating Cost" value={annualCost} onChange={setAnnualCost} suffix="฿/yr" />
+        </div>
+        <div className="grid gap-2">
+          <Stat label="Net Annual Benefit" value={results.net.toLocaleString()} suffix=" ฿/yr" />
+          <Stat label="ROI" value={results.roi.toFixed(2)} suffix=" %" />
+          <div className="rounded-2xl border p-6 bg-muted/40">
+            <div className="text-sm text-muted-foreground">Payback Period</div>
+            <div className="text-4xl font-extrabold">{Number.isFinite(results.paybackYears) ? `${results.paybackYears.toFixed(2)} years` : "—"}</div>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function BreakEven() {
+  const [fixed, setFixed] = useState(1_200_000);
+  const [price, setPrice] = useState(150);
+  const [variable, setVariable] = useState(85);
+
+  const results = useMemo(() => {
+    const cm = price - variable; // contribution margin per unit
+    const units = cm > 0 ? fixed / cm : Infinity;
+    return { cm, units };
+  }, [fixed, price, variable]);
+
+  return (
+    <Section title="Break-even Point" right={<ExportButtons filename="breakeven" data={{ fixed, price, variable, ...results }} />}>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4">
+          <NumberField id="fixed" label="Fixed Costs" value={fixed} onChange={setFixed} suffix="฿" />
+          <NumberField id="price" label="Unit Price" value={price} onChange={setPrice} suffix="฿/unit" />
+          <NumberField id="var" label="Variable Cost per Unit" value={variable} onChange={setVariable} suffix="฿/unit" />
+        </div>
+        <div className="grid gap-2">
+          <Stat label="Contribution Margin" value={results.cm.toFixed(2)} suffix=" ฿/unit" />
+          <div className="rounded-2xl border p-6 bg-muted/40">
+            <div className="text-sm text-muted-foreground">Break-even Volume</div>
+            <div className="text-4xl font-extrabold">{Number.isFinite(results.units) ? `${Math.ceil(results.units).toLocaleString()} units` : "—"}</div>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function DowntimeCost() {
+  const [rate, setRate] = useState(15000); // cost per hour
+  const [hours, setHours] = useState(3);
+  const cost = useMemo(() => rate * hours, [rate, hours]);
+  return (
+    <Section title="Downtime Cost" right={<ExportButtons filename="downtime" data={{ rate, hours, cost }} />}>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4">
+          <NumberField id="rate" label="Cost per Hour" value={rate} onChange={setRate} suffix="฿/h" />
+          <NumberField id="hours" label="Downtime Hours" value={hours} onChange={setHours} suffix="h" />
+        </div>
+        <div className="grid gap-2">
+          <div className="rounded-2xl border p-6 bg-muted/40">
+            <div className="text-sm text-muted-foreground">Total Downtime Cost</div>
+            <div className="text-4xl font-extrabold">{cost.toLocaleString()} ฿</div>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function SPC_CpCpk() {
+  const [lsl, setLsl] = useState(9.5);
+  const [usl, setUsl] = useState(10.5);
+  const [mean, setMean] = useState(10);
+  const [stdev, setStdev] = useState(0.2);
+
+  const results = useMemo(() => {
+    const cp = stdev > 0 ? (usl - lsl) / (6 * stdev) : 0;
+    const cpu = stdev > 0 ? (usl - mean) / (3 * stdev) : 0;
+    const cpl = stdev > 0 ? (mean - lsl) / (3 * stdev) : 0;
+    const cpk = Math.min(cpu, cpl);
+    return { cp, cpu, cpl, cpk };
+  }, [lsl, usl, mean, stdev]);
+
+  const status = useMemo(() => {
+    if (results.cpk >= 2.00) return { text: "ระดับโลก (World Class)", color: "text-blue-600" };
+    if (results.cpk >= 1.67) return { text: "มีความสามารถสูงมาก (Highly Capable)", color: "text-indigo-600" };
+    if (results.cpk >= 1.33) return { text: "มีความสามารถสูง (Capable)", color: "text-green-600" };
+    if (results.cpk >= 1.00) return { text: "รองรับได้ (Adequate)", color: "text-yellow-600" };
+    return { text: "ไม่สามารถรองรับได้ (Not Capable)", color: "text-red-600" };
+  }, [results.cpk]);
+
+  return (
+    <Section title="SPC – Cp / Cpk" right={<ExportButtons filename="spc" data={{ lsl, usl, mean, stdev, ...results }} />}>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4">
+          <NumberField id="lsl" label="Lower Spec Limit (LSL)" value={lsl} onChange={setLsl} />
+          <NumberField id="usl" label="Upper Spec Limit (USL)" value={usl} onChange={setUsl} />
+          <NumberField id="mean" label="Process Mean" value={mean} onChange={setMean} />
+          <NumberField id="stdev" label="Standard Deviation (σ)" value={stdev} onChange={setStdev} step={0.01} />
+        </div>
+        <div className="grid gap-2">
+          <Stat label="Cp" value={results.cp.toFixed(3)} />
+          <Stat label="Cpu" value={results.cpu.toFixed(3)} />
+          <Stat label="Cpl" value={results.cpl.toFixed(3)} />
+          <div className="rounded-2xl border p-6 bg-muted/40">
+            <div className="text-sm text-muted-foreground">Cpk</div>
+            <div className={`text-4xl font-extrabold ${status.color}`}>{results.cpk.toFixed(3)}</div>
+            <div className={`text-base font-medium mt-1 ${status.color}`}>{status.text}</div>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function CPKCalculator() {
+  const [lsl, setLsl] = useState(9.5);
+  const [usl, setUsl] = useState(10.5);
+  const [dataInput, setDataInput] = useState("10.1, 10.5, 9.8, 10.3, 10.2, 9.9, 10.0, 10.1, 10.4, 10.2");
+
+  const results = useMemo(() => {
+    const data = dataInput.split(/[\s,]+/).filter(Boolean).map(Number);
+    if (data.length < 2) return null;
+    const mean = data.reduce((sum, val) => sum + val, 0) / data.length;
+    const stdev = Math.sqrt(data.reduce((sum, val) => sum + (val - mean) ** 2, 0) / (data.length - 1));
+    const cpu = stdev > 0 ? (usl - mean) / (3 * stdev) : 0;
+    const cpl = stdev > 0 ? (mean - lsl) / (3 * stdev) : 0;
+    const cpk = Math.min(cpu, cpl);
+    return { data, mean, stdev, cpu, cpl, cpk };
+  }, [lsl, usl, dataInput]);
+
+  const status = useMemo(() => {
+    if (!results) return null;
+    if (results.cpk >= 2.00) return { text: "อยู่ในระดับโลก (World Class)", color: "text-blue-600" };
+    if (results.cpk >= 1.67) return { text: "มีความสามารถสูงมาก (Highly Capable)", color: "text-indigo-600" };
+    if (results.cpk >= 1.33) return { text: "มีความสามารถสูง (Capable)", color: "text-green-600" };
+    if (results.cpk >= 1.00) return { text: "รองรับได้ (Adequate)", color: "text-yellow-600" };
+    return { text: "ไม่สามารถรองรับได้ (Not Capable)", color: "text-red-600" };
+  }, [results]);
+
+  return (
+    <Section title="CPK Calculator" right={<ExportButtons filename="cpk_from_data" data={{ lsl, usl, dataInput, ...results }} />}>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4">
+          <NumberField id="lsl-data" label="Lower Spec Limit (LSL)" value={lsl} onChange={setLsl} />
+          <NumberField id="usl-data" label="Upper Spec Limit (USL)" value={usl} onChange={setUsl} />
+          <div className="grid gap-1.5">
+            <Label htmlFor="data-input">Data (comma or newline separated)</Label>
+            <textarea
+              id="data-input"
+              className="resize-y min-h-[100px] border rounded-md p-2 text-sm"
+              value={dataInput}
+              onChange={(e) => setDataInput(e.target.value)}
+              placeholder="e.g., 10.1, 10.5, 9.8..."
+            />
+          </div>
+        </div>
+        <div className="grid gap-2">
+          {results && (
+            <>
+              <Stat label="Data Points" value={results.data.length} />
+              <Stat label="Mean (X̄)" value={results.mean.toFixed(3)} />
+              <Stat label="Std Dev (σ)" value={results.stdev.toFixed(3)} />
+              <div className="rounded-2xl border p-6 bg-muted/40 mt-auto">
+                <div className="text-sm text-muted-foreground">Cpk</div>
+                <div className={`text-4xl font-extrabold ${status.color}`}>{results.cpk.toFixed(3)}</div>
+                <div className={`text-base font-medium mt-1 ${status.color}`}>{status.text}</div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function PrintStyles() {
+  return (
+    <style>{`@media print { button, [role=tablist] { display:none !important;} header, footer { box-shadow:none; border:none; } body { background:white !important; } .shadow-md { box-shadow: none !important; } }`}</style>
+  );
+}
+
+// ---------------- Developer Tests ----------------
+function DevTests() {
+  const [results, setResults] = useState([]);
+  useEffect(() => {
+    const cases = [];
+
+    // Case 1: newline present
+    const d1 = { a: 1, b: 2 };
+    const c1 = buildCSVFromObject(d1);
+    cases.push({ name: "CSV newline present", pass: !!c1 && c1.includes("\n"), detail: c1 });
+
+    // Case 2: comma value quoted
+    const d2 = { name: "a,b", qty: 5 };
+    const c2 = buildCSVFromObject(d2);
+    cases.push({ name: "Comma value quoted", pass: !!c2 && c2.includes('"a,b"'), detail: c2 });
+
+    // Case 3: quotes escaped
+    const d3 = { note: 'He said "Hi"' };
+    const c3 = buildCSVFromObject(d3);
+    cases.push({ name: "Quotes escaped", pass: !!c3 && c3.includes('He said ""Hi""'), detail: c3 });
+
+    // Case 4: empty object -> null
+    const d4 = {};
+    const c4 = buildCSVFromObject(d4);
+    cases.push({ name: "Empty data returns null", pass: c4 === null, detail: String(c4) });
+
+    setResults(cases);
+  }, []);
+  return (
+    <div className="max-w-6xl mx-auto px-4 pb-2">
+      <div className="mt-2 rounded-lg border p-3 bg-muted/30">
+        <div className="text-xs font-medium mb-2">Developer self-tests</div>
+        <ul className="grid gap-1">
+          {results.map((r, i) => (
+            <li key={i} className="flex items-start gap-2 text-xs">
+              {r.pass ? <CheckCircle2 className="h-4 w-4"/> : <XCircle className="h-4 w-4"/>}
+              <span>{r.name}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+export default function FactoryCalculators() {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 text-foreground">
+      <PrintStyles />
+      <header className="sticky top-0 z-10 backdrop-blur border-b bg-background/70">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+          <a href="index.html" className="flex items-center gap-2 text-xl font-bold">
+            <ArrowLeft className="h-5 w-5" />
+            <span className="hidden md:block">กลับ</span>
+          </a>
+          <div className="flex-1 text-center">
+            <h1 className="text-xl font-bold">Factory Calculators Hub</h1>
+            <p className="text-sm text-muted-foreground">รวมเครื่องมือคำนวณหลักสำหรับโรงงาน – ในหน้าเดียว</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => window.print()}>
+              <Printer className="h-4 w-4 mr-2"/>พิมพ์เป็น PDF
+            </Button>
+          </div>
+        </div>
+      </header>
+      <main className="max-w-6xl mx-auto p-4 md:p-6 grid gap-6">
+        <OEECalculator />
+        <EOQCalculator />
+        <TaktTimeCalculator />
+        <CapacityPlanner />
+        <QualityYield />
+        <MTBF_MTTR />
+        <FinanceROI />
+        <BreakEven />
+        <DowntimeCost />
+        <SPC_CpCpk />
+        <CPKCalculator />
+      </main>
+    </div>
+  );
+}
+import React, { useMemo, useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Download, Calculator, FileText, Printer, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft } from 'lucide-react';
+
+// ---------------- Utilities ----------------
+function NumberField({ id, label, value, onChange, suffix, min = 0, step = "any" }) {
+  return (
+    <div className="grid gap-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <div className="flex items-center gap-2">
+        <Input
+          id={id}
+          type="number"
+          inputMode="decimal"
+          step={step}
+          min={min}
+          value={Number.isFinite(value) ? value : ""}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="text-right"
+        />
+        {suffix ? <span className="text-sm text-muted-foreground w-14 text-right">{suffix}</span> : null}
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value, suffix }) {
+  return (
+    <div className="flex items-baseline justify-between py-1">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="font-semibold tabular-nums">{value}{suffix}</span>
+    </div>
+  );
+}
+
+function Section({ title, children, right }) {
+  return (
+    <Card className="shadow-md">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2"><Calculator className="h-5 w-5"/>{title}</CardTitle>
+          {right}
+        </div>
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  );
+}
+
+// Escape any value for safe CSV using JSON.stringify (handles quotes/commas/newlines)
+function toCSVField(v) {
+  return JSON.stringify(v ?? "");
+}
+
+function buildCSVFromObject(data) {
+  const entries = Object.entries(data || {});
+  if (entries.length === 0) return null;
+  const header = entries.map(([k]) => toCSVField(k)).join(",");
+  const row = entries.map(([, v]) => toCSVField(v)).join(",");
+  const csv = "\uFEFF" + header + "\n" + row; // BOM + newline
+  return csv;
+}
+
+function ExportButtons({ filename, data }) {
+  const downloadJSON = () => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename + ".json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadCSV = () => {
+    const csv = buildCSVFromObject(data);
+    if (!csv) return;
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename + ".csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="flex gap-2">
+      <Button variant="secondary" size="sm" onClick={downloadJSON}><Download className="h-4 w-4 mr-2"/>JSON</Button>
+      <Button variant="secondary" size="sm" onClick={downloadCSV}><FileText className="h-4 w-4 mr-2"/>CSV</Button>
+      <Button variant="secondary" size="sm" onClick={() => window.print()}><Printer className="h-4 w-4 mr-2"/>PDF</Button>
+    </div>
+  );
+}
+
+// ---------------- Calculators ----------------
+function OEECalculator() {
+  const [plannedTimeMin, setPlannedTimeMin] = useState(480);
+  const [downtimeMin, setDowntimeMin] = useState(60);
+  const [idealCycleTimeSec, setIdealCycleTimeSec] = useState(30);
+  const [totalUnits, setTotalUnits] = useState(800);
+  const [goodUnits, setGoodUnits] = useState(760);
+
+  const results = useMemo(() => {
+    const runtimeMin = Math.max(plannedTimeMin - downtimeMin, 0);
+    const availability = plannedTimeMin > 0 ? runtimeMin / plannedTimeMin : 0;
+    const idealTimeMin = (totalUnits * idealCycleTimeSec) / 60;
+    const performance = runtimeMin > 0 ? idealTimeMin / runtimeMin : 0;
+    const quality = totalUnits > 0 ? goodUnits / totalUnits : 0;
+    const oee = availability * performance * quality;
+    return { runtimeMin, availability, performance, quality, oee };
+  }, [plannedTimeMin, downtimeMin, idealCycleTimeSec, totalUnits, goodUnits]);
+
+  return (
+    <Section title="OEE – Overall Equipment Effectiveness" right={<ExportButtons filename="oee" data={{ plannedTimeMin, downtimeMin, idealCycleTimeSec, totalUnits, goodUnits, ...results }} />}>  
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4">
+          <NumberField id="planned" label="Planned Production Time" value={plannedTimeMin} onChange={setPlannedTimeMin} suffix="min" />
+          <NumberField id="downtime" label="Downtime" value={downtimeMin} onChange={setDowntimeMin} suffix="min" />
+          <NumberField id="ideal" label="Ideal Cycle Time" value={idealCycleTimeSec} onChange={setIdealCycleTimeSec} suffix="sec/unit" />
+          <NumberField id="total" label="Total Units" value={totalUnits} onChange={setTotalUnits} suffix="units" />
+          <NumberField id="good" label="Good Units" value={goodUnits} onChange={setGoodUnits} suffix="units" />
+        </div>
+        <div className="grid gap-2">
+          <Stat label="Runtime" value={results.runtimeMin.toFixed(2)} suffix=" min" />
+          <div className="grid grid-cols-3 gap-2">
+            <Card className="p-3"><div className="text-sm text-muted-foreground">Availability</div><div className="text-2xl font-bold">{(results.availability*100).toFixed(1)}%</div></Card>
+            <Card className="p-3"><div className="text-sm text-muted-foreground">Performance</div><div className="text-2xl font-bold">{(results.performance*100).toFixed(1)}%</div></Card>
+            <Card className="p-3"><div className="text-sm text-muted-foreground">Quality</div><div className="text-2xl font-bold">{(results.quality*100).toFixed(1)}%</div></Card>
+          </div>
+          <div className="rounded-2xl border p-4 bg-muted/40">
+            <div className="text-sm text-muted-foreground">OEE</div>
+            <div className="text-4xl font-extrabold">{(results.oee*100).toFixed(1)}%</div>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function EOQCalculator() {
+  const [demand, setDemand] = useState(12000);
+  const [orderCost, setOrderCost] = useState(500);
+  const [holdingCost, setHoldingCost] = useState(20);
+
+  const eoq = useMemo(() => {
+    return holdingCost > 0 ? Math.sqrt((2 * demand * orderCost) / holdingCost) : 0;
+  }, [demand, orderCost, holdingCost]);
+
+  return (
+    <Section title="EOQ – Economic Order Quantity" right={<ExportButtons filename="eoq" data={{ demand, orderCost, holdingCost, eoq }} />}>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4">
+          <NumberField id="demand" label="Annual Demand" value={demand} onChange={setDemand} suffix="units" />
+          <NumberField id="orderCost" label="Order Cost" value={orderCost} onChange={setOrderCost} suffix="฿" />
+          <NumberField id="holdingCost" label="Holding Cost per Unit" value={holdingCost} onChange={setHoldingCost} suffix="฿" />
+        </div>
+        <div className="grid gap-2">
+          <Stat label="EOQ" value={eoq.toFixed(2)} suffix=" units" />
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function TaktTimeCalculator() {
+  const [availableTimeMin, setAvailableTimeMin] = useState(420);
+  const [customerDemand, setCustomerDemand] = useState(600);
+  const takt = useMemo(() => (customerDemand > 0 ? (availableTimeMin * 60) / customerDemand : 0), [availableTimeMin, customerDemand]);
+
+  return (
+    <Section title="Takt Time" right={<ExportButtons filename="takt" data={{ availableTimeMin, customerDemand, takt }} />}>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4">
+          <NumberField id="avail" label="Available Production Time per Period" value={availableTimeMin} onChange={setAvailableTimeMin} suffix="min" />
+          <NumberField id="demand" label="Customer Demand per Period" value={customerDemand} onChange={setCustomerDemand} suffix="units" />
+        </div>
+        <div className="grid gap-2">
+          <div className="rounded-2xl border p-6 bg-muted/40">
+            <div className="text-sm text-muted-foreground">Takt Time</div>
+            <div className="text-4xl font-extrabold">{takt.toFixed(2)} sec/unit</div>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function CapacityPlanner() {
+  const [machines, setMachines] = useState(3);
+  const [shiftsPerDay, setShiftsPerDay] = useState(2);
+  const [hoursPerShift, setHoursPerShift] = useState(8);
+  const [efficiency, setEfficiency] = useState(85);
+  const [cycleSec, setCycleSec] = useState(20);
+
+  const results = useMemo(() => {
+    const eff = Math.max(Math.min(efficiency, 100), 0) / 100;
+    const secondsPerDay = shiftsPerDay * hoursPerShift * 3600;
+    const unitsPerMachinePerDay = cycleSec > 0 ? (secondsPerDay * eff) / cycleSec : 0;
+    const dailyCapacity = unitsPerMachinePerDay * machines;
+    const hourlyRate = cycleSec > 0 ? (3600 * eff) / cycleSec * machines : 0;
+    return { unitsPerMachinePerDay, dailyCapacity, hourlyRate };
+  }, [machines, shiftsPerDay, hoursPerShift, efficiency, cycleSec]);
+
+  return (
+    <Section title="Capacity Planning" right={<ExportButtons filename="capacity" data={{ machines, shiftsPerDay, hoursPerShift, efficiency, cycleSec, ...results }} />}>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4">
+          <NumberField id="machines" label="Machines" value={machines} onChange={setMachines} min={0} suffix="ea" />
+          <NumberField id="shifts" label="Shifts per Day" value={shiftsPerDay} onChange={setShiftsPerDay} min={0} suffix="shifts" />
+          <NumberField id="hours" label="Hours per Shift" value={hoursPerShift} onChange={setHoursPerShift} min={0} suffix="h" />
+          <NumberField id="eff" label="Efficiency" value={efficiency} onChange={setEfficiency} min={0} step={0.1} suffix="%" />
+          <NumberField id="cycle" label="Cycle Time" value={cycleSec} onChange={setCycleSec} min={0} step={0.1} suffix="sec/unit" />
+        </div>
+        <div className="grid gap-2">
+          <Stat label="Units per Machine per Day" value={results.unitsPerMachinePerDay.toFixed(1)} />
+          <Stat label="Hourly Throughput (all machines)" value={results.hourlyRate.toFixed(1)} suffix=" units/h" />
+          <div className="rounded-2xl border p-6 bg-muted/40">
+            <div className="text-sm text-muted-foreground">Daily Capacity (all machines)</div>
+            <div className="text-4xl font-extrabold">{results.dailyCapacity.toFixed(0)} units/day</div>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function QualityYield() {
+  const [total, setTotal] = useState(1000);
+  const [good, setGood] = useState(980);
+
+  const results = useMemo(() => {
+    const scrap = Math.max(total - good, 0);
+    const yieldPct = total > 0 ? (good / total) * 100 : 0;
+    const defectRatePct = 100 - yieldPct;
+    const ppm = total > 0 ? (scrap / total) * 1_000_000 : 0;
+    return { scrap, yieldPct, defectRatePct, ppm };
+  }, [total, good]);
+
+  return (
+    <Section title="Quality – Yield / Scrap / PPM" right={<ExportButtons filename="quality" data={{ total, good, ...results }} />}>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4">
+          <NumberField id="qt-total" label="Total Units" value={total} onChange={setTotal} suffix="units" />
+          <NumberField id="qt-good" label="Good Units" value={good} onChange={setGood} suffix="units" />
+        </div>
+        <div className="grid gap-2">
+          <Stat label="Scrap Units" value={results.scrap.toFixed(0)} />
+          <Stat label="Yield" value={results.yieldPct.toFixed(2)} suffix=" %" />
+          <Stat label="Defect Rate" value={results.defectRatePct.toFixed(2)} suffix=" %" />
+          <div className="rounded-2xl border p-6 bg-muted/40">
+            <div className="text-sm text-muted-foreground">Defects per Million (PPM)</div>
+            <div className="text-4xl font-extrabold">{results.ppm.toFixed(0)}</div>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function MTBF_MTTR() {
+  const [mtbfHours, setMtbfHours] = useState(120);
+  const [mttrHours, setMttrHours] = useState(2);
+
+  const availability = useMemo(() => {
+    const denom = mtbfHours + mttrHours;
+    return denom > 0 ? mtbfHours / denom : 0;
+  }, [mtbfHours, mttrHours]);
+
+  return (
+    <Section title="Reliability – MTBF / MTTR / Availability" right={<ExportButtons filename="reliability" data={{ mtbfHours, mttrHours, availability }} />}>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4">
+          <NumberField id="mtbf" label="MTBF" value={mtbfHours} onChange={setMtbfHours} suffix="h" />
+          <NumberField id="mttr" label="MTTR" value={mttrHours} onChange={setMttrHours} suffix="h" />
+        </div>
+        <div className="grid gap-2">
+          <div className="rounded-2xl border p-6 bg-muted/40">
+            <div className="text-sm text-muted-foreground">Availability</div>
+            <div className="text-4xl font-extrabold">{(availability * 100).toFixed(2)}%</div>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function FinanceROI() {
+  const [investment, setInvestment] = useState(500000);
+  const [annualBenefit, setAnnualBenefit] = useState(250000);
+  const [annualCost, setAnnualCost] = useState(50_000);
+
+  const results = useMemo(() => {
+    const net = annualBenefit - annualCost;
+    const roi = investment > 0 ? (net / investment) * 100 : 0;
+    const paybackYears = net > 0 ? investment / net : Infinity;
+    return { net, roi, paybackYears };
+  }, [investment, annualBenefit, annualCost]);
+
+  return (
+    <Section title="Financial – ROI & Payback" right={<ExportButtons filename="finance" data={{ investment, annualBenefit, annualCost, ...results }} />}>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4">
+          <NumberField id="inv" label="Initial Investment" value={investment} onChange={setInvestment} suffix="฿" />
+          <NumberField id="benefit" label="Annual Benefit (savings + profit)" value={annualBenefit} onChange={setAnnualBenefit} suffix="฿/yr" />
+          <NumberField id="cost" label="Annual Operating Cost" value={annualCost} onChange={setAnnualCost} suffix="฿/yr" />
+        </div>
+        <div className="grid gap-2">
+          <Stat label="Net Annual Benefit" value={results.net.toLocaleString()} suffix=" ฿/yr" />
+          <Stat label="ROI" value={results.roi.toFixed(2)} suffix=" %" />
+          <div className="rounded-2xl border p-6 bg-muted/40">
+            <div className="text-sm text-muted-foreground">Payback Period</div>
+            <div className="text-4xl font-extrabold">{Number.isFinite(results.paybackYears) ? `${results.paybackYears.toFixed(2)} years` : "—"}</div>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function BreakEven() {
+  const [fixed, setFixed] = useState(1_200_000);
+  const [price, setPrice] = useState(150);
+  const [variable, setVariable] = useState(85);
+
+  const results = useMemo(() => {
+    const cm = price - variable; // contribution margin per unit
+    const units = cm > 0 ? fixed / cm : Infinity;
+    return { cm, units };
+  }, [fixed, price, variable]);
+
+  return (
+    <Section title="Break-even Point" right={<ExportButtons filename="breakeven" data={{ fixed, price, variable, ...results }} />}>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4">
+          <NumberField id="fixed" label="Fixed Costs" value={fixed} onChange={setFixed} suffix="฿" />
+          <NumberField id="price" label="Unit Price" value={price} onChange={setPrice} suffix="฿/unit" />
+          <NumberField id="var" label="Variable Cost per Unit" value={variable} onChange={setVariable} suffix="฿/unit" />
+        </div>
+        <div className="grid gap-2">
+          <Stat label="Contribution Margin" value={results.cm.toFixed(2)} suffix=" ฿/unit" />
+          <div className="rounded-2xl border p-6 bg-muted/40">
+            <div className="text-sm text-muted-foreground">Break-even Volume</div>
+            <div className="text-4xl font-extrabold">{Number.isFinite(results.units) ? `${Math.ceil(results.units).toLocaleString()} units` : "—"}</div>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function DowntimeCost() {
+  const [rate, setRate] = useState(15000); // cost per hour
+  const [hours, setHours] = useState(3);
+  const cost = useMemo(() => rate * hours, [rate, hours]);
+  return (
+    <Section title="Downtime Cost" right={<ExportButtons filename="downtime" data={{ rate, hours, cost }} />}>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4">
+          <NumberField id="rate" label="Cost per Hour" value={rate} onChange={setRate} suffix="฿/h" />
+          <NumberField id="hours" label="Downtime Hours" value={hours} onChange={setHours} suffix="h" />
+        </div>
+        <div className="grid gap-2">
+          <div className="rounded-2xl border p-6 bg-muted/40">
+            <div className="text-sm text-muted-foreground">Total Downtime Cost</div>
+            <div className="text-4xl font-extrabold">{cost.toLocaleString()} ฿</div>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function SPC_CpCpk() {
+  const [lsl, setLsl] = useState(9.5);
+  const [usl, setUsl] = useState(10.5);
+  const [mean, setMean] = useState(10);
+  const [stdev, setStdev] = useState(0.2);
+
+  const results = useMemo(() => {
+    const cp = stdev > 0 ? (usl - lsl) / (6 * stdev) : 0;
+    const cpu = stdev > 0 ? (usl - mean) / (3 * stdev) : 0;
+    const cpl = stdev > 0 ? (mean - lsl) / (3 * stdev) : 0;
+    const cpk = Math.min(cpu, cpl);
+    return { cp, cpu, cpl, cpk };
+  }, [lsl, usl, mean, stdev]);
+
+  const status = useMemo(() => {
+    if (results.cpk >= 2.00) return { text: "ระดับโลก (World Class)", color: "text-blue-600" };
+    if (results.cpk >= 1.67) return { text: "มีความสามารถสูงมาก (Highly Capable)", color: "text-indigo-600" };
+    if (results.cpk >= 1.33) return { text: "มีความสามารถสูง (Capable)", color: "text-green-600" };
+    if (results.cpk >= 1.00) return { text: "รองรับได้ (Adequate)", color: "text-yellow-600" };
+    return { text: "ไม่สามารถรองรับได้ (Not Capable)", color: "text-red-600" };
+  }, [results.cpk]);
+
+  return (
+    <Section title="SPC – Cp / Cpk" right={<ExportButtons filename="spc" data={{ lsl, usl, mean, stdev, ...results }} />}>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4">
+          <NumberField id="lsl" label="Lower Spec Limit (LSL)" value={lsl} onChange={setLsl} />
+          <NumberField id="usl" label="Upper Spec Limit (USL)" value={usl} onChange={setUsl} />
+          <NumberField id="mean" label="Process Mean" value={mean} onChange={setMean} />
+          <NumberField id="stdev" label="Standard Deviation (σ)" value={stdev} onChange={setStdev} step={0.01} />
+        </div>
+        <div className="grid gap-2">
+          <Stat label="Cp" value={results.cp.toFixed(3)} />
+          <Stat label="Cpu" value={results.cpu.toFixed(3)} />
+          <Stat label="Cpl" value={results.cpl.toFixed(3)} />
+          <div className="rounded-2xl border p-6 bg-muted/40">
+            <div className="text-sm text-muted-foreground">Cpk</div>
+            <div className={`text-4xl font-extrabold ${status.color}`}>{results.cpk.toFixed(3)}</div>
+            <div className={`text-base font-medium mt-1 ${status.color}`}>{status.text}</div>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function CPKCalculator() {
+  const [lsl, setLsl] = useState(9.5);
+  const [usl, setUsl] = useState(10.5);
+  const [dataInput, setDataInput] = useState("10.1, 10.5, 9.8, 10.3, 10.2, 9.9, 10.0, 10.1, 10.4, 10.2");
+
+  const results = useMemo(() => {
+    const data = dataInput.split(/[\s,]+/).filter(Boolean).map(Number);
+    if (data.length < 2) return null;
+    const mean = data.reduce((sum, val) => sum + val, 0) / data.length;
+    const stdev = Math.sqrt(data.reduce((sum, val) => sum + (val - mean) ** 2, 0) / (data.length - 1));
+    const cpu = stdev > 0 ? (usl - mean) / (3 * stdev) : 0;
+    const cpl = stdev > 0 ? (mean - lsl) / (3 * stdev) : 0;
+    const cpk = Math.min(cpu, cpl);
+    return { data, mean, stdev, cpu, cpl, cpk };
+  }, [lsl, usl, dataInput]);
+
+  const status = useMemo(() => {
+    if (!results) return null;
+    if (results.cpk >= 2.00) return { text: "อยู่ในระดับโลก (World Class)", color: "text-blue-600" };
+    if (results.cpk >= 1.67) return { text: "มีความสามารถสูงมาก (Highly Capable)", color: "text-indigo-600" };
+    if (results.cpk >= 1.33) return { text: "มีความสามารถสูง (Capable)", color: "text-green-600" };
+    if (results.cpk >= 1.00) return { text: "รองรับได้ (Adequate)", color: "text-yellow-600" };
+    return { text: "ไม่สามารถรองรับได้ (Not Capable)", color: "text-red-600" };
+  }, [results]);
+
+  return (
+    <Section title="CPK Calculator" right={<ExportButtons filename="cpk_from_data" data={{ lsl, usl, dataInput, ...results }} />}>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4">
+          <NumberField id="lsl-data" label="Lower Spec Limit (LSL)" value={lsl} onChange={setLsl} />
+          <NumberField id="usl-data" label="Upper Spec Limit (USL)" value={usl} onChange={setUsl} />
+          <div className="grid gap-1.5">
+            <Label htmlFor="data-input">Data (comma or newline separated)</Label>
+            <textarea
+              id="data-input"
+              className="resize-y min-h-[100px] border rounded-md p-2 text-sm"
+              value={dataInput}
+              onChange={(e) => setDataInput(e.target.value)}
+              placeholder="e.g., 10.1, 10.5, 9.8..."
+            />
+          </div>
+        </div>
+        <div className="grid gap-2">
+          {results && (
+            <>
+              <Stat label="Data Points" value={results.data.length} />
+              <Stat label="Mean (X̄)" value={results.mean.toFixed(3)} />
+              <Stat label="Std Dev (σ)" value={results.stdev.toFixed(3)} />
+              <div className="rounded-2xl border p-6 bg-muted/40 mt-auto">
+                <div className="text-sm text-muted-foreground">Cpk</div>
+                <div className={`text-4xl font-extrabold ${status.color}`}>{results.cpk.toFixed(3)}</div>
+                <div className={`text-base font-medium mt-1 ${status.color}`}>{status.text}</div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function PrintStyles() {
+  return (
+    <style>{`@media print { button, [role=tablist] { display:none !important;} header, footer { box-shadow:none; border:none; } body { background:white !important; } .shadow-md { box-shadow: none !important; } }`}</style>
+  );
+}
+
+// ---------------- Developer Tests ----------------
+function DevTests() {
+  const [results, setResults] = useState([]);
+  useEffect(() => {
+    const cases = [];
+
+    // Case 1: newline present
+    const d1 = { a: 1, b: 2 };
+    const c1 = buildCSVFromObject(d1);
+    cases.push({ name: "CSV newline present", pass: !!c1 && c1.includes("\n"), detail: c1 });
+
+    // Case 2: comma value quoted
+    const d2 = { name: "a,b", qty: 5 };
+    const c2 = buildCSVFromObject(d2);
+    cases.push({ name: "Comma value quoted", pass: !!c2 && c2.includes('"a,b"'), detail: c2 });
+
+    // Case 3: quotes escaped
+    const d3 = { note: 'He said "Hi"' };
+    const c3 = buildCSVFromObject(d3);
+    cases.push({ name: "Quotes escaped", pass: !!c3 && c3.includes('He said ""Hi""'), detail: c3 });
+
+    // Case 4: empty object -> null
+    const d4 = {};
+    const c4 = buildCSVFromObject(d4);
+    cases.push({ name: "Empty data returns null", pass: c4 === null, detail: String(c4) });
+
+    setResults(cases);
+  }, []);
+  return (
+    <div className="max-w-6xl mx-auto px-4 pb-2">
+      <div className="mt-2 rounded-lg border p-3 bg-muted/30">
+        <div className="text-xs font-medium mb-2">Developer self-tests</div>
+        <ul className="grid gap-1">
+          {results.map((r, i) => (
+            <li key={i} className="flex items-start gap-2 text-xs">
+              {r.pass ? <CheckCircle2 className="h-4 w-4"/> : <XCircle className="h-4 w-4"/>}
+              <span>{r.name}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+export default function FactoryCalculators() {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 text-foreground">
+      <PrintStyles />
+      <header className="sticky top-0 z-10 backdrop-blur border-b bg-background/70">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+          <a href="index.html" className="flex items-center gap-2 text-xl font-bold">
+            <ArrowLeft className="h-5 w-5" />
+            <span className="hidden md:block">กลับ</span>
+          </a>
+          <div className="flex-1 text-center">
+            <h1 className="text-xl font-bold">Factory Calculators Hub</h1>
+            <p className="text-sm text-muted-foreground">รวมเครื่องมือคำนวณหลักสำหรับโรงงาน – ในหน้าเดียว</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => window.print()}>
+              <Printer className="h-4 w-4 mr-2"/>พิมพ์เป็น PDF
+            </Button>
+          </div>
+        </div>
+      </header>
+      <main className="max-w-6xl mx-auto p-4 md:p-6 grid gap-6">
+        <OEECalculator />
+        <EOQCalculator />
+        <TaktTimeCalculator />
+        <CapacityPlanner />
+        <QualityYield />
+        <MTBF_MTTR />
+        <FinanceROI />
+        <BreakEven />
+        <DowntimeCost />
+        <SPC_CpCpk />
+        <CPKCalculator />
+      </main>
+    </div>
+  );
+}
