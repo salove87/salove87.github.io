@@ -4,138 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>แบบฟอร์มเบิกเครื่องใช้สำนักงาน - Toolbox</title>
-    <!-- โค้ด Google AdSense สำหรับยืนยันความเป็นเจ้าของ -->
     <meta name="google-adsense-account" content="ca-pub-3455272174981579">
-    <!-- สิ้นสุดโค้ด Google AdSense -->
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Firebase CDN -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-        // Ensure Firebase is initialized only once
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-
-        async function authenticateAndSetupListeners() {
-            try {
-                if (typeof __initial_auth_token !== 'undefined') {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-                
-                const requestsCollection = collection(db, `artifacts/${appId}/public/data/supply-requests`);
-                const q = query(requestsCollection, orderBy('timestamp', 'desc'));
-
-                onSnapshot(q, (snapshot) => {
-                    const requests = snapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data(),
-                        timestamp: doc.data().timestamp ? new Date(doc.data().timestamp.toMillis()).toLocaleString() : 'N/A'
-                    }));
-                    renderRequests(requests);
-                });
-            } catch (error) {
-                console.error("Firebase authentication or setup failed:", error);
-            }
-        }
-        authenticateAndSetupListeners();
-
-        function renderRequests(requests) {
-            const tableBody = document.getElementById('request-table-body');
-            tableBody.innerHTML = '';
-            
-            if (requests.length === 0) {
-                const noDataRow = document.createElement('tr');
-                noDataRow.innerHTML = `<td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">ไม่มีรายการเบิกของ</td>`;
-                tableBody.appendChild(noDataRow);
-                return;
-            }
-
-            requests.forEach(req => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${req.requesterName}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${req.department}</td>
-                    <td class="px-6 py-4 whitespace-pre-wrap text-sm text-gray-500">${req.items}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${req.timestamp}</td>
-                `;
-                tableBody.appendChild(row);
-            });
-        }
-        
-        window.handleSubmit = async () => {
-            const department = document.getElementById('department').value;
-            const items = document.getElementById('items').value;
-            const requesterName = document.getElementById('requesterName').value;
-
-            if (!department || !items || !requesterName) {
-                alert('กรุณากรอกข้อมูลให้ครบถ้วน');
-                return;
-            }
-
-            try {
-                await addDoc(collection(db, `artifacts/${appId}/public/data/supply-requests`), {
-                    department,
-                    items,
-                    requesterName,
-                    timestamp: serverTimestamp(),
-                    userId: auth.currentUser.uid,
-                });
-                // Clear the form
-                document.getElementById('department').value = '';
-                document.getElementById('items').value = '';
-                document.getElementById('requesterName').value = '';
-            } catch (e) {
-                console.error("Error adding document: ", e);
-            }
-        };
-
-        window.handleDeleteAll = async () => {
-            const today = new Date();
-            if (today.getDate() !== 1) {
-                alert('ฟังก์ชันนี้สามารถใช้งานได้เฉพาะวันที่ 1 ของทุกเดือน');
-                return;
-            }
-            if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบรายการเบิกทั้งหมด?')) return;
-            try {
-                const requestsCollection = collection(db, `artifacts/${appId}/public/data/supply-requests`);
-                const snapshot = await getDocs(requestsCollection);
-                const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
-                await Promise.all(deletePromises);
-                alert('ลบรายการเบิกทั้งหมดแล้ว');
-            } catch (e) {
-                console.error("Error deleting documents: ", e);
-            }
-        };
-
-        window.handleDownload = () => {
-            const table = document.querySelector('table');
-            if (!table) {
-                alert('ไม่มีข้อมูลให้ดาวน์โหลด');
-                return;
-            }
-            const csv = [...table.rows].map(row => {
-                const cells = Array.from(row.cells).map(cell => `"${cell.textContent.trim()}"`);
-                return cells.join(',');
-            }).join('\n');
-
-            const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `supply-requests-${new Date().toLocaleDateString('th-TH')}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
-        };
-    </script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -218,25 +88,26 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            ชื่อผู้เบิก
-                        </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            แผนก
-                        </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            รายการเบิกของ
-                        </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            ส่งเมื่อ
-                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อผู้เบิก</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">แผนก</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">รายการเบิกของ</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ส่งเมื่อ</th>
                     </tr>
                 </thead>
                 <tbody id="request-table-body" class="bg-white divide-y divide-gray-200">
-                    <!-- Data will be rendered here by JavaScript -->
                 </tbody>
             </table>
         </div>
     </div>
-</body>
-</html>
+
+    <script>
+      const GAS_URL = 'https://script.google.com/macros/s/AKfycbyQAxH0KENImyYsAqGSMgzcAXd8FD7zHpWPYEuqPd2fgAcpvZqO_fgHkIZcNpnIBM3NRg/exec';
+
+      document.addEventListener('DOMContentLoaded', loadRequests);
+
+      async function loadRequests() {
+        try {
+          const res = await fetch(GAS_URL);
+          const data = await res.json();
+          renderRequests((data.data || []).map(r => ({
+            requesterName: r.requesterName || '',
