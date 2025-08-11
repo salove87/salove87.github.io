@@ -3,111 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>แบบฟอร์มเบิกเครื่องใช้สำนักงาน - Toolbox</title>
-    <meta name="google-adsense-account" content="ca-pub-3455272174981579">
+    <title>แบบฟอร์มเบิกเครื่องใช้สำนักงาน</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
         }
-        .card {
-            background-color: white;
-            border-radius: 0.75rem;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-        }
     </style>
 </head>
-<body class="p-8 bg-gray-100 min-h-screen font-sans">
-    <div class="max-w-4xl mx-auto">
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-md mx-auto bg-white rounded-xl shadow-lg p-8">
         <h1 class="text-3xl font-bold text-center mb-2">แบบฟอร์มเบิกเครื่องใช้สำนักงาน</h1>
         <p class="text-center text-gray-600 mb-8">
             สำหรับแจ้งรายการเบิกของใช้ในองค์กร
         </p>
-        
-        <!-- Request Form -->
-        <div class="bg-white p-6 rounded-lg shadow-md mb-8">
-            <form id="request-form" onsubmit="event.preventDefault(); window.handleSubmit();" class="space-y-4">
-                <div>
-                    <label for="department" class="block text-sm font-medium text-gray-700">แผนกที่เบิก</label>
-                    <input
-                        type="text"
-                        id="department"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                        required
-                        placeholder="เช่น แผนกการตลาด, แผนกบัญชี"
-                    />
-                </div>
-                <div>
-                    <label for="items" class="block text-sm font-medium text-gray-700">รายการเบิกของ (สามารถพิมพ์ได้)</label>
-                    <textarea
-                        id="items"
-                        rows="4"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                        placeholder="ตัวอย่าง: กระดาษ A4 จำนวน 2 รีม, ปากกาหมึกแห้งสีน้ำเงิน 10 ด้าม"
-                        required
-                    ></textarea>
-                </div>
-                <div>
-                    <label for="requesterName" class="block text-sm font-medium text-gray-700">ชื่อผู้เบิก</label>
-                    <input
-                        type="text"
-                        id="requesterName"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                        required
-                    />
-                </div>
-                <button
-                    type="submit"
-                    class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                    ส่งรายการเบิก
-                </button>
-            </form>
-        </div>
 
-        <!-- Action Buttons -->
-        <div class="flex justify-end space-x-2 mb-4">
+        <!-- Google Forms HTML form structure -->
+        <form action="https://docs.google.com/forms/d/e/1FAIpQLSfNfj5OLMfSROgv3stsGl4YXlu5ZDx4F7qNH8SZp_Z8n5kyMg/formResponse" method="POST" class="space-y-4">
+            <div>
+                <label for="department" class="block text-sm font-medium text-gray-700">แผนกที่เบิก</label>
+                <input
+                    type="text"
+                    id="department"
+                    name="entry.309040181"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                    required
+                    placeholder="เช่น แผนกการตลาด, แผนกบัญชี"
+                />
+            </div>
+            <div>
+                <label for="items" class="block text-sm font-medium text-gray-700">รายการเบิกของ</label>
+                <textarea
+                    id="items"
+                    name="entry.1481541063"
+                    rows="4"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                    placeholder="ตัวอย่าง: กระดาษ A4 จำนวน 2 รีม, ปากกาหมึกแห้งสีน้ำเงิน 10 ด้าม"
+                    required
+                ></textarea>
+            </div>
+            <div>
+                <label for="requesterName" class="block text-sm font-medium text-gray-700">ชื่อผู้เบิก</label>
+                <input
+                    type="text"
+                    id="requesterName"
+                    name="entry.1169641772"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                    required
+                />
+            </div>
             <button
-                onclick="window.handleDownload()"
-                class="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                type="submit"
+                class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-                ดาวน์โหลดข้อมูล
+                ส่งรายการเบิก
             </button>
-            <button
-                onclick="window.handleDeleteAll()"
-                class="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-            >
-                ลบรายการเบิกทั้งหมด (สิ้นเดือน)
-            </button>
-        </div>
-
-        <!-- Request List - Horizontal Table -->
-        <h2 class="text-2xl font-bold mb-4">รายการเบิกของทั้งหมด</h2>
-        <div class="bg-white p-6 rounded-lg shadow-md overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อผู้เบิก</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">แผนก</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">รายการเบิกของ</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ส่งเมื่อ</th>
-                    </tr>
-                </thead>
-                <tbody id="request-table-body" class="bg-white divide-y divide-gray-200">
-                </tbody>
-            </table>
-        </div>
+        </form>
     </div>
-
-    <script>
-      const GAS_URL = 'https://script.google.com/macros/s/AKfycbyQAxH0KENImyYsAqGSMgzcAXd8FD7zHpWPYEuqPd2fgAcpvZqO_fgHkIZcNpnIBM3NRg/exec';
-
-      document.addEventListener('DOMContentLoaded', loadRequests);
-
-      async function loadRequests() {
-        try {
-          const res = await fetch(GAS_URL);
-          const data = await res.json();
-          renderRequests((data.data || []).map(r => ({
-            requesterName: r.requesterName || '',
+</body>
+</html>
