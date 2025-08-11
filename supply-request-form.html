@@ -4,9 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>แบบฟอร์มเบิกเครื่องใช้สำนักงาน - Toolbox</title>
-    <!-- โค้ด Google AdSense สำหรับยืนยันความเป็นเจ้าของ -->
+    <!-- โค้ด Google AdSense -->
     <meta name="google-adsense-account" content="ca-pub-3455272174981579">
-    <!-- สิ้นสุดโค้ด Google AdSense -->
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Firebase CDN -->
@@ -15,7 +14,17 @@
         import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        // Firebase Config (แก้ storageBucket ให้ถูกต้อง)
+        const firebaseConfig = {
+          apiKey: "AIzaSyASVRfcI29rcxgzQuOC6R-CMT7X7vBWg_g",
+          authDomain: "onlinetoolbox-d7c04.firebaseapp.com",
+          projectId: "onlinetoolbox-d7c04",
+          storageBucket: "onlinetoolbox-d7c04.appspot.com",
+          messagingSenderId: "873410566683",
+          appId: "1:873410566683:web:6c7e3058085b09acb036be",
+          measurementId: "G-7XSCKFGGFG"
+        };
+
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
         // Initialize Firebase
@@ -44,6 +53,9 @@
                 });
             } catch (error) {
                 console.error("Firebase authentication or setup failed:", error);
+                document.getElementById('request-table-body').innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-center text-sm text-red-500">
+                    มีปัญหาในการเชื่อมต่อกับ Firebase Authentication. โปรดตรวจสอบการตั้งค่า.
+                </td></tr>`;
             }
         }
         authenticateAndSetupListeners();
@@ -89,7 +101,6 @@
                     timestamp: serverTimestamp(),
                     userId: auth.currentUser.uid,
                 });
-                // Clear the form
                 document.getElementById('department').value = '';
                 document.getElementById('items').value = '';
                 document.getElementById('requesterName').value = '';
@@ -183,7 +194,7 @@
                     <input
                         type="text"
                         id="requesterName"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-ring-indigo-200 focus:ring-opacity-50"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                         required
                     />
                 </div>
@@ -212,28 +223,20 @@
             </button>
         </div>
 
-        <!-- Request List - Horizontal Table -->
+        <!-- Request List -->
         <h2 class="text-2xl font-bold mb-4">รายการเบิกของทั้งหมด</h2>
         <div class="bg-white p-6 rounded-lg shadow-md overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            ชื่อผู้เบิก
-                        </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            แผนก
-                        </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            รายการเบิกของ
-                        </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            ส่งเมื่อ
-                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อผู้เบิก</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">แผนก</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">รายการเบิกของ</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ส่งเมื่อ</th>
                     </tr>
                 </thead>
                 <tbody id="request-table-body" class="bg-white divide-y divide-gray-200">
-                    <!-- Data will be rendered here by JavaScript -->
+                    <!-- Data will be rendered here -->
                 </tbody>
             </table>
         </div>
