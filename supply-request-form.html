@@ -9,7 +9,13 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Firebase CDN -->
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .card { background-color: white; border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
+    </style>
+
+    <!-- Firebase + App Code -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import {
@@ -29,12 +35,41 @@
           measurementId: "G-7XSCKFGGFG"
         };
 
+        // รับ appId จากตัวแปร global ภายนอกได้ (ถ้าไม่มี ใช้ค่าเริ่มต้น)
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
+
+        // --------- Toast Helper ---------
+        let toastTimer = null;
+        function showToast(message = 'ดำเนินการสำเร็จ', timeoutMs = 2500) {
+          const toast = document.getElementById('toast');
+          const msgEl = document.getElementById('toast-message');
+          const closeBtn = document.getElementById('toast-close');
+          if (!toast || !msgEl) return;
+
+          msgEl.textContent = message;
+          toast.classList.remove('hidden');
+          requestAnimationFrame(() => toast.classList.remove('opacity-0')); // fade-in
+
+          if (toastTimer) clearTimeout(toastTimer);
+          toastTimer = setTimeout(hideToast, timeoutMs);
+
+          if (closeBtn) {
+            closeBtn.onclick = () => {
+              if (toastTimer) clearTimeout(toastTimer);
+              hideToast();
+            };
+          }
+
+          function hideToast() {
+            toast.classList.add('opacity-0');
+            setTimeout(() => toast.classList.add('hidden'), 300); // match duration-300
+          }
+        }
 
         // Debounce helper
         const debounce = (fn, delay = 500) => {
@@ -165,10 +200,12 @@
             });
         }
 
+        // ---------- Submit / Delete / Download ----------
         window.handleSubmit = async () => {
             const department = document.getElementById('department').value.trim();
             const items = document.getElementById('items').value.trim();
             const requesterName = document.getElementById('requesterName').value.trim();
+            const submitBtn = document.querySelector('#request-form button[type="submit"]');
 
             if (!department || !items || !requesterName) {
                 alert('กรุณากรอกข้อมูลให้ครบถ้วน');
@@ -176,6 +213,11 @@
             }
 
             try {
+                if (submitBtn) {
+                  submitBtn.disabled = true;
+                  submitBtn.classList.add('opacity-60', 'cursor-not-allowed');
+                }
+
                 await addDoc(collection(db, `artifacts/${appId}/public/data/supply-requests`), {
                     department,
                     items,
@@ -185,12 +227,22 @@
                     timestamp: serverTimestamp(),
                     userId: auth.currentUser?.uid ?? null,
                 });
+
+                // เคลียร์ฟิลด์
                 document.getElementById('department').value = '';
                 document.getElementById('items').value = '';
                 document.getElementById('requesterName').value = '';
+
+                // โชว์ Toast สำเร็จ
+                showToast('ส่งคำร้องเรียบร้อย');
             } catch (e) {
                 console.error("Error adding document: ", e);
                 alert('บันทึกรายการไม่สำเร็จ โปรดลองอีกครั้ง');
+            } finally {
+                if (submitBtn) {
+                  submitBtn.disabled = false;
+                  submitBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+                }
             }
         };
 
@@ -233,13 +285,8 @@
             URL.revokeObjectURL(url);
         };
     </script>
-
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .card { background-color: white; border-radius: 0.75rem;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
-    </style>
 </head>
+
 <body class="p-8 bg-gray-100 min-h-screen font-sans">
     <div class="max-w-5xl mx-auto">
         <h1 class="text-3xl font-bold text-center mb-2">แบบฟอร์มเบิกเครื่องใช้สำนักงาน</h1>
@@ -319,6 +366,18 @@
                 </tbody>
             </table>
         </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast"
+         class="fixed top-4 right-4 z-50 hidden opacity-0 transition-opacity duration-300">
+      <div class="rounded-md shadow-lg bg-green-600 text-white px-4 py-3 text-sm flex items-start gap-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-none" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-7.25 7.25a1 1 0 01-1.414 0l-3-3a1 1 0 011.414-1.414l2.293 2.293 6.543-6.543a1 1 0 011.414 0z" clip-rule="evenodd"/>
+        </svg>
+        <p id="toast-message" class="leading-5">ส่งคำร้องเรียบร้อย</p>
+        <button id="toast-close" class="ml-2 text-white/80 hover:text-white">ปิด</button>
+      </div>
     </div>
 </body>
 </html>
