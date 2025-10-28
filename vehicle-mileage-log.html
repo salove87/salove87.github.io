@@ -12,11 +12,27 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, setLogLevel, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase Global Variables (MUST BE USED)
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
+        // START: ส่วนที่ต้องแก้ไขสำหรับการโฮสต์ภายนอก (ค่า Config จริงที่ถูกใส่แล้ว)
+        
+        // 1. ตั้งชื่อ App ID ที่ใช้สำหรับโครงสร้าง Firestore (สามารถใช้ชื่อนี้ได้)
+        const appId = 'mileage-log-toolbox'; 
+        
+        // 2. **สำคัญ:** แทนที่ object นี้ด้วย firebaseConfig ที่คุณได้จาก Firebase Console
+        const firebaseConfig = { 
+            apiKey: "AIzaSyDKfJvn9yh-g1J5OMA9EBLEyp740b-NyH4", 
+            authDomain: "vehicle-mileage-31238.firebaseapp.com",
+            projectId: "vehicle-mileage-31238",
+            storageBucket: "vehicle-mileage-31238.firebasestorage.app",
+            messagingSenderId: "968556830605",
+            appId: "1:968556830605:web:4708cecdbfc44737c267c4"
+            // measurementId ถูกตัดออกเนื่องจากไม่จำเป็นสำหรับ Firestore/Auth
+        };
+        
+        // 3. กำหนดให้ initialAuthToken เป็น null สำหรับการลงชื่อเข้าใช้แบบไม่ระบุตัวตน
+        const initialAuthToken = null; 
+        
+        // END: ส่วนที่ต้องแก้ไขสำหรับการโฮสต์ภายนอก
+        
         let db, auth, userId;
         const COLLECTION_PATH = 'mileage_logs';
 
@@ -42,9 +58,10 @@
         // 1. Initialize Firebase and Authentication
         const setupFirebase = async () => {
             try {
-                if (Object.keys(firebaseConfig).length === 0) {
-                    console.error("Firebase config is missing.");
-                    showMessage('ข้อผิดพลาด: ไม่พบการตั้งค่า Firebase', true);
+                // Check if the configuration has been set by the user (This check is now passed)
+                if (firebaseConfig.apiKey === "YOUR_API_KEY_HERE" || Object.keys(firebaseConfig).length === 0) {
+                    console.error("Firebase config is missing or using placeholder values.");
+                    showMessage('ข้อผิดพลาด: โปรดใส่ค่า Firebase Config ของคุณในโค้ดก่อนใช้งาน', true);
                     return;
                 }
                 
@@ -53,24 +70,11 @@
                 auth = getAuth(app);
                 setLogLevel('error'); // Set to 'debug' for development, 'error' for production
 
-                await new Promise((resolve, reject) => {
-                    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-                        unsubscribe(); 
-                        if (user) {
-                            userId = user.uid;
-                        } else if (initialAuthToken) {
-                            // Use custom token if available
-                            await signInWithCustomToken(auth, initialAuthToken);
-                            userId = auth.currentUser.uid;
-                        } else {
-                            // Fallback to anonymous sign-in
-                            const anonymousUser = await signInAnonymously(auth);
-                            userId = anonymousUser.user.uid;
-                        }
-                        console.log("Firebase Auth Ready. User ID:", userId);
-                        resolve();
-                    }, reject);
-                });
+                // Authentication Flow: Sign in Anonymously
+                const anonymousUser = await signInAnonymously(auth);
+                userId = anonymousUser.user.uid;
+                
+                console.log("Firebase Auth Ready. User ID:", userId);
 
                 document.getElementById('user-id-display').textContent = userId;
                 
@@ -79,7 +83,12 @@
 
             } catch (error) {
                 console.error("Firebase setup or Auth error:", error);
-                showMessage(`ข้อผิดพลาดในการตั้งค่าระบบ: ${error.message}`, true);
+                // Auth error check is crucial for external hosting
+                if (error.code === 'auth/configuration-not-found' || error.code === 'auth/operation-not-allowed') {
+                    showMessage('ข้อผิดพลาด: กรุณาตรวจสอบว่าคุณได้เปิดใช้งาน Anonymous Sign-in ใน Firebase Console แล้ว', true);
+                } else {
+                    showMessage(`ข้อผิดพลาดในการตั้งค่าระบบ: ${error.message}`, true);
+                }
             }
         };
 
@@ -108,7 +117,7 @@
                 return;
             }
 
-            // Get car-specific fields
+            // Get car-specific fields (Ensure required fields are checked via HTML 'required' attribute)
             const fuelCost = parseFloat(form.fuelCost?.value) || 0;
             const location = form.location?.value || '';
 
@@ -134,6 +143,7 @@
 
             // Save to Firestore
             try {
+                // Path: /artifacts/{appId}/users/{userId}/mileage_logs (Private Data)
                 const docRef = await addDoc(collection(db, `artifacts/${appId}/users/${userId}/${COLLECTION_PATH}`), logData);
                 showMessage(`บันทึกข้อมูลการใช้รถเรียบร้อยแล้ว! (ID: ${docRef.id})`);
                 form.reset(); // Clear the form after successful submission
@@ -148,7 +158,6 @@
         };
 
         // 4. Fetch Logs from Firestore in real-time
-        // Now accepts an optional filter parameter
         const fetchLogs = (carFilter = 'all') => {
             const logsContainer = document.getElementById('logs-container');
             const logsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/${COLLECTION_PATH}`);
@@ -325,8 +334,8 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label for="fuelCost" class="block text-sm font-medium text-gray-700 mb-1">จำนวนเงิน (บาท)</label>
-                                <input type="number" id="fuelCost" name="fuelCost" min="0" step="0.01" placeholder="0.00" class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500 transition duration-150">
+                                <label for="fuelCost" class="block text-sm font-medium text-gray-700 mb-1">จำนวนเงิน (บาท) <span class="text-red-500">*</span></label>
+                                <input type="number" id="fuelCost" name="fuelCost" required min="0" step="0.01" placeholder="0.00" class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500 transition duration-150">
                             </div>
                             <div>
                                 <label for="liters" class="block text-sm font-medium text-gray-700 mb-1">ปริมาณ (ลิตร)</label>
@@ -377,8 +386,8 @@
                                 <input type="number" id="kwh" name="kwh" min="0" step="0.01" placeholder="0.00" class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 transition duration-150">
                             </div>
                             <div>
-                                <label for="fuelCostEV" class="block text-sm font-medium text-gray-700 mb-1">จำนวนเงิน/ค่าใช้จ่าย (บาท)</label>
-                                <input type="number" id="fuelCostEV" name="fuelCost" min="0" step="0.01" placeholder="0.00" class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 transition duration-150">
+                                <label for="fuelCostEV" class="block text-sm font-medium text-gray-700 mb-1">จำนวนเงิน/ค่าใช้จ่าย (บาท) <span class="text-red-500">*</span></label>
+                                <input type="number" id="fuelCostEV" name="fuelCost" required min="0" step="0.01" placeholder="0.00" class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 transition duration-150">
                             </div>
                         </div>
                         
