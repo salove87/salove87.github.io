@@ -73,6 +73,11 @@
         <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">ระบบบันทึกการใช้รถ</h1>
         <p class="text-center text-sm text-gray-500 mb-4" id="auth-status">กำลังเชื่อมต่อ...</p>
 
+        <!-- Current Date/Time Display -->
+        <div id="current-date-time" class="text-center text-sm font-semibold text-teal-700 mb-6 p-2 bg-teal-50 rounded-lg shadow-inner">
+            <!-- Will be populated by JS -->
+        </div>
+
         <!-- Form Card -->
         <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
             <h2 class="text-xl font-semibold text-teal-600 mb-4">บันทึกการใช้รถใหม่</h2>
@@ -93,6 +98,13 @@
                     <div>
                         <label for="userName" class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้ใช้งาน</label>
                         <input type="text" id="userName" name="userName" required placeholder="เช่น สมหญิง / User ID"
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500">
+                    </div>
+
+                    <!-- Location Input (NEW) -->
+                    <div class="md:col-span-2">
+                        <label for="location" class="block text-sm font-medium text-gray-700 mb-1">สถานที่ใช้งาน (Location)</label>
+                        <input type="text" id="location" name="location" placeholder="เช่น กรุงเทพฯ > เชียงใหม่ / ส่งของบริษัท"
                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500">
                     </div>
 
@@ -142,16 +154,17 @@
                 <table class="log-table w-full text-left text-gray-600">
                     <thead class="bg-gray-50 text-xs uppercase text-gray-500 rounded-lg">
                         <tr>
-                            <th scope="col" class="rounded-l-lg">วันที่/เวลา</th>
+                            <th scope="col">วันที่/เวลา</th>
                             <th scope="col">รถยนต์</th>
                             <th scope="col">ผู้ใช้งาน</th>
+                            <th scope="col">สถานที่</th> <!-- NEW Column Header -->
                             <th scope="col">ไมค์ออก</th>
                             <th scope="col">ไมค์เข้า</th>
                             <th scope="col" class="rounded-r-lg">ระยะทาง (กม.)</th>
                         </tr>
                     </thead>
                     <tbody id="log-list">
-                        <tr><td colspan="6" class="text-center py-8">ไม่มีรายการบันทึก</td></tr>
+                        <tr><td colspan="7" class="text-center py-8">ไม่มีรายการบันทึก</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -215,6 +228,9 @@
         const modalTitle = document.getElementById('modal-title');
         const modalMessage = document.getElementById('modal-message');
         const modalClose = document.getElementById('modal-close');
+        
+        // NEW UI element
+        const currentDateTimeDiv = document.getElementById('current-date-time');
 
         // --- Utility Functions ---
 
@@ -240,6 +256,19 @@
                 timeZone: 'Asia/Bangkok'
             };
             return date.toLocaleTimeString('th-TH', options);
+        }
+
+        /** Function to display current client date/time */
+        function updateDateTimeDisplay() {
+            const now = new Date();
+            const options = {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+                timeZone: 'Asia/Bangkok'
+            };
+            const dateStr = now.toLocaleDateString('th-TH', options);
+            // Inform the user that the server time will be used for logging
+            currentDateTimeDiv.textContent = `วันที่และเวลาปัจจุบัน (ระบบ): ${dateStr} (เวลาที่บันทึกจริงจะใช้เวลาเซิร์ฟเวอร์)`;
         }
 
         // --- Firebase Initialization and Authentication ---
@@ -289,10 +318,8 @@
 
         async function signInUser() {
             try {
-                // *** FIX: Removed Custom Token check to resolve auth/custom-token-mismatch ***
-                // Since a custom Firebase config is provided by the user, the environment's 
-                // initialAuthToken is invalid. We proceed directly to anonymous sign-in 
-                // which satisfies the need for an authenticated user (request.auth != null).
+                // FIX: Use anonymous sign-in directly to avoid auth/custom-token-mismatch error 
+                // when using user's specific Firebase config.
                 
                 console.log("[Firebase] Attempting signInAnonymously (Skipping Custom Token due to user's config)...");
                 await signInAnonymously(auth);
@@ -313,8 +340,9 @@
             loadingState.classList.add('hidden');
             logList.innerHTML = '';
             
+            // NOTE: Must change colspan from 6 to 7 for the new 'สถานที่' column
             if (logs.length === 0) {
-                logList.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-500">ไม่มีรายการบันทึก</td></tr>';
+                logList.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-500">ไม่มีรายการบันทึก</td></tr>';
                 deleteLatestBtn.disabled = true;
                 downloadBtn.disabled = true;
                 return;
@@ -334,6 +362,7 @@
                     <td data-label="วันที่/เวลา" class="font-medium text-gray-900">${formatTimestamp(log.timestamp)}</td>
                     <td data-label="รถยนต์" class="font-semibold text-teal-700">${log.vehicle}</td>
                     <td data-label="ผู้ใช้งาน">${log.userName}</td>
+                    <td data-label="สถานที่">${log.location || '-'}</td> <!-- Display location -->
                     <td data-label="ไมค์ออก" class="text-right">${log.odometerOut.toLocaleString()}</td>
                     <td data-label="ไมค์เข้า" class="text-right">${log.odometerIn.toLocaleString()}</td>
                     <td data-label="ระยะทาง (กม.)" class="font-bold text-blue-600 text-right">${distance.toLocaleString()}</td>
@@ -386,11 +415,12 @@
 
             const vehicle = document.getElementById('vehicle').value;
             const userName = document.getElementById('userName').value.trim();
+            const location = document.getElementById('location').value.trim(); // Get new location value
             const odometerOut = parseInt(document.getElementById('odometerOut').value, 10);
             const odometerIn = parseInt(document.getElementById('odometerIn').value, 10);
 
             if (!vehicle || !userName || isNaN(odometerOut) || isNaN(odometerIn)) {
-                formMessage.textContent = 'กรุณากรอกข้อมูลให้ครบถ้วน';
+                formMessage.textContent = 'กรุณากรอกข้อมูลที่จำเป็น (รถยนต์, ชื่อผู้ใช้, เลขไมค์ขาออกและขาเข้า) ให้ครบถ้วน';
                 formMessage.classList.remove('hidden');
                 return;
             }
@@ -410,6 +440,7 @@
                 const newLog = {
                     vehicle,
                     userName,
+                    location, // Save location
                     odometerOut,
                     odometerIn,
                     distance: odometerIn - odometerOut,
@@ -496,18 +527,21 @@
 
                 // 2. Prepare CSV data
                 let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // Add BOM for Thai characters
-                const headers = ["ID บันทึก", "วันที่/เวลา", "รถยนต์", "ผู้ใช้งาน", "ไมค์ออก (กม.)", "ไมค์เข้า (กม.)", "ระยะทาง (กม.)"];
+                // ADDED 'สถานที่' to headers
+                const headers = ["ID บันทึก", "วันที่/เวลา", "รถยนต์", "ผู้ใช้งาน", "สถานที่", "ไมค์ออก (กม.)", "ไมค์เข้า (กม.)", "ระยะทาง (กม.)"];
                 csvContent += headers.join(",") + "\r\n";
 
                 logs.forEach(log => {
                     const timestampStr = formatTimestamp(log.timestamp);
                     const distance = log.odometerIn - log.odometerOut;
                     
+                    // Added log.location
                     const row = [
                         log.userId.substring(0, 8), // Use a snippet of the ID for simplicity
                         `"${timestampStr}"`, // Wrap in quotes to handle commas/spaces
                         `"${log.vehicle}"`,
                         `"${log.userName}"`,
+                        `"${log.location || '-'}"`, // Added location, use '-' if empty
                         log.odometerOut,
                         log.odometerIn,
                         distance
@@ -538,6 +572,10 @@
 
         // --- Start Application ---
         initFirebase();
+        
+        // Start updating the current time display
+        updateDateTimeDisplay();
+        setInterval(updateDateTimeDisplay, 1000); 
 
     </script>
 </body>
