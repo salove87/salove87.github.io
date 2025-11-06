@@ -6,20 +6,7 @@
   <title>แบบฟอร์มใบลาออนไลน์ - บริษัท นาโน มิเรอร์ อินดัสทรี้ จำกัด</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .toast {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: #16a34a;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-      opacity: 0;
-      transform: translateY(20px);
-      transition: opacity 0.3s ease, transform 0.3s ease;
-      z-index: 50;
-    }
+    .toast { position: fixed; bottom: 20px; right: 20px; background: #16a34a; color: white; padding: 10px 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.15); opacity: 0; transform: translateY(20px); transition: opacity 0.3s ease, transform 0.3s ease; z-index: 50; }
     .toast.show { opacity: 1; transform: translateY(0); }
   </style>
 </head>
@@ -28,7 +15,7 @@
   <div class="bg-white shadow-lg rounded-2xl w-full max-w-lg p-6 mb-6">
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-3">
-        <img src="f1a71733-83ae-4b58-9795-d0637470168c.png" alt="NANO Logo" class="h-10">
+        <img src="https://i.postimg.cc/kMHv7FsP/loko-nano.png" alt="NANO Logo" class="h-10">
         <div>
           <h1 class="text-xl font-bold text-gray-800">บริษัท นาโน มิเรอร์ อินดัสทรี้ จำกัด</h1>
           <p class="text-sm text-gray-500">แบบฟอร์มใบลาออนไลน์</p>
@@ -41,7 +28,6 @@
       <span id="currentTime"></span>
     </div>
 
-    <!-- ✅ กล่องประกาศกฎการลา -->
     <div class="bg-blue-50 border border-blue-200 text-blue-800 p-3 rounded-lg mb-4 text-sm">
       <p><strong>ประกาศกฎการลา:</strong></p>
       <ul class="list-disc ml-5">
@@ -53,20 +39,10 @@
     </div>
 
     <form id="leaveForm" class="space-y-4">
-      <div>
-        <label class="block text-gray-700">รหัสพนักงาน</label>
-        <input type="text" id="empId" class="w-full p-2 border rounded-lg" required>
-      </div>
-      <div>
-        <label class="block text-gray-700">ชื่อ–นามสกุล</label>
-        <input type="text" id="empName" class="w-full p-2 border rounded-lg" required>
-      </div>
-      <div>
-        <label class="block text-gray-700">แผนก</label>
-        <input type="text" id="department" class="w-full p-2 border rounded-lg" required>
-      </div>
-      <div>
-        <label class="block text-gray-700">ประเภทการลา</label>
+      <div><label class="block text-gray-700">รหัสพนักงาน</label><input type="text" id="empId" class="w-full p-2 border rounded-lg" required></div>
+      <div><label class="block text-gray-700">ชื่อ–นามสกุล</label><input type="text" id="empName" class="w-full p-2 border rounded-lg" required></div>
+      <div><label class="block text-gray-700">แผนก</label><input type="text" id="department" class="w-full p-2 border rounded-lg" required></div>
+      <div><label class="block text-gray-700">ประเภทการลา</label>
         <select id="leaveType" class="w-full p-2 border rounded-lg" required>
           <option value="">-- เลือกประเภทการลา --</option>
           <option>ลากิจ</option>
@@ -78,55 +54,25 @@
         </select>
       </div>
       <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block text-gray-700">วันที่เริ่มลา</label>
-          <input type="date" id="startDate" class="w-full p-2 border rounded-lg" required>
-        </div>
-        <div>
-          <label class="block text-gray-700">วันที่สิ้นสุดลา</label>
-          <input type="date" id="endDate" class="w-full p-2 border rounded-lg" required>
-        </div>
+        <div><label class="block text-gray-700">วันที่เริ่มลา</label><input type="date" id="startDate" class="w-full p-2 border rounded-lg" required></div>
+        <div><label class="block text-gray-700">วันที่สิ้นสุดลา</label><input type="date" id="endDate" class="w-full p-2 border rounded-lg" required></div>
       </div>
-      <div>
-        <label class="block text-gray-700">จำนวนวันลา (คำนวณอัตโนมัติ)</label>
-        <input type="text" id="leaveDays" readonly class="w-full p-2 border bg-gray-100 rounded-lg">
-      </div>
-      <div>
-        <label class="block text-gray-700">เหตุผลการลา</label>
-        <textarea id="reason" rows="3" class="w-full p-2 border rounded-lg" required></textarea>
-      </div>
-      <div>
-        <label class="block text-gray-700">แนบรูปใบรับรองแพทย์ (ถ้ามี)</label>
-        <input type="file" id="medicalFile" accept="image/*" class="w-full p-2 border rounded-lg">
-      </div>
-      <div>
-        <label class="block text-gray-700">ผู้อนุมัติ</label>
-        <input type="text" id="approver" class="w-full p-2 border rounded-lg" placeholder="ชื่อผู้อนุมัติ" required>
-      </div>
-      <div>
-        <label class="block text-gray-700">วันที่ส่งใบลา</label>
-        <input type="date" id="submitDate" class="w-full p-2 border rounded-lg" required>
-      </div>
+      <div><label class="block text-gray-700">จำนวนวันลา (คำนวณอัตโนมัติ)</label><input type="text" id="leaveDays" readonly class="w-full p-2 border bg-gray-100 rounded-lg"></div>
+      <div><label class="block text-gray-700">เหตุผลการลา</label><textarea id="reason" rows="3" class="w-full p-2 border rounded-lg" required></textarea></div>
+      <div><label class="block text-gray-700">แนบรูปใบรับรองแพทย์ (ถ้ามี)</label><input type="file" id="medicalFile" accept="image/*" class="w-full p-2 border rounded-lg"></div>
+      <div><label class="block text-gray-700">ผู้อนุมัติ</label><input type="text" id="approver" class="w-full p-2 border rounded-lg" placeholder="ชื่อผู้อนุมัติ" required></div>
+      <div><label class="block text-gray-700">วันที่ส่งใบลา</label><input type="date" id="submitDate" class="w-full p-2 border rounded-lg" required></div>
       <button type="submit" class="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 transition">ส่งใบลา</button>
     </form>
   </div>
 
   <div class="bg-white shadow-lg rounded-2xl w-full max-w-6xl p-6">
-    <h2 class="text-lg font-semibold mb-4">📋 รายการใบลาล่าสุด (เรียลไทม์)</h2>
+    <div class="flex justify-between mb-4">
+      <h2 class="text-lg font-semibold">📋 รายการใบลาล่าสุด (เรียลไทม์)</h2>
+      <button id="downloadCSV" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">⬇️ ดาวน์โหลด CSV</button>
+    </div>
     <table class="w-full border border-gray-200 text-sm text-left">
-      <thead class="bg-gray-100">
-        <tr>
-          <th class="p-2 border">รหัสพนักงาน</th>
-          <th class="p-2 border">ชื่อ</th>
-          <th class="p-2 border">ประเภทลา</th>
-          <th class="p-2 border">วันที่เริ่ม</th>
-          <th class="p-2 border">วันที่สิ้นสุด</th>
-          <th class="p-2 border">จำนวนวันลา</th>
-          <th class="p-2 border">วันที่ส่งใบลา</th>
-          <th class="p-2 border">เวลาอัปเดตล่าสุด</th>
-          <th class="p-2 border">ลบ</th>
-        </tr>
-      </thead>
+      <thead class="bg-gray-100"><tr><th class="p-2 border">รหัสพนักงาน</th><th class="p-2 border">ชื่อ</th><th class="p-2 border">ประเภทลา</th><th class="p-2 border">วันที่เริ่ม</th><th class="p-2 border">วันที่สิ้นสุด</th><th class="p-2 border">จำนวนวันลา</th><th class="p-2 border">วันที่ส่งใบลา</th><th class="p-2 border">เวลาอัปเดตล่าสุด</th><th class="p-2 border">ลบ</th></tr></thead>
       <tbody id="leaveTable"></tbody>
     </table>
   </div>
@@ -138,15 +84,7 @@
     import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
 
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_STORAGE_BUCKET",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
-    };
-
+    const firebaseConfig = { apiKey: "YOUR_API_KEY", authDomain: "YOUR_AUTH_DOMAIN", projectId: "YOUR_PROJECT_ID", storageBucket: "YOUR_STORAGE_BUCKET", messagingSenderId: "YOUR_SENDER_ID", appId: "YOUR_APP_ID" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const storage = getStorage(app);
@@ -155,6 +93,8 @@
     const toast = document.getElementById('toast');
     const leaveTable = document.getElementById('leaveTable');
     const currentTime = document.getElementById('currentTime');
+
+    let leaveDataCache = [];
 
     function showToast(message, success = true) {
       toast.textContent = message;
@@ -186,7 +126,6 @@
     form.startDate.addEventListener('change', calculateLeaveDays);
     form.endDate.addEventListener('change', calculateLeaveDays);
 
-    // ✅ เพิ่มกฎเฉพาะสำหรับลาพักร้อน
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const leaveType = form.leaveType.value;
@@ -195,9 +134,8 @@
       const now = new Date();
 
       if (leaveType === 'ลาพักร้อน') {
-        const isSubmitAfterStart = submitDate >= start; // ❌ ห้ามส่งวันเดียวกันหรือหลังวันลา
-        const isSubmitBeforeToday = submitDate < new Date(now.setHours(0, 0, 0, 0));
-
+        const isSubmitAfterStart = submitDate >= start;
+        const isSubmitBeforeToday = submitDate < new Date(now.setHours(0,0,0,0));
         if (isSubmitAfterStart || isSubmitBeforeToday) {
           showToast('❌ ไม่สามารถส่งใบลาพักร้อนย้อนหลังได้\n⚠️ ต้องส่งใบลาล่วงหน้าอย่างน้อย 1 วันก่อนวันลาพักร้อนตามกฎที่กำหนด', false);
           return;
@@ -237,44 +175,40 @@
     const q = query(collection(db, 'ใบลา'), orderBy('createdAt', 'desc'));
     onSnapshot(q, (snapshot) => {
       leaveTable.innerHTML = '';
+      leaveDataCache = [];
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
+        leaveDataCache.push(data);
         const tr = document.createElement('tr');
         const updateTime = data.createdAt?.toDate?.().toLocaleString('th-TH') || '-';
-        tr.innerHTML = `
-          <td class='p-2 border text-center'>${data.empId || '-'}</td>
-          <td class='p-2 border'>${data.empName || '-'}</td>
-          <td class='p-2 border'>${data.leaveType || '-'}</td>
-          <td class='p-2 border'>${data.startDate || '-'}</td>
-          <td class='p-2 border'>${data.endDate || '-'}</td>
-          <td class='p-2 border text-center'>${data.leaveDays || '-'}</td>
-          <td class='p-2 border text-center'>${data.submitDate || '-'}</td>
-          <td class='p-2 border text-center text-gray-600'>${updateTime}</td>
-          <td class='p-2 border text-center'>
-            <button class='text-red-500 hover:text-red-700' data-id='${docSnap.id}'>🗑️</button>
-          </td>
-        `;
+        tr.innerHTML = `<td class='p-2 border text-center'>${data.empId||'-'}</td><td class='p-2 border'>${data.empName||'-'}</td><td class='p-2 border'>${data.leaveType||'-'}</td><td class='p-2 border'>${data.startDate||'-'}</td><td class='p-2 border'>${data.endDate||'-'}</td><td class='p-2 border text-center'>${data.leaveDays||'-'}</td><td class='p-2 border text-center'>${data.submitDate||'-'}</td><td class='p-2 border text-center text-gray-600'>${updateTime}</td><td class='p-2 border text-center'><button class='text-red-500 hover:text-red-700' data-id='${docSnap.id}'>🗑️</button></td>`;
         leaveTable.appendChild(tr);
       });
 
-      document.querySelectorAll('button[data-id]').forEach((btn) => {
-        btn.addEventListener('click', async (e) => {
-          const id = e.currentTarget.getAttribute('data-id');
-          if (confirm('ต้องการลบรายการนี้หรือไม่?')) {
-            await deleteDoc(doc(db, 'ใบลา', id));
+      document.querySelectorAll('button[data-id]').forEach((btn)=>{
+        btn.addEventListener('click',async(e)=>{
+          const id=e.currentTarget.getAttribute('data-id');
+          if(confirm('ต้องการลบรายการนี้หรือไม่?')){
+            await deleteDoc(doc(db,'ใบลา',id));
             showToast('🗑️ ลบรายการเรียบร้อยแล้ว');
           }
         });
       });
     });
 
-    document.addEventListener('DOMContentLoaded', () => {
-      const langBtn = document.getElementById('langToggle');
-      let currentLang = 'th';
-      langBtn.addEventListener('click', () => {
-        currentLang = currentLang === 'th' ? 'mm' : 'th';
-        langBtn.textContent = currentLang === 'th' ? 'မြန်မာ' : 'ไทย';
+    document.getElementById('downloadCSV').addEventListener('click',()=>{
+      if(!leaveDataCache.length){showToast('ไม่มีข้อมูลสำหรับดาวน์โหลด',false);return;}
+      const headers=['รหัสพนักงาน','ชื่อ','ประเภทลา','วันที่เริ่ม','วันที่สิ้นสุด','จำนวนวันลา','วันที่ส่งใบลา','เวลาอัปเดตล่าสุด'];
+      const csvRows=[headers.join(',')];
+      leaveDataCache.forEach(d=>{
+        const updateTime=d.createdAt?.toDate?.().toLocaleString('th-TH')||'-';
+        csvRows.push([d.empId,d.empName,d.leaveType,d.startDate,d.endDate,d.leaveDays,d.submitDate,updateTime].join(','));
       });
+      const blob=new Blob([csvRows.join('\n')],{type:'text/csv;charset=utf-8;'});
+      const link=document.createElement('a');
+      link.href=URL.createObjectURL(blob);
+      link.download='leave_data.csv';
+      link.click();
     });
   </script>
 </body>
