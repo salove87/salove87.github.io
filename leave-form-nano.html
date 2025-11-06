@@ -21,7 +21,6 @@
           <p class="text-sm text-gray-500">แบบฟอร์มใบลาออนไลน์</p>
         </div>
       </div>
-      <button id="langToggle" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded-lg text-sm">မြန်မာ</button>
     </div>
 
     <div id="currentTimeBox" class="bg-green-50 border border-green-200 text-green-700 text-sm p-3 rounded-md mb-4 text-center">
@@ -66,15 +65,26 @@
     </form>
   </div>
 
-  <div class="bg-white shadow-lg rounded-2xl w-full max-w-6xl p-6">
-    <div class="flex justify-between mb-4">
-      <h2 class="text-lg font-semibold">📋 รายการใบลาล่าสุด (เรียลไทม์)</h2>
-      <button id="downloadCSV" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">⬇️ ดาวน์โหลด CSV</button>
+  <div class="bg-white shadow-lg rounded-2xl w-full max-w-6xl p-6 mt-6">
+    <h2 class="text-xl font-bold text-blue-800 mb-4">📋 รายการใบลาล่าสุด (เรียลไทม์)</h2>
+    <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+      <table class="w-full text-sm text-left text-gray-700">
+        <thead class="bg-gradient-to-r from-blue-100 to-blue-50 border-b text-blue-900">
+          <tr>
+            <th class="p-3 text-center">รหัส</th>
+            <th class="p-3">ชื่อพนักงาน</th>
+            <th class="p-3">ประเภทการลา</th>
+            <th class="p-3 text-center">เริ่ม</th>
+            <th class="p-3 text-center">สิ้นสุด</th>
+            <th class="p-3 text-center">จำนวนวัน</th>
+            <th class="p-3 text-center">วันที่ส่งใบลา</th>
+            <th class="p-3 text-center">อัปเดตล่าสุด</th>
+            <th class="p-3 text-center">การจัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="leaveTable" class="divide-y divide-gray-100"></tbody>
+      </table>
     </div>
-    <table class="w-full border border-gray-200 text-sm text-left">
-      <thead class="bg-gray-100"><tr><th class="p-2 border">รหัสพนักงาน</th><th class="p-2 border">ชื่อ</th><th class="p-2 border">ประเภทลา</th><th class="p-2 border">วันที่เริ่ม</th><th class="p-2 border">วันที่สิ้นสุด</th><th class="p-2 border">จำนวนวันลา</th><th class="p-2 border">วันที่ส่งใบลา</th><th class="p-2 border">เวลาอัปเดตล่าสุด</th><th class="p-2 border">ลบ</th></tr></thead>
-      <tbody id="leaveTable"></tbody>
-    </table>
   </div>
 
   <div id="toast" class="toast">ส่งใบลาสำเร็จแล้ว ✅</div>
@@ -82,19 +92,36 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
     import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js";
 
     const firebaseConfig = { apiKey: "YOUR_API_KEY", authDomain: "YOUR_AUTH_DOMAIN", projectId: "YOUR_PROJECT_ID", storageBucket: "YOUR_STORAGE_BUCKET", messagingSenderId: "YOUR_SENDER_ID", appId: "YOUR_APP_ID" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const storage = getStorage(app);
 
     const form = document.getElementById('leaveForm');
     const toast = document.getElementById('toast');
     const leaveTable = document.getElementById('leaveTable');
-    const currentTime = document.getElementById('currentTime');
 
-    let leaveDataCache = [];
+    function updateCurrentTime() {
+      const now = new Date();
+      const thaiDate = now.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const thaiTime = now.toLocaleTimeString('th-TH');
+      document.getElementById('currentTime').innerHTML = `วันที่และเวลาปัจจุบัน (ระบบ): <strong>${thaiDate} เวลา ${thaiTime}</strong>`;
+    }
+    setInterval(updateCurrentTime, 1000);
+    updateCurrentTime();
+
+    function calculateLeaveDays() {
+      const start = new Date(document.getElementById('startDate').value);
+      const end = new Date(document.getElementById('endDate').value);
+      if (!isNaN(start) && !isNaN(end) && end >= start) {
+        const days = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
+        document.getElementById('leaveDays').value = days + ' วัน';
+      } else {
+        document.getElementById('leaveDays').value = '';
+      }
+    }
+    document.getElementById('startDate').addEventListener('change', calculateLeaveDays);
+    document.getElementById('endDate').addEventListener('change', calculateLeaveDays);
 
     function showToast(message, success = true) {
       toast.textContent = message;
@@ -103,112 +130,58 @@
       setTimeout(() => toast.classList.remove('show'), 4000);
     }
 
-    function updateCurrentTime() {
-      const now = new Date();
-      const thaiDate = now.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-      const thaiTime = now.toLocaleTimeString('th-TH');
-      currentTime.innerHTML = `วันที่และเวลาปัจจุบัน (ระบบ): <strong>${thaiDate} เวลา ${thaiTime}</strong>`;
-    }
-    setInterval(updateCurrentTime, 1000);
-    updateCurrentTime();
-
-    function calculateLeaveDays() {
-      const start = new Date(form.startDate.value);
-      const end = new Date(form.endDate.value);
-      if (form.startDate.value && form.endDate.value && end >= start) {
-        const diff = (end - start) / (1000 * 60 * 60 * 24) + 1;
-        form.leaveDays.value = diff + ' วัน';
-        return diff;
-      }
-      form.leaveDays.value = '';
-      return 0;
-    }
-    form.startDate.addEventListener('change', calculateLeaveDays);
-    form.endDate.addEventListener('change', calculateLeaveDays);
-
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const leaveType = form.leaveType.value;
-      const submitDate = new Date(form.submitDate.value);
-      const start = new Date(form.startDate.value);
-      const now = new Date();
-
-      if (leaveType === 'ลาพักร้อน') {
-        const isSubmitAfterStart = submitDate >= start;
-        const isSubmitBeforeToday = submitDate < new Date(now.setHours(0,0,0,0));
-        if (isSubmitAfterStart || isSubmitBeforeToday) {
-          showToast('❌ ไม่สามารถส่งใบลาพักร้อนย้อนหลังได้\n⚠️ ต้องส่งใบลาล่วงหน้าอย่างน้อย 1 วันก่อนวันลาพักร้อนตามกฎที่กำหนด', false);
-          return;
-        }
-      }
-
-      let fileURL = '';
-      const file = document.getElementById('medicalFile').files[0];
-      const leaveDays = calculateLeaveDays();
+      const empId = document.getElementById('empId').value;
+      const empName = document.getElementById('empName').value;
+      const department = document.getElementById('department').value;
+      const leaveType = document.getElementById('leaveType').value;
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      const leaveDays = document.getElementById('leaveDays').value;
+      const reason = document.getElementById('reason').value;
+      const approver = document.getElementById('approver').value;
+      const submitDate = document.getElementById('submitDate').value;
 
       try {
-        if (file) {
-          const fileRef = ref(storage, 'ใบรับรองแพทย์/' + file.name);
-          await uploadBytes(fileRef, file);
-          fileURL = await getDownloadURL(fileRef);
-        }
-        await addDoc(collection(db, 'ใบลา'), {
-          empId: form.empId.value,
-          empName: form.empName.value,
-          department: form.department.value,
-          leaveType: form.leaveType.value,
-          startDate: form.startDate.value,
-          endDate: form.endDate.value,
-          leaveDays: leaveDays,
-          reason: form.reason.value,
-          approver: form.approver.value,
-          submitDate: form.submitDate.value,
-          createdAt: serverTimestamp()
-        });
-        form.reset();
+        await addDoc(collection(db, 'ใบลา'), { empId, empName, department, leaveType, startDate, endDate, leaveDays, reason, approver, submitDate, createdAt: serverTimestamp() });
         showToast('✅ ส่งใบลาสำเร็จแล้ว');
-      } catch (err) {
-        showToast('เกิดข้อผิดพลาด: ' + err.message, false);
+        form.reset();
+      } catch (error) {
+        showToast('❌ เกิดข้อผิดพลาดในการส่งใบลา', false);
+        console.error(error);
       }
     });
 
     const q = query(collection(db, 'ใบลา'), orderBy('createdAt', 'desc'));
     onSnapshot(q, (snapshot) => {
       leaveTable.innerHTML = '';
-      leaveDataCache = [];
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        leaveDataCache.push(data);
-        const tr = document.createElement('tr');
         const updateTime = data.createdAt?.toDate?.().toLocaleString('th-TH') || '-';
-        tr.innerHTML = `<td class='p-2 border text-center'>${data.empId||'-'}</td><td class='p-2 border'>${data.empName||'-'}</td><td class='p-2 border'>${data.leaveType||'-'}</td><td class='p-2 border'>${data.startDate||'-'}</td><td class='p-2 border'>${data.endDate||'-'}</td><td class='p-2 border text-center'>${data.leaveDays||'-'}</td><td class='p-2 border text-center'>${data.submitDate||'-'}</td><td class='p-2 border text-center text-gray-600'>${updateTime}</td><td class='p-2 border text-center'><button class='text-red-500 hover:text-red-700' data-id='${docSnap.id}'>🗑️</button></td>`;
+        const tr = document.createElement('tr');
+        tr.classList.add('hover:bg-blue-50', 'transition');
+        tr.innerHTML = `
+          <td class='p-3 text-center font-medium text-blue-700'>${data.empId || '-'}</td>
+          <td class='p-3'>${data.empName || '-'}</td>
+          <td class='p-3'>${data.leaveType || '-'}</td>
+          <td class='p-3 text-center'>${data.startDate || '-'}</td>
+          <td class='p-3 text-center'>${data.endDate || '-'}</td>
+          <td class='p-3 text-center text-indigo-600 font-semibold'>${data.leaveDays || '-'}</td>
+          <td class='p-3 text-center'>${data.submitDate || '-'}</td>
+          <td class='p-3 text-center text-gray-600 text-sm'>${updateTime}</td>
+          <td class='p-3 text-center'><button class='text-red-500 hover:text-red-700 font-bold text-lg' data-id='${docSnap.id}'>🗑️</button></td>`;
         leaveTable.appendChild(tr);
       });
-
-      document.querySelectorAll('button[data-id]').forEach((btn)=>{
-        btn.addEventListener('click',async(e)=>{
-          const id=e.currentTarget.getAttribute('data-id');
-          if(confirm('ต้องการลบรายการนี้หรือไม่?')){
-            await deleteDoc(doc(db,'ใบลา',id));
+      document.querySelectorAll('button[data-id]').forEach((btn) => {
+        btn.addEventListener('click', async (e) => {
+          const id = e.currentTarget.getAttribute('data-id');
+          if (confirm('ต้องการลบรายการนี้หรือไม่?')) {
+            await deleteDoc(doc(db, 'ใบลา', id));
             showToast('🗑️ ลบรายการเรียบร้อยแล้ว');
           }
         });
       });
-    });
-
-    document.getElementById('downloadCSV').addEventListener('click',()=>{
-      if(!leaveDataCache.length){showToast('ไม่มีข้อมูลสำหรับดาวน์โหลด',false);return;}
-      const headers=['รหัสพนักงาน','ชื่อ','ประเภทลา','วันที่เริ่ม','วันที่สิ้นสุด','จำนวนวันลา','วันที่ส่งใบลา','เวลาอัปเดตล่าสุด'];
-      const csvRows=[headers.join(',')];
-      leaveDataCache.forEach(d=>{
-        const updateTime=d.createdAt?.toDate?.().toLocaleString('th-TH')||'-';
-        csvRows.push([d.empId,d.empName,d.leaveType,d.startDate,d.endDate,d.leaveDays,d.submitDate,updateTime].join(','));
-      });
-      const blob=new Blob([csvRows.join('\n')],{type:'text/csv;charset=utf-8;'});
-      const link=document.createElement('a');
-      link.href=URL.createObjectURL(blob);
-      link.download='leave_data.csv';
-      link.click();
     });
   </script>
 </body>
