@@ -9,8 +9,13 @@
     .toast{position:fixed;bottom:20px;right:20px;color:#fff;padding:10px 20px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.15);opacity:0;transform:translateY(20px);transition:opacity .3s ease,transform .3s ease;z-index:50}
     .toast.success{background:#16a34a}.toast.error{background:#dc2626}.toast.show{opacity:1;transform:translateY(0)}
     .modal{display:none;position:fixed;z-index:100;left:0;top:0;width:100%;height:100%;overflow:auto;background-color:rgba(0,0,0,0.4)}
-    .modal-content{background:#fff;margin:10% auto;padding:20px;border-radius:12px;max-width:450px;box-shadow:0 5px 15px rgba(0,0,0,0.3)}
+    .modal-content{background:#fff;margin:10% auto;padding:20px;border-radius:12px;max-width:540px;box-shadow:0 5px 15px rgba(0,0,0,0.3)}
     .btn{display:inline-flex;align-items:center;gap:.5rem}
+    .badge{display:inline-flex;align-items:center;border-radius:9999px;font-size:.75rem;padding:.125rem .5rem}
+    .badge.ok{background:#e6f7ef;color:#065f46;border:1px solid #34d399}
+    .badge.fail{background:#fef2f2;color:#991b1b;border:1px solid #fca5a5}
+    details.debug summary{cursor:pointer}
+    .pill{font-size:.75rem;padding:.125rem .5rem;border-radius:9999px;border:1px solid #e5e7eb}
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col items-center p-6">
@@ -24,15 +29,16 @@
       </div>
     </div>
 
-    <div class="bg-blue-50 border border-blue-200 text-blue-800 p-3 rounded-lg mb-4 text-sm">
-      <p class="font-semibold">ประกาศกฎการลา</p>
-      <ul class="list-disc ml-5">
-        <li>ลาพักร้อนต้องยื่นใบลาล่วงหน้าอย่างน้อย 1 วันก่อนวันลาพักร้อน</li>
-        <li>ห้ามส่งใบลาในวันเดียวกันกับวันลาพักร้อน</li>
-        <li>กรณีส่งใบลาพักร้อนย้อนหลัง ระบบจะถือว่าเป็นการลากิจทันที</li>
-        <li>ห้ามส่งใบลาในวันหยุด</li>
-      </ul>
-    </div>
+<div class="bg-red-50 border border-red-200 text-red-800 p-3 rounded-lg mb-4 text-sm">
+  <p class="font-semibold">ประกาศกฎการลา</p>
+  <ul class="list-disc ml-5">
+    <li>ลาพักร้อนต้องยื่นใบลาล่วงหน้าอย่างน้อย 1 วันก่อนวันลาพักร้อน</li>
+    <li>ห้ามส่งใบลาในวันเดียวกันกับวันลาพักร้อน</li>
+    <li>กรณีส่งใบลาพักร้อนย้อนหลัง ระบบจะแปลงเป็นการลากิจอัตโนมัติ</li>
+    <li>ห้ามส่งใบลาในวันหยุด/วันนักขัตฤกษ์</li>
+    <li>กรณีลาพักร้อนแล้วระบบมีปัญหาให้แจ้ง HR ทันทีในวันที่ทำรายการ หากไม่แจ้ง ลาพักร้อน ก็ จะเป็นลากิจทันที</li>
+  </ul>
+</div>
 
     <!-- FORM -->
     <form id="leaveForm" class="space-y-4">
@@ -73,8 +79,8 @@
         </div>
       </div>
       <div>
-        <label class="block text-gray-700">จำนวนวันลา (คำนวณอัตโนมัติ)</label>
-        <input type="text" id="leaveDays" readonly class="w-full p-2 border bg-gray-100 rounded-lg">
+        <label class="block text-gray-700">จำนวนวันลา</label>
+        <input type="number" step="0.5" min="0.5" id="leaveDays" class="w-full p-2 border rounded-lg" placeholder="เช่น 0.5, 1, 1.5" required>
       </div>
       <div>
         <label class="block text-gray-700">เหตุผลการลา</label>
@@ -87,10 +93,10 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label class="block text-gray-700">วันที่ส่งใบลา</label>
-          <input type="date" id="submitDate" class="w-full p-2 border rounded-lg" required>
+          <input type="date" id="submitDate" class="w-full p-2 border rounded-lg" required readonly>
         </div>
         <div>
-          <label class="block text-gray-700">เวลาที่ส่งใบลา (ระบบจะประทับเวลาอัตโนมัติ)</label>
+          <label class="block text-gray-700">เวลาที่ส่งใบลา (ระบบประทับเวลาอัตโนมัติ)</label>
           <input type="text" id="systemTime" readonly class="w-full p-2 border bg-gray-100 rounded-lg">
         </div>
       </div>
@@ -100,8 +106,11 @@
 
   <!-- LIST + CSV -->
   <div class="bg-white shadow-lg rounded-2xl w-full max-w-6xl p-6 mt-2">
-    <div class="flex justify-between items-center mb-4">
-      <button id="downloadCSV" class="btn bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm shadow">ดาวน์โหลด Excel</button>
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+      <div class="flex items-center gap-2">
+        <button id="downloadCSV" class="btn bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm shadow">ดาวน์โหลด CSV (เปิดด้วย Excel)</button>
+        
+      </div>
       <h2 class="text-xl font-bold text-blue-800">📋 รายการใบลาล่าสุด (เรียลไทม์)</h2>
     </div>
     <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
@@ -128,13 +137,13 @@
   <!-- EDIT MODAL -->
   <div id="editModal" class="modal">
     <div class="modal-content">
-      <h3 class="text-lg font-bold mb-3">แก้ไขวันที่ลา</h3>
+      <h3 class="text-lg font-bold mb-3">แก้ไขข้อมูลใบลา</h3>
       <label>วันที่เริ่มลา:</label>
       <input type="date" id="editStart" class="w-full p-2 border rounded mb-2">
       <label>วันที่สิ้นสุดลา:</label>
       <input type="date" id="editEnd" class="w-full p-2 border rounded mb-2">
-      <label>จำนวนวันลา:</label>
-      <input type="text" id="editDays" readonly class="w-full p-2 border bg-gray-100 rounded mb-2">
+      <label>จำนวนวันลา (กรอกเอง ขั้นต่ำ 0.5):</label>
+      <input type="number" step="0.5" min="0.5" id="editDays" class="w-full p-2 border rounded mb-2">
       <div class="flex justify-end gap-2 mt-3">
         <button id="saveEdit" class="bg-blue-600 text-white px-4 py-2 rounded">บันทึก</button>
         <button id="cancelEdit" class="bg-gray-400 text-white px-4 py-2 rounded">ยกเลิก</button>
@@ -156,199 +165,561 @@
 
   <div id="toast" class="toast success">ส่งใบลาสำเร็จแล้ว ✅</div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      // --- Elements ---
-      const form = document.getElementById('leaveForm');
-      const leaveTable = document.getElementById('leaveTable');
-      const toast = document.getElementById('toast');
-      const downloadCSVBtn = document.getElementById('downloadCSV');
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 
-      const empId = document.getElementById('empId');
-      const empName = document.getElementById('empName');
-      const department = document.getElementById('department');
-      const leaveType = document.getElementById('leaveType');
-      const startDate = document.getElementById('startDate');
-      const endDate = document.getElementById('endDate');
-      const leaveDays = document.getElementById('leaveDays');
-      const reason = document.getElementById('reason');
-      const approver = document.getElementById('approver');
-      const submitDate = document.getElementById('submitDate');
-      const systemTimeEl = document.getElementById('systemTime');
+    // ==== Firebase Config (จากคุณ) ====
+    const firebaseConfig = {
+      apiKey: "AIzaSyB9Gzqb2sgYdhg0G5_ivc_GemeQp0yUy8Y",
+      authDomain: "leave-form-cd603.firebaseapp.com",
+      projectId: "leave-form-cd603",
+      storageBucket: "leave-form-cd603.firebasestorage.app",
+      messagingSenderId: "180376619525",
+      appId: "1:180376619525:web:8270c8a3a0ec5196e5ea6c",
+      measurementId: "G-V9Z02K9LT6"
+    };
 
-      // Edit/Delete modals
-      const editModal = document.getElementById('editModal');
-      const editStart = document.getElementById('editStart');
-      const editEnd = document.getElementById('editEnd');
-      const editDays = document.getElementById('editDays');
-      const saveEdit = document.getElementById('saveEdit');
-      const cancelEdit = document.getElementById('cancelEdit');
+    // === Global toast & error surfacing ===
+    const toast = document.getElementById('toast');
+    function showToast(message, type = 'success') {
+      toast.textContent = message;
+      toast.className = `toast ${type}`;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3500);
+    }
+    window.addEventListener('error', (e)=>{ showToast(`⚠️ JS Error: ${e.message}`, 'error'); });
+    window.addEventListener('unhandledrejection', (e)=>{ showToast(`⚠️ Promise Error: ${e.reason?.message || e.reason}`, 'error'); });
 
-      const passwordModal = document.getElementById('passwordModal');
-      const hrPasswordInput = document.getElementById('hrPasswordInput');
-      const confirmDelete = document.getElementById('confirmDelete');
-      const cancelDelete = document.getElementById('cancelDelete');
+    // === App Init ===
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-      const HR_PASSWORD = '303647';
-
-      // --- Helpers ---
-      function showToast(message, type = 'success') {
-        toast.textContent = message;
-        toast.className = `toast ${type}`;
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 3500);
-      }
-
-      function updateSystemTime(){ systemTimeEl.value = new Date().toLocaleString('th-TH',{hour12:false}); }
-      updateSystemTime();
-      setInterval(updateSystemTime, 1000);
-
-      function calcDays(){
-        const s = new Date(startDate.value); const e = new Date(endDate.value);
-        if(!isNaN(s) && !isNaN(e) && e>=s){
-          const d = Math.floor((e - s)/(1000*60*60*24)) + 1;
-          leaveDays.value = `${d} วัน`;
-        }else{ leaveDays.value = ''; }
-      }
-      startDate.addEventListener('change', calcDays);
-      endDate.addEventListener('change', calcDays);
-
-      // --- Client-side storage fallback (no backend) ---
-      const storeKey = 'leave-requests:nano';
-      function loadData(){
-        try{ return JSON.parse(localStorage.getItem(storeKey)||'[]'); }catch{ return []; }
-      }
-      function saveData(arr){ localStorage.setItem(storeKey, JSON.stringify(arr)); }
-
-      // --- Render table ---
-      function renderTable(){
-        const data = loadData().sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt));
-        leaveTable.innerHTML = '';
-        data.forEach((row, idx)=>{
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td class='p-3 text-center'>${row.empId||'-'}</td>
-            <td class='p-3'>${row.empName||''}</td>
-            <td class='p-3'>${row.leaveType||''}</td>
-            <td class='p-3 text-center'>${row.startDate||''}</td>
-            <td class='p-3 text-center'>${row.endDate||''}</td>
-            <td class='p-3 text-center'>${row.leaveDays||''}</td>
-            <td class='p-3 text-center'>${row.submitDate||''}</td>
-            <td class='p-3 text-center'>${row.systemTime||''}</td>
-            <td class='p-3 text-center'>${row.updatedAt||row.createdAt||''}</td>
-            <td class='p-3 text-center'>
-              <button class='text-blue-600 hover:text-blue-800 underline mr-2' data-action='edit' data-id='${row.id}'>✏️ แก้ไข</button>
-              <button class='text-red-600 hover:text-red-800 underline' data-action='delete' data-id='${row.id}'>🗑️ ลบ</button>
-            </td>`;
-          leaveTable.appendChild(tr);
-        });
-      }
-
-      // initial render
-      renderTable();
-
-      // --- Submit ---
-      form.addEventListener('submit', (e)=>{
-        e.preventDefault();
-        // Vacation rule: submit at least 1 day before start
-        if(leaveType.value === 'ลาพักร้อน'){
-          const start = new Date(startDate.value);
-          const submit = new Date(submitDate.value);
-          const diffDays = (start - submit)/(1000*60*60*24);
-          if(diffDays < 1){
-            showToast('❌ ไม่สามารถส่งใบลาพักร้อนย้อนหลังหรือในวันเดียวกันได้ ต้องส่งล่วงหน้าอย่างน้อย 1 วัน','error');
-            return;
-          }
+    const systemTimeEl = document.getElementById('systemTime');
+    function updateSystemTime(){
+      try{
+        if(systemTimeEl){
+          systemTimeEl.value = new Date().toLocaleString('th-TH',{hour12:false,timeZone:'Asia/Bangkok'});
         }
-        const data = loadData();
-        const row = {
-          id: crypto.randomUUID(),
-          empId: empId.value.trim(),
-          empName: empName.value.trim(),
-          department: department.value.trim(),
-          leaveType: leaveType.value,
-          startDate: startDate.value,
-          endDate: endDate.value,
-          leaveDays: leaveDays.value,
-          reason: reason.value.trim(),
-          approver: approver.value.trim(),
-          submitDate: submitDate.value,
-          systemTime: systemTimeEl.value,
-          createdAt: new Date().toLocaleString('th-TH',{hour12:false}),
-          updatedAt: new Date().toLocaleString('th-TH',{hour12:false})
-        };
-        data.unshift(row); saveData(data); renderTable(); form.reset(); calcDays(); updateSystemTime();
+      }catch(e){}
+    }
+    updateSystemTime();
+    setInterval(updateSystemTime, 1000);
+    document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) updateSystemTime(); });
+    window.addEventListener('focus', updateSystemTime);
+
+    function explainFirestoreError(err){
+      const code = err?.code || '';
+      const map = {
+        'permission-denied': 'สิทธิ์ไม่พอ (Firestore Rules บล็อก). เปิดสิทธิ์อ่าน/เขียนสำหรับผู้ที่ล็อกอิน หรือกำหนดกฎตามบทบาท',
+        'unauthenticated': 'ยังไม่ได้ล็อกอิน (ตรวจ Anonymous Sign-in และ Authorized domains ใน Firebase Auth)',
+        'failed-precondition': 'ต้องสร้าง Index หรือเงื่อนไขสืบค้นไม่รองรับ',
+        'unavailable': 'เครือข่าย/บริการ Firestore ขัดข้องชั่วคราว',
+        'not-found': 'เอกสารไม่พบ',
+        'cancelled': 'การเชื่อมต่อถูกยกเลิก',
+        'invalid-argument': 'พารามิเตอร์ไม่ถูกต้อง',
+        'resource-exhausted': 'โควต้าถูกใช้หมด'
+      };
+      return map[code] || (err?.message || 'ไม่ทราบสาเหตุ');
+    }
+
+    // ===== Preflight & Drivers (Firestore ↔ Local fallback) =====
+    const isSecureOrigin = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    const dbModePill = document.getElementById('dbModePill');
+
+    // Local driver
+    const LS_KEY = 'leave-requests:nano';
+    function lsLoad(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||'[]'); }catch{ return []; } }
+    function lsSave(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
+
+    function makeLocalDriver(){
+      let listeners = [];
+      function notify(){ listeners.forEach(fn => fn(lsLoad())); }
+      window.addEventListener('storage', (e)=>{ if(e.key===LS_KEY) notify(); });
+      return {
+        kind: 'local',
+        subscribe(onData){ listeners.push(onData); onData(lsLoad()); return ()=>{ listeners = listeners.filter(f=>f!==onData); } },
+        async create(payload){
+          const data = lsLoad();
+          const row = { id: crypto.randomUUID(), ...payload, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+          data.unshift(row); lsSave(data); notify(); return { id: row.id };
+        },
+        async update(id, payload){
+          const data = lsLoad(); const i = data.findIndex(x=>x.id===id); if(i<0) throw new Error('ไม่พบข้อมูล');
+          data[i] = { ...data[i], ...payload, updatedAt: new Date().toISOString() }; lsSave(data); notify();
+        },
+        async remove(id){ const data = lsLoad().filter(x=>x.id!==id); lsSave(data); notify(); }
+      };
+    }
+
+    // Firestore driver
+    function makeFirestoreDriver(){
+      const colRef = collection(db, 'leave_requests');
+      return {
+        kind: 'firestore',
+        subscribe(onData, onError){
+          const q = query(colRef, orderBy('createdAt','desc'));
+          const unsub = onSnapshot(q, snap => {
+            onData(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+          }, err => onError?.(err));
+          return unsub;
+        },
+        async create(payload){ return addDoc(colRef, { ...payload, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }); },
+        async update(id, payload){ return updateDoc(doc(db, 'leave_requests', id), { ...payload, updatedAt: serverTimestamp() }); },
+        async remove(id){ return deleteDoc(doc(db, 'leave_requests', id)); }
+      };
+    }
+
+    let driver = null;   // active storage driver
+    let unsubscribe = null;
+    let cache = [];
+
+    function setDBMode(mode){ /* UI pill hidden → no-op */ }
+
+    function attachSubscription(){
+      if(unsubscribe) try{ unsubscribe(); }catch{}
+      unsubscribe = driver.subscribe(rows => { cache = rows; renderTable(); }, (err)=>{
+        console.error('@firebase/firestore subscribe', err);
+        showToast('Firestore อ่านข้อมูลล้มเหลว: ' + explainFirestoreError(err), 'error');
+        // auto fallback
+        driver = makeLocalDriver();
+        setDBMode('Local');
+        attachSubscription();
+        showToast('สลับเป็นโหมด Local (จำลองฐานข้อมูล) อัตโนมัติ', 'error');
+      });
+    }
+
+    function useLocal(reason){
+      driver = makeLocalDriver();
+      setDBMode('Local');
+      attachSubscription();
+      if(reason) showToast(reason, 'error');
+    }
+
+    // Try Firestore only on secure origins
+    if(!isSecureOrigin){
+      useLocal('ต้องรันผ่าน https หรือ localhost เท่านั้น (file:// ไม่รองรับ Firestore)');
+    }else{
+      // Auth → then subscribe
+      signInAnonymously(auth).then(()=>{
+        driver = makeFirestoreDriver();
+        setDBMode('Firestore');
+        attachSubscription();
+      }).catch((err)=>{
+        console.error('signInAnonymously', err);
+        useLocal('ล็อกอิน Anonymous ไม่สำเร็จ: ' + explainFirestoreError(err));
+      });
+    }
+
+    // ===== Utility =====
+    function isWeekendOrHoliday(iso){
+      if(!iso) return false;
+      const d = new Date(iso + 'T00:00:00');
+      const day = d.getDay(); // 0=อา, 6=เสาร์
+      return day === 0 || day === 6 || HOLIDAYS.has(iso);
+    }
+
+    const HOLIDAYS = new Set([ /* เช่น '2025-12-05' เป็นต้น */ ]);
+
+    function normalizeLeaveDays(val){
+      const t = String(val ?? '').trim();
+      if(!t) return '';
+      return /วัน$/.test(t) ? t : (t + ' วัน');
+    }
+    function fmtTS(ts){
+      try{ if(ts?.toDate) return ts.toDate().toLocaleString('th-TH',{hour12:false}); }catch{}
+      try{ return new Date(ts).toLocaleString('th-TH',{hour12:false}); }catch{}
+      return '';
+    }
+    function todayISO(){
+      const d = new Date();
+      const tz = d.getTimezoneOffset() * 60000;
+      return new Date(d - tz).toISOString().slice(0,10);
+    }
+
+    // Elements
+    const form = document.getElementById('leaveForm');
+    const leaveTable = document.getElementById('leaveTable');
+    const downloadCSVBtn = document.getElementById('downloadCSV');
+    const runUnitTestsBtn = document.getElementById('runUnitTests');
+    const runDBProbeBtn = document.getElementById('runDBProbe');
+    const testResults = document.getElementById('testResults');
+
+    const empId = document.getElementById('empId');
+    const empName = document.getElementById('empName');
+    const department = document.getElementById('department');
+    const leaveType = document.getElementById('leaveType');
+    const startDate = document.getElementById('startDate');
+    const endDate = document.getElementById('endDate');
+    const leaveDays = document.getElementById('leaveDays');
+    const reason = document.getElementById('reason');
+    const approver = document.getElementById('approver');
+    const submitDate = document.getElementById('submitDate');
+
+    // === Autofill: ชื่อพนักงานจากรหัส (ไม่ยุ่งกับแผนก) ===
+    // เติมรายการพนักงานได้สูงสุด ~100 คนตามจริง
+    // รูปแบบ: "รหัสพนักงาน": "ชื่อ–นามสกุล"
+    const EMP_MAP = {
+      "E001": "สมชาย ใจดี",
+      "E002": "สมหญิง รุ่งเรือง",
+      "10010": "จินดาวัลย์ มีกุล",
+      "10139": "ขวัญใจ บุญเฟื่อง",
+      "10141": "เกษร กองวงค์",
+      "10180": "รุ่งระวี โสมูล",
+      "10349": "เกษมสุข เชิดชู",
+      "10350": "รัชนี ตรวจสมบัติ",
+      "10353": "ขวัญเรือน แสนภูมิ",
+      "10365": "สุพัตรา วิเชียรชาติ",
+      "10385": "พงศ์พันธ์ เกิดทองดี",
+      "10440": "นิภาพร ปิยาโยค",
+      "10442": "ดาวเรือง วิระศรี",
+      "10452": "อรสา บุญพิมพ์",
+      "10461": "ขจร พิมพ์แมน",
+      "10470": "มงคล องอาจ",
+      "10499": "สมบูรณ์ บัวเข็ม",
+      "10506": "อรุณี สอนวงษ์",
+      "10516": "สานนท์ เดชโปรด",
+      "10518": "ธวัช ทันใจ",
+      "10520": "รัตติกรณ์ เครือจันทร์",
+      "10525": "ธิญาดา ชาลีวัน",
+      "10526": "ประเสริฐ แสงทอง",
+      "10527": "ชูพงศ์ ทำดี",      
+      "10553": "วิทยา ยอดปา",
+      "10556": "สกุณา กรรณิกา",
+      "10564": "วัชราฤทธิ์ ยอดปา",
+      "10565": "ลัดดาวัลย์ ทารินทร์",
+      "10583": "อินทุอร สอนจันทร์",
+      "10606": "สุริยา ดำดี",
+      "10620": "จันทร์สุดา บุญยอ",
+      "10627": "นพดล ตี๊บบุญศรี",
+      "10630": "อังคาร แสนทะวงค์",
+      "10635": "รสรินทร์ ชำนาญพงศ์",
+      "10636": "ปาริชาต ผิวคล้ำ",
+      "10637": "ต้นตระกาล มุงคุลคำซาว",
+      "10640": "ศุภกร แรงใหม่",
+      "10641": "สุทธิดา พิไชยรัตนจินดา",
+      "10642": "วิสุดา พิไชยรัตนจินดา",
+      "10648": "อัจฉริยา จันทร์เยี่ยม",
+      "10660": "จิรภิญญา กาศเมฆ",
+      "10661": "นภาพรรณ สนใจ",
+      "10669": "โกวิท รวมคำภา",
+      "10670": "อัครพัชร์ กรงเต้น",
+      "12453": "จารุณี คุณาคม",
+      "30070": "NAW TIN TIN HTWE TIN HTWE @ THUY",
+      "30072": "MYOLATT",
+      "30078": "NGWE HTIKE",
+      "30079": "EI EI THET",
+      "30087": "MYO THET",
+      "30113": "THIN THIN AUNG",
+      "30115": "AUNG TIN MYINT",
+      "30117": "KHIN CHO OO",
+      "30149": "ZAW ZAW AUNG",
+      "30171": "MIN ZAW MIN",
+      "30221": "TUN AUNG SHEIN",
+      "30249": "KHAING THA ZIN PHYO",
+      "30251": "KO KO KU KU",
+      "30257": "TOE NAING",
+      "30265": "HNIN THET",
+      "30268": "KYAT PHA",
+      "30269": "NINE NINE @ HNIN HNIN",
+      "30270": "KHON THEIN SAUNG",
+      "30292": "SAI MAUNG MAUNG",
+      "30294": "THUZAR",
+      "30313": "AUNG TUN OO",
+      "30315": "KYAW LIN",
+      "30318": "SAW AHL HTO",
+      "30328": "THEINGI WIN",
+      "30329": "THI THI KHINE",
+      "30333": "YE LIN TUN",
+      "30334": "PHYU PHYU THEIN",
+      "30335": "YE LIN HTIKE",
+      "30336": "AYE PWINT PHYU",
+      "30337": "AYE THANDAR ZAW",
+      "30338": "CHIT HTWE",
+      "30340": "SHAN MA LAY",
+      "30341": "NAING PHYO KYAW",
+      "30342": "NAW SAN THIDA NYEIN",
+      "30348": "PHYO MIN WAI",
+      "30349": "SOE MOE KYAW",
+      "30350": "YE ZAW",
+      "30351": "TIN MYO KO",
+      "30352": "NWAY JUNG ZIN LATT",
+      "30353": "SAI KYAW KYAW",
+      "30354": "KYAW THURA SOE",
+      "30362": "EA LA SOE",
+      "30366": "นิ ชาย",
+      "30367": "คินวิน",
+      "30368": "กองปีเพียว"
+    };
+    function normalizeEmpId(raw){ return String(raw||'').trim(); }
+    function autofillNameFromEmpId(rawId){
+      const id = normalizeEmpId(rawId);
+      const name = id && EMP_MAP[id];
+      if(name){
+        // เติมเฉพาะชื่อ ให้แก้ไขได้ (ไม่ล็อกช่อง)
+        empName.value = name;
+      }
+      // ถ้าไม่พบ → ไม่เปลี่ยนค่าเดิม เพื่อให้กรอกเองได้ต่อเนื่อง
+    }
+    let empIdTimer;
+    empId.addEventListener('input', ()=>{
+      clearTimeout(empIdTimer);
+      empIdTimer = setTimeout(()=>autofillNameFromEmpId(empId.value), 250);
+    });
+    empId.addEventListener('blur', ()=>autofillNameFromEmpId(empId.value));
+
+    // พรีฟิลวันที่ส่งเป็นวันนี้และล็อก
+    submitDate.value = todayISO();
+    submitDate.setAttribute('readonly','readonly');
+    submitDate.addEventListener('keydown', e => e.preventDefault());
+    submitDate.addEventListener('click', e => e.preventDefault());
+
+    const HR_PASSWORD = '303647';
+
+    // ===== Validation (pure function) =====
+    function validateRow(values){
+      const errors = [];
+      const warnings = [];
+      const v = { ...values };
+
+      // Required
+      const required = ['empId','empName','department','leaveType','startDate','endDate','leaveDays','reason','approver','submitDate'];
+      required.forEach(k=>{ if(!String(v[k] ?? '').trim()) errors.push(`กรุณากรอก ${k}`); });
+
+      // Date order
+      const s = new Date(v.startDate + 'T00:00:00');
+      const e = new Date(v.endDate + 'T00:00:00');
+      if(isNaN(s) || isNaN(e)) errors.push('รูปแบบวันที่ไม่ถูกต้อง');
+      else if(e < s) errors.push('ช่วงวันที่ไม่ถูกต้อง (สิ้นสุดก่อนเริ่ม)');
+
+      // Weekend/Holiday submit
+      if(isWeekendOrHoliday(v.submitDate)) errors.push('ห้ามส่งใบลาในวันหยุด');
+
+      // Vacation rule: convert if retroactive/same-day
+      if(v.leaveType === 'ลาพักร้อน' && !isNaN(s)){
+        const sub = new Date(v.submitDate + 'T00:00:00');
+        const diffDays = (s - sub)/86400000;
+        if(diffDays < 1){
+          v.leaveType = 'ลากิจ';
+          warnings.push('ส่งลาพักร้อนย้อนหลัง/วันเดียวกัน ระบบแปลงเป็น "ลากิจ"');
+        }
+      }
+
+      // Days min 0.5
+      const daysNum = parseFloat(String(v.leaveDays).replace(' วัน',''));
+      if(isNaN(daysNum) || daysNum < 0.5) errors.push('จำนวนวันขั้นต่ำ 0.5 วัน');
+      v.leaveDays = normalizeLeaveDays(daysNum);
+
+      return { ok: errors.length === 0, errors, warnings, value: v };
+    }
+
+    // ===== Render =====
+    function renderTable(){
+      leaveTable.innerHTML = '';
+      cache.forEach(row => {
+        const tr = document.createElement('tr');
+
+        const tdEmpId = document.createElement('td'); tdEmpId.className='p-3 text-center'; tdEmpId.textContent = row.empId || '-';
+        const tdName = document.createElement('td'); tdName.className='p-3'; tdName.textContent = row.empName || '';
+        const tdType = document.createElement('td'); tdType.className='p-3'; tdType.textContent = row.leaveType || '';
+        const tdStart = document.createElement('td'); tdStart.className='p-3 text-center'; tdStart.textContent = row.startDate || '';
+        const tdEnd = document.createElement('td'); tdEnd.className='p-3 text-center'; tdEnd.textContent = row.endDate || '';
+        const tdDays = document.createElement('td'); tdDays.className='p-3 text-center'; tdDays.textContent = row.leaveDays || '';
+        const tdSubmit = document.createElement('td'); tdSubmit.className='p-3 text-center'; tdSubmit.textContent = row.submitDate || '';
+        const tdSys = document.createElement('td'); tdSys.className='p-3 text-center'; tdSys.textContent = row.systemTime || '';
+        const tdUpd = document.createElement('td'); tdUpd.className='p-3 text-center'; tdUpd.textContent = row.updatedAt ? fmtTS(row.updatedAt) : (row.createdAt ? fmtTS(row.createdAt) : '');
+
+        const tdActions = document.createElement('td'); tdActions.className='p-3 text-center';
+        const btnEdit = document.createElement('button'); btnEdit.className='text-blue-600 hover:text-blue-800 underline mr-2'; btnEdit.textContent='✏️ แก้ไข'; btnEdit.dataset.action='edit'; btnEdit.dataset.id=row.id;
+        const btnDel = document.createElement('button'); btnDel.className='text-red-600 hover:text-red-800 underline'; btnDel.textContent='🗑️ ลบ'; btnDel.dataset.action='delete'; btnDel.dataset.id=row.id;
+        tdActions.appendChild(btnEdit); tdActions.appendChild(btnDel);
+
+        tr.appendChild(tdEmpId); tr.appendChild(tdName); tr.appendChild(tdType);
+        tr.appendChild(tdStart); tr.appendChild(tdEnd); tr.appendChild(tdDays);
+        tr.appendChild(tdSubmit); tr.appendChild(tdSys); tr.appendChild(tdUpd);
+        tr.appendChild(tdActions);
+
+        leaveTable.appendChild(tr);
+      });
+    }
+
+    // ===== Start subscription (set by driver) =====
+    // attachSubscription() is called during driver selection above
+
+    // ===== Submit handler (create) =====
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+
+      const row = {
+        empId: empId.value.trim(),
+        empName: empName.value.trim(),
+        department: department.value.trim(),
+        leaveType: leaveType.value,
+        startDate: startDate.value,
+        endDate: endDate.value,
+        leaveDays: leaveDays.value,
+        reason: reason.value.trim(),
+        approver: approver.value.trim(),
+        submitDate: submitDate.value,
+        systemTime: systemTimeEl.value
+      };
+
+      const { ok, errors, warnings, value } = validateRow(row);
+      if(!ok){ showToast('❌ ' + errors.join(' | '), 'error'); return; }
+      if(warnings.length){ showToast('⚠️ ' + warnings.join(' | '), 'error'); }
+
+      try{
+        await driver.create(value);
+        form.reset();
+        submitDate.value = todayISO();
         showToast('✅ ส่งใบลาสำเร็จแล้ว','success');
-      });
-
-      // --- Edit / Delete actions (event delegation) ---
-      document.addEventListener('click',(ev)=>{
-        const btn = ev.target.closest('button'); if(!btn) return;
-        const action = btn.getAttribute('data-action');
-        const id = btn.getAttribute('data-id'); if(!action || !id) return;
-        const data = loadData(); const idx = data.findIndex(r=> r.id===id);
-        if(idx<0) return;
-
-        if(action==='edit'){
-          // open modal with current values
-          editStart.value = data[idx].startDate || '';
-          editEnd.value = data[idx].endDate || '';
-          // pre-calc
-          if(editStart.value && editEnd.value){
-            const s=new Date(editStart.value), e=new Date(editEnd.value);
-            editDays.value = (isNaN(s)||isNaN(e)||e<s)? '' : (Math.floor((e-s)/(1000*60*60*24))+1)+ ' วัน';
-          }else{ editDays.value=''; }
-          editModal.style.display='block';
-
-          // live calc in modal
-          const recalc=()=>{
-            const s=new Date(editStart.value), e=new Date(editEnd.value);
-            if(!isNaN(s)&&!isNaN(e)&&e>=s){ editDays.value = (Math.floor((e-s)/(1000*60*60*24))+1)+ ' วัน'; }
-            else{ editDays.value=''; }
-          };
-          editStart.onchange = recalc; editEnd.onchange = recalc;
-
-          saveEdit.onclick = ()=>{
-            if(!editStart.value || !editEnd.value){ showToast('กรุณาเลือกวันที่ให้ครบ','error'); return; }
-            const s=new Date(editStart.value), e=new Date(editEnd.value);
-            if(e<s){ showToast('ช่วงวันที่ไม่ถูกต้อง','error'); return; }
-            const days = Math.floor((e-s)/(1000*60*60*24))+1;
-            data[idx].startDate = editStart.value;
-            data[idx].endDate = editEnd.value;
-            data[idx].leaveDays = days + ' วัน';
-            data[idx].updatedAt = new Date().toLocaleString('th-TH',{hour12:false});
-            saveData(data); renderTable(); editModal.style.display='none'; showToast('✅ แก้ไขข้อมูลเรียบร้อยแล้ว','success');
-          };
-          cancelEdit.onclick = ()=>{ editModal.style.display='none'; };
+      }catch(err){
+        console.error('create()', err);
+        const msg = explainFirestoreError(err);
+        showToast('สร้างรายการไม่สำเร็จ: ' + msg, 'error');
+        // auto fallback
+        if(driver.kind==='firestore'){
+          useLocal('สลับ Local เพราะเขียน Firestore ไม่ได้: ' + msg);
         }
-
-        if(action==='delete'){
-          // open password modal
-          passwordModal.style.display='block'; hrPasswordInput.value='';
-          confirmDelete.onclick = ()=>{
-            if(hrPasswordInput.value !== HR_PASSWORD){ showToast('❌ รหัสผ่านไม่ถูกต้อง','error'); return; }
-            data.splice(idx,1); saveData(data); renderTable(); passwordModal.style.display='none'; showToast('🗑️ ลบข้อมูลเรียบร้อยแล้ว','success');
-          };
-          cancelDelete.onclick = ()=>{ passwordModal.style.display='none'; };
-        }
-      });
-
-      // --- CSV Download ---
-      function tableToCSV(){
-        const rows = [['รหัส','ชื่อพนักงาน','ประเภทการลา','เริ่ม','สิ้นสุด','จำนวนวัน','วันที่ส่งใบลา','เวลาที่ส่ง','อัปเดตล่าสุด']];
-        loadData().forEach(r=>{
-          rows.push([r.empId||'', r.empName||'', r.leaveType||'', r.startDate||'', r.endDate||'', r.leaveDays||'', r.submitDate||'', r.systemTime||'', r.updatedAt||r.createdAt||'']);
-        });
-        return rows.map(cols=> cols.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
       }
-      downloadCSVBtn.addEventListener('click', ()=>{
-        const csv = tableToCSV();
-        const blob = new Blob(["\ufeff"+csv], {type:'text/csv;charset=utf-8;'}); // BOM for Excel UTF-8
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = 'leave-requests.csv'; a.click();
-        URL.revokeObjectURL(url);
+    });
+
+    // ===== Edit / Delete (delegation) =====
+    const editModal = document.getElementById('editModal');
+    const editStart = document.getElementById('editStart');
+    const editEnd = document.getElementById('editEnd');
+    const editDays = document.getElementById('editDays');
+    const saveEdit = document.getElementById('saveEdit');
+    const cancelEdit = document.getElementById('cancelEdit');
+
+    const passwordModal = document.getElementById('passwordModal');
+    const hrPasswordInput = document.getElementById('hrPasswordInput');
+    const confirmDelete = document.getElementById('confirmDelete');
+    const cancelDelete = document.getElementById('cancelDelete');
+
+    document.addEventListener('click', (ev)=>{
+      const btn = ev.target.closest('button'); if(!btn) return;
+      const action = btn.getAttribute('data-action');
+      const id = btn.getAttribute('data-id'); if(!action || !id) return;
+      const idx = cache.findIndex(r=> r.id===id);
+      if(idx<0) return;
+
+      if(action==='edit'){
+        editStart.value = cache[idx].startDate || '';
+        editEnd.value = cache[idx].endDate || '';
+        const currentDays = String(cache[idx].leaveDays || '').replace(' วัน','');
+        editDays.value = currentDays || 1;
+        editModal.style.display='block';
+
+        saveEdit.onclick = async ()=>{
+          const upd = { startDate: editStart.value, endDate: editEnd.value, leaveDays: editDays.value, submitDate: cache[idx].submitDate };
+          const { ok, errors, warnings, value } = validateRow({ ...cache[idx], ...upd });
+          if(!ok){ showToast('❌ ' + errors.join(' | '), 'error'); return; }
+          if(warnings.length){ showToast('⚠️ ' + warnings.join(' | '), 'error'); }
+          try{
+            await driver.update(id, value);
+            editModal.style.display='none'; showToast('✅ แก้ไขข้อมูลเรียบร้อยแล้ว','success');
+          }catch(err){
+            console.error('update()', err);
+            const msg = explainFirestoreError(err);
+            showToast('แก้ไขไม่สำเร็จ: ' + msg, 'error');
+            if(driver.kind==='firestore'){
+              useLocal('สลับ Local เพราะแก้ไข Firestore ไม่ได้: ' + msg);
+            }
+          }
+        };
+        cancelEdit.onclick = ()=>{ editModal.style.display='none'; };
+      }
+
+      if(action==='delete'){
+        passwordModal.style.display='block'; hrPasswordInput.value='';
+        confirmDelete.onclick = async ()=>{
+          if(hrPasswordInput.value !== HR_PASSWORD){ showToast('❌ รหัสผ่านไม่ถูกต้อง','error'); return; }
+          try{
+            await driver.remove(id);
+            passwordModal.style.display='none'; showToast('🗑️ ลบข้อมูลเรียบร้อยแล้ว','success');
+          }catch(err){
+            console.error('remove()', err);
+            const msg = explainFirestoreError(err);
+            showToast('ลบไม่สำเร็จ: ' + msg, 'error');
+            if(driver.kind==='firestore'){
+              useLocal('สลับ Local เพราะลบ Firestore ไม่ได้: ' + msg);
+            }
+          }
+        };
+        cancelDelete.onclick = ()=>{ passwordModal.style.display='none'; };
+      }
+    });
+
+    // ปิดโมดัลเมื่อคลิกรอบนอก
+    ;[editModal, passwordModal].forEach(m => { m.addEventListener('click', e => { if (e.target === m) m.style.display = 'none'; }); });
+
+    // ===== CSV export จาก cache =====
+    function csvEscape(value){ const s = String(value ?? '').replace(/"/g,'""'); return '"' + s + '"'; }
+    function tableToCSV(){
+      const rows = [[ 'รหัส','ชื่อพนักงาน','ประเภทการลา','เริ่ม','สิ้นสุด','จำนวนวัน','วันที่ส่งใบลา','เวลาที่ส่ง','อัปเดตล่าสุด' ]];
+      cache.forEach(r=>{ rows.push([ r.empId||'', r.empName||'', r.leaveType||'', r.startDate||'', r.endDate||'', r.leaveDays||'', r.submitDate||'', r.systemTime||'', r.updatedAt?fmtTS(r.updatedAt):(r.createdAt?fmtTS(r.createdAt):'') ]); });
+      return rows.map(cols => cols.map(csvEscape).join(',')).join('\n');
+    }
+    downloadCSVBtn.addEventListener('click', ()=>{
+      const csv = tableToCSV();
+      const blob = new Blob(["\ufeff"+csv], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'leave-requests.csv'; a.click(); URL.revokeObjectURL(url);
+    });
+
+    // ===== Unit Tests (ไม่แตะ Firestore) =====
+    function badge(ok){ return `<span class="badge ${ok?'ok':'fail'}">${ok?'PASS':'FAIL'}</span>`; }
+    function nextSaturdayISO(){ const d = new Date(); const delta = (6 - d.getDay() + 7) % 7 || 7; const n = new Date(d.getFullYear(), d.getMonth(), d.getDate() + delta); const tz = n.getTimezoneOffset() * 60000; return new Date(n - tz).toISOString().slice(0,10); }
+    function runUnitTests(){
+      const cases = [];
+      const base = { empId:'E001', empName:'สมชาย ใจดี', department:'ฝ่ายผลิต', leaveType:'ลาพักร้อน', startDate:'2025-11-10', endDate:'2025-11-10', leaveDays:'1', reason:'ธุระส่วนตัว', approver:'หัวหน้าเอ', submitDate: todayISO(), systemTime: new Date().toLocaleString('th-TH',{hour12:false}) };
+      // เดิม (อย่าแก้)
+      cases.push({ name:'Required fields validation', input:{...base, empId:''}, expectOk:false });
+      cases.push({ name:'Date order invalid', input:{...base, startDate:'2025-11-12', endDate:'2025-11-10'}, expectOk:false });
+      cases.push({ name:'Vacation retroactive -> convert to business leave', input:{...base, submitDate:'2025-11-10'}, expectOk:true, expectType:'ลากิจ' });
+      cases.push({ name:'Min days 0.5', input:{...base, leaveDays:'0.25'}, expectOk:false });
+      cases.push({ name:'Valid input', input:{...base, startDate:'2025-11-12', endDate:'2025-11-13', leaveDays:'2', submitDate:'2025-11-10'}, expectOk:true, expectType:'ลาพักร้อน' });
+      // เพิ่มใหม่
+      cases.push({ name:'Exactly 0.5 day allowed', input:{...base, leaveDays:'0.5', submitOk:true }, expectOk:true });
+      cases.push({ name:'Decimal days normalize 1.5 วัน', input:{...base, leaveDays:'1.5 วัน', submitDate:'2025-11-10'}, expectOk:true, expectDays:'1.5 วัน' });
+      cases.push({ name:'Same start=end OK', input:{...base, startDate:'2025-11-10', endDate:'2025-11-10', submitDate:'2025-11-08'}, expectOk:true });
+      cases.push({ name:'Weekend submit should fail', input:{...base, submitDate: nextSaturdayISO()}, expectOk:false });
+      cases.push({ name:'Approver required', input:{...base, approver:''}, expectOk:false });
+      cases.push({ name:'Trim days with spaces', input:{...base, leaveDays:' 1.0  '}, expectOk:true, expectDays:'1 วัน' });
+
+      let html = '';
+      cases.forEach(cs=>{
+        const r = validateRow(cs.input);
+        let ok = r.ok === cs.expectOk && (!cs.expectType || r.value.leaveType === cs.expectType);
+        if(ok && cs.expectDays){ ok = r.value.leaveDays === cs.expectDays; }
+        html += `<div class="flex items-center gap-2"><div>${badge(ok)}</div><div>${cs.name}</div>`;
+        if(!ok){ html += `<div class=\"text-red-700\">→ got ok=${r.ok}, type=${r.value.leaveType}, days=${r.value.leaveDays} errors=[${r.errors.join('; ')}]</div>`; }
+        html += `</div>`;
       });
+      testResults.innerHTML = html;
+    }
+    runUnitTestsBtn?.addEventListener('click', runUnitTests);
+
+    // ===== Live DB probe (ตามโหมด DB) =====
+    runDBProbeBtn?.addEventListener('click', async ()=>{
+      try{
+        const payload = { empId:'TEST', empName:'PROBE', department:'QA', leaveType:'ลากิจ', startDate: todayISO(), endDate: todayISO(), leaveDays: '0.5 วัน', reason:'probe', approver:'tester', submitDate: todayISO(), systemTime: new Date().toLocaleString('th-TH',{hour12:false}) };
+        const { ok, value } = validateRow(payload);
+        if(!ok) throw new Error('ตัวอย่างทดสอบไม่ผ่าน validation');
+        if(driver.kind==='firestore'){
+          const { id } = await driver.create(value); await driver.remove(id);
+          testResults.innerHTML = `<div class=\"flex items-center gap-2\">${badge(true)}<div>DB probe (Firestore) สำเร็จ</div></div>`;
+        }else{
+          const { id } = await driver.create(value); await driver.remove(id);
+          testResults.innerHTML = `<div class=\"flex items-center gap-2\">${badge(true)}<div>DB probe (Local) สำเร็จ</div></div>`;
+        }
+      }catch(err){
+        console.error('DB probe error', err);
+        testResults.innerHTML = `<div class=\"flex items-center gap-2\">${badge(false)}<div>DB probe ล้มเหลว: ${explainFirestoreError(err)}</div></div>`;
+      }
     });
   </script>
 </body>
