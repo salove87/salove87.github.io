@@ -6,17 +6,31 @@
   <title>แบบสำรวจความพึงพอใจลูกค้า | Customer Satisfaction Survey</title>
   <!-- TailwindCSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SheetJS for Excel export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     @media print {
       .no-print { display: none !important; }
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
-    /* ให้ช่องกรอกเห็นขอบชัดเจน */
+    /* ให้ช่องกรอกเห็นขอบชัดเจน (ไม่ใช้ @apply เพื่อความเข้ากันได้กับ CDN) */
     input[type="text"], input[type="email"], input[type="date"], textarea, select {
-      @apply border-2 border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-gray-500;
+      border: 2px solid #e5e7eb; /* gray-300 */
+      border-radius: 0.5rem; /* rounded-lg */
+      padding: 0.5rem 0.75rem; /* px-3 py-2 */
+      outline: none;
+    }
+    input[type="text"]:focus, input[type="email"]:focus, input[type="date"]:focus, textarea:focus, select:focus {
+      border-color: #6b7280; /* gray-500 */
     }
     .radio-cell input { width: 1.2rem; height: 1.2rem; }
-    .section-card { @apply bg-white rounded-2xl shadow p-5 md:p-7 border border-gray-100; }
+    .section-card {
+      background: #fff;
+      border-radius: 1rem; /* rounded-2xl */
+      box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 1px 3px rgba(0,0,0,.1);
+      padding: 1.25rem; /* p-5 */
+      border: 1px solid #f3f4f6; /* gray-100 */
+    }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900">
@@ -91,14 +105,76 @@
       <textarea id="additional" rows="4" class="w-full" placeholder="ข้อคิดเห็นเพิ่มเติม ข้อเสนอแนะอื่น ๆ"></textarea>
     </section>
 
+    <!-- แผงสรุปผล & ลิงก์คำตอบ (จะแสดงหลังส่งฟอร์ม) -->
+    <section id="resultPanel" class="section-card my-6 hidden">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-semibold">ส่งแบบฟอร์มสำเร็จ ✅</h2>
+          <p class="text-sm text-gray-600">สรุปผลคะแนนและลิงก์คำตอบของคุณ</p>
+        </div>
+        <button id="btnNew" type="button" class="no-print px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm">เริ่มกรอกใหม่</button>
+      </div>
+
+      <div class="grid md:grid-cols-4 gap-3 mt-4">
+        <div class="p-3 bg-gray-50 rounded-xl text-center">
+          <div class="text-xs text-gray-600">Delivery</div>
+          <div id="r_D" class="text-xl font-bold">-</div>
+        </div>
+        <div class="p-3 bg-gray-50 rounded-xl text-center">
+          <div class="text-xs text-gray-600">Quality</div>
+          <div id="r_Q" class="text-xl font-bold">-</div>
+        </div>
+        <div class="p-3 bg-gray-50 rounded-xl text-center">
+          <div class="text-xs text-gray-600">Cost</div>
+          <div id="r_C" class="text-xl font-bold">-</div>
+        </div>
+        <div class="p-3 bg-gray-800 text-white rounded-xl text-center">
+          <div class="text-xs opacity-80">รวม / Total</div>
+          <div id="r_total" class="text-xl font-bold">-</div>
+          <div class="text-sm opacity-90">เกรด <span id="r_grade">-</span></div>
+        </div>
+      </div>
+
+      <div class="mt-4 grid md:grid-cols-3 gap-3 text-sm">
+        <div class="p-3 bg-white rounded-xl border">
+          <div class="text-gray-500">บริษัท</div>
+          <div id="r_company" class="font-medium">-</div>
+        </div>
+        <div class="p-3 bg-white rounded-xl border">
+          <div class="text-gray-500">ผู้ประเมิน</div>
+          <div id="r_evaluator" class="font-medium">-</div>
+        </div>
+        <div class="p-3 bg-white rounded-xl border">
+          <div class="text-gray-500">วันที่ประเมิน</div>
+          <div id="r_date" class="font-medium">-</div>
+        </div>
+      </div>
+
+      <div id="r_link_wrap" class="mt-4 bg-white rounded-xl border p-3 hidden">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-sm text-gray-600">ลิงก์คำตอบของคุณ:</span>
+          <a id="r_link" href="#" class="text-blue-600 break-all underline" target="_blank" rel="noopener">#</a>
+          <button id="btnCopyLink" type="button" class="no-print px-3 py-1 rounded-lg bg-blue-600 text-white text-sm">คัดลอกลิงก์</button>
+          <span id="copyNote" class="text-xs text-green-600 hidden">คัดลอกแล้ว</span>
+        </div>
+        <p class="text-xs text-gray-500 mt-2">* ลิงก์จะมีให้เมื่อใช้โหมด Firestore เท่านั้น</p>
+      </div>
+
+      <div class="mt-3 flex gap-2 no-print">
+        <button id="btnSendMarketing" type="button" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm">ส่งผลให้ฝ่ายการตลาด</button>
+        <span class="text-xs text-gray-500 self-center">(เปิดอีเมลพร้อมลิงก์และสรุปคะแนน)</span>
+      </div>
+    </section>
+
     <!-- ปุ่มทำงาน -->
     <div class="flex flex-col md:flex-row gap-3 no-print">
-      <button id="btnSubmit" class="px-5 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700">ส่งแบบฟอร์ม (ดาวน์โหลดไฟล์ .CSV)</button>
+      <button id="btnExportXLSX" class="px-5 py-3 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700">ดาวน์โหลดผลคะแนน Excel (.xlsx)</button>
+      <button id="btnEmailOnly" class="px-5 py-3 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700">ส่ง Email</button>
       <button id="btnPrint" type="button" class="px-5 py-3 rounded-xl bg-gray-700 text-white font-semibold hover:bg-gray-800">พิมพ์/บันทึกเป็น PDF</button>
       <details class="ml-0 md:ml-auto bg-white border rounded-xl p-3 max-w-xl">
         <summary class="cursor-pointer font-semibold">เชื่อมต่อฐานข้อมูล (ตัวเลือกเสริม)</summary>
         <div class="text-sm mt-2 space-y-2">
-          <p>ค่าดีฟอลต์ปุ่ม “ส่งแบบฟอร์ม” จะดาวน์โหลดไฟล์ .CSV ทันที เพื่อใช้งานได้เลยโดยไม่ต้องตั้งค่าใด ๆ</p>
+          <p>ปุ่ม “ดาวน์โหลดผลคะแนน Excel (.xlsx)” ใช้งานได้ทันที ไม่ต้องตั้งค่าใด ๆ</p>
           <p>หากต้องการบันทึกออนไลน์จริง ให้เลือกอย่างใดอย่างหนึ่ง:</p>
           <ol class="list-decimal ml-5 space-y-1">
             <li><b>Google Apps Script → Google Sheets</b>: นำ URL ของ Web App มาวางในตัวแปร <code>SCRIPT_URL</code></li>
@@ -108,14 +184,19 @@
       </details>
     </div>
 
-    <footer class="mt-10 text-xs text-gray-500">
-      FM-MK-001-05 • เกณฑ์เกรด: A 95-100, B 90-94, C 80-89, D 70-79, E &lt; 70
-    </footer>
+    <footer class="mt-10 text-xs text-gray-500">FM-MK-001-05 • เกณฑ์เกรด: A 95-100, B 90-94, C 80-89, D 70-79, E &lt; 70</footer>
+
+    <!-- ผลการทดสอบ (Unit-like tests) -->
+    <details class="mt-6 section-card no-print">
+      <summary class="cursor-pointer font-semibold">ผลการทดสอบภายในหน้า (สำหรับดีบัก)</summary>
+      <ul id="testList" class="list-disc pl-6 text-sm mt-2"></ul>
+    </details>
   </div>
 
   <script>
+    'use strict';
     // ===== ตั้งค่าส่งข้อมูล (เลือกวิธีหนึ่ง) =====
-    // 1) โหมดเริ่มต้น: ดาวน์โหลด CSV ทันที (ไม่ต้องตั้งค่า)
+    // (โหมดเริ่มต้นของสา: ใช้ Excel + Email เท่านั้น) คงตัวแปรไว้เพื่อความยืดหยุ่น
     let submitMode = "download"; // "download" | "script" | "firebase"
 
     // 2) Google Apps Script Web App (หากใช้ ให้เปลี่ยน submitMode = "script")
@@ -130,6 +211,11 @@
       messagingSenderId: "",
       appId: ""
     };
+
+    // อีเมลฝ่ายการตลาด (แก้เป็นของจริงได้หลายอีเมล)
+    const marketingEmails = ["marketing@yourdomain.com"]; // ตัวอย่าง: ["mkt@domain.com","brand@domain.com"]
+    // โหมดเปิดหน้าส่งเมล: 'outlookWeb' | 'mailto' | 'auto'
+    const EMAIL_MODE = 'outlookWeb';
 
     // ===== โครงสร้างคำถาม (จากไฟล์ Excel) =====
     const SURVEY = [
@@ -337,8 +423,8 @@
       return data;
     }
 
-    function downloadCSV(data) {
-      // ทำหัวตาราง
+    // สร้าง CSV เป็นสตริง (เพื่อให้ทดสอบได้) แล้วจึงดาวน์โหลดไฟล์
+    function buildCSV(data){
       const head = [
         'Company','Evaluator','Position','Email','Date','Section','ItemNo','Topic(TH)','Topic(EN)','Score','Suggestion','Sum(D)','Sum(Q)','Sum(C)','Total','Grade'
       ];
@@ -363,30 +449,227 @@
             data.score.total,
             data.score.grade
           ]);
-        })
+        });
       });
       const csv = rows.map(r => r.map(v => `"${String(v ?? '').replaceAll('"','""')}"`).join(',')).join('\n');
+      return csv;
+    }
+
+    // ===== ส่วนแสดงผลหลังส่ง + ลิงก์คำตอบ =====
+    function qs(sel){ return document.querySelector(sel); }
+    function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
+    function urlId(){ return new URLSearchParams(location.search).get('id'); }
+
+    function toggleResult(show=true){
+      const el = qs('#resultPanel');
+      if (!el) return;
+      el.classList.toggle('hidden', !show);
+    }
+
+    function fillResult(data, shareUrl){
+      if(!data) return;
+      // เก็บค่าล่าสุดไว้ใช้กับปุ่มส่งอีเมล/ใช้งานอื่น ๆ
+      window.__lastData = data;
+      window.__lastShareUrl = shareUrl || null;
+
+      qs('#r_company').textContent = data.company || '-';
+      qs('#r_evaluator').textContent = data.evaluator || '-';
+      qs('#r_date').textContent = data.evalDate || '-';
+      qs('#r_D').textContent = `${data.score?.D ?? 0}/40`;
+      qs('#r_Q').textContent = `${data.score?.Q ?? 0}/40`;
+      qs('#r_C').textContent = `${data.score?.C ?? 0}/20`;
+      qs('#r_total').textContent = `${data.score?.total ?? 0}/100`;
+      qs('#r_grade').textContent = data.score?.grade ?? '-';
+
+      const linkWrap = qs('#r_link_wrap');
+      const linkEl = qs('#r_link');
+      if(shareUrl){
+        linkEl.href = shareUrl;
+        linkEl.textContent = shareUrl;
+        linkWrap.classList.remove('hidden');
+        const copyBtn = qs('#btnCopyLink');
+        if (copyBtn) {
+          copyBtn.onclick = () => {
+            navigator.clipboard.writeText(shareUrl);
+            qs('#copyNote').classList.remove('hidden');
+            setTimeout(()=>qs('#copyNote').classList.add('hidden'), 1500);
+          };
+        }
+      }else{
+        linkWrap.classList.add('hidden');
+      }
+
+      // ปุ่มส่งอีเมลฝ่ายการตลาดในแผงสรุปผล
+      const sendBtn = qs('#btnSendMarketing');
+      if (sendBtn) {
+        sendBtn.onclick = () => openMarketingEmail(window.__lastData || data, window.__lastShareUrl || null);
+      }
+
+      // แสดงผล + ทำให้ฟอร์มแก้ไขไม่ได้ เพื่อลดความสับสน
+      toggleResult(true);
+      qs('#surveyForm').classList.add('hidden');
+      qsa('section.section-card').forEach(s => s.classList.add('opacity-70','pointer-events-none'));
+    }
+
+    // ดาวน์โหลด CSV (เก็บไว้ใช้ทดสอบ / เผื่อจำเป็น)
+    function downloadCSV(data) {
+      const csv = buildCSV(data);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const a = document.createElement('a');
       const dt = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
       a.href = URL.createObjectURL(blob);
       a.download = `customer-satisfaction-${dt}.csv`;
       a.click();
+      fillResult(data, null);
+    }
+
+    // สร้างและดาวน์โหลดไฟล์ Excel (.xlsx)
+    function downloadXLSX(data){
+      if (!window.XLSX) { alert('ไม่พบไลบรารี XLSX'); return; }
+      const head = ['Company','Evaluator','Position','Email','Date','Section','ItemNo','Topic(TH)','Topic(EN)','Score','Suggestion','Sum(D)','Sum(Q)','Sum(C)','Total','Grade'];
+      const rows = [head];
+      data.sections.forEach(sec => {
+        sec.items.forEach(it => {
+          rows.push([
+            data.company,
+            data.evaluator,
+            data.position,
+            data.email,
+            data.evalDate,
+            sec.code,
+            it.no,
+            it.th,
+            it.en || '',
+            it.score || '',
+            (it.suggest || '').replaceAll('\n',' ').trim(),
+            data.score.D,
+            data.score.Q,
+            data.score.C,
+            data.score.total,
+            data.score.grade
+          ]);
+        });
+      });
+      const wb = XLSX.utils.book_new();
+      const wsData = rows;
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      XLSX.utils.book_append_sheet(wb, ws, 'Scores');
+
+      // แผ่นสรุป
+      const sum = [
+        ['Company', data.company || ''],
+        ['Evaluator', data.evaluator || ''],
+        ['Date', data.evalDate || ''],
+        ['Delivery (40)', `${data.score.D || 0}`],
+        ['Quality (40)', `${data.score.Q || 0}`],
+        ['Cost (20)', `${data.score.C || 0}`],
+        ['Total (100)', `${data.score.total || 0}`],
+        ['Grade', data.score.grade || '-']
+      ];
+      const ws2 = XLSX.utils.aoa_to_sheet(sum);
+      XLSX.utils.book_append_sheet(wb, ws2, 'Summary');
+
+      const dt = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+      XLSX.writeFile(wb, `customer-satisfaction-${dt}.xlsx`);
+
+      // แสดงผลบนหน้า
+      fillResult(data, null);
+    }
+
+    // แยกตัวสร้างลิงก์ mailto ออกมาเพื่อทดสอบได้
+    function buildMarketingMailto(data, shareUrl, recipients){
+      const to = (recipients || []).join(',');
+      const subj = `CSAT ${data.company || ''} ${data.evalDate || ''} — รวม ${data.score?.total ?? 0}/100 (${data.score?.grade || '-'})`;
+      const lines = [
+        'สรุปผลแบบสำรวจความพึงพอใจลูกค้า',
+        `บริษัท: ${data.company || '-'}`,
+        `ผู้ประเมิน: ${data.evaluator || '-'}`,
+        `วันที่ประเมิน: ${data.evalDate || '-'}`,
+        '',
+        `Delivery: ${data.score?.D ?? 0}/40`,
+        `Quality: ${data.score?.Q ?? 0}/40`,
+        `Cost: ${data.score?.C ?? 0}/20`,
+        `รวม: ${data.score?.total ?? 0}/100`,
+        `เกรด: ${data.score?.grade || '-'}`
+      ];
+      if (shareUrl) {
+        lines.push('', `ดูรายละเอียด/ตอบกลับ: ${shareUrl}`);
+      } else {
+        lines.push('', '(ไม่มีลิงก์คำตอบ — เปิดใช้โหมด Firestore เพื่อสร้างลิงก์อัตโนมัติ)');
+      }
+      return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(lines.join('\n'))}`;
+    }
+
+    // ตัวสร้างลิงก์ Compose สำหรับ Outlook Web หรือ mailto
+    function buildEmailComposeUrl(mode, data, shareUrl, recipients){
+      const toList = (recipients || []);
+      const to = mode === 'outlookWeb' ? toList.join(';') : toList.join(',');
+      const subj = `CSAT ${data.company || ''} ${data.evalDate || ''} — รวม ${data.score?.total ?? 0}/100 (${data.score?.grade || '-'})`;
+      const lines = [
+        'สรุปผลแบบสำรวจความพึงพอใจลูกค้า',
+        `บริษัท: ${data.company || '-'}`,
+        `ผู้ประเมิน: ${data.evaluator || '-'}`,
+        `วันที่ประเมิน: ${data.evalDate || '-'}`,
+        '',
+        `Delivery: ${data.score?.D ?? 0}/40`,
+        `Quality: ${data.score?.Q ?? 0}/40`,
+        `Cost: ${data.score?.C ?? 0}/20`,
+        `รวม: ${data.score?.total ?? 0}/100`,
+        `เกรด: ${data.score?.grade || '-'}`
+      ];
+      if (shareUrl) { lines.push('', `ดูรายละเอียด/ตอบกลับ: ${shareUrl}`); }
+      else { lines.push('', '(ไม่มีลิงก์คำตอบ — เปิดใช้โหมด Firestore เพื่อสร้างลิงก์อัตโนมัติ)'); }
+      const body = lines.join('\n');
+
+      if (mode === 'outlookWeb' || mode === 'auto'){
+        // ใช้ Outlook on the web deeplink
+        const base = 'https://outlook.office.com/mail/deeplink/compose';
+        const q = new URLSearchParams({ to, subject: subj, body });
+        return `${base}?${q.toString()}`;
+      }
+      // fallback: mailto
+      return buildMarketingMailto(data, shareUrl, recipients);
+    }
+
+    // เปิดอีเมลไคลเอนต์จริง
+    function openMarketingEmail(data, shareUrl){
+      try {
+        const url = buildEmailComposeUrl(EMAIL_MODE, data, shareUrl, marketingEmails);
+        if (EMAIL_MODE === 'outlookWeb') {
+          window.open(url, '_blank');
+        } else {
+          window.location.href = url;
+        }
+      } catch(err){ console.error(err); alert('เปิดอีเมลไม่สำเร็จ'); }
     }
 
     async function submitToScript(data) {
       if (!SCRIPT_URL) { alert('กรุณาตั้งค่า SCRIPT_URL ก่อน'); return; }
       try {
-        const resp = await fetch(SCRIPT_URL, {
+        await fetch(SCRIPT_URL, {
           method: 'POST',
-          mode: 'no-cors', // ปล่อยผ่าน CORS ใน Apps Script
+          // ถ้าต้องการอ่านค่าตอบกลับ ให้ตั้งค่า CORS ใน Apps Script และใช้ mode: 'cors'
+          mode: 'no-cors',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
         });
         alert('ส่งข้อมูลไปยัง Google Sheets แล้ว (ตรวจสอบชีตของคุณ)');
+        fillResult(data, null);
       } catch (e) {
         console.error(e); alert('ส่งไม่สำเร็จ ลองใหม่หรือตรวจค่า SCRIPT_URL');
       }
+    }
+
+    async function ensureFirebase(){
+      const [{ initializeApp }, { getFirestore, addDoc, collection, serverTimestamp, doc, getDoc }, { getAuth, signInAnonymously }] = await Promise.all([
+        import('https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js'),
+        import('https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js'),
+        import('https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js')
+      ]);
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      try { await signInAnonymously(auth); } catch(e) { /* อาจเปิด anonymous auth แล้ว หรือกำลังใช้งานอยู่ */ }
+      return { app, getFirestore, addDoc, collection, serverTimestamp, doc, getDoc };
     }
 
     async function submitToFirebase(data) {
@@ -394,38 +677,143 @@
         alert('กรุณาตั้งค่า firebaseConfig ให้ครบก่อน'); return;
       }
       try {
-        // โหลด SDK แบบไดนามิกเพื่อลดขนาดหน้า
-        const [{ initializeApp }, { getFirestore, addDoc, collection, serverTimestamp }] = await Promise.all([
-          import('https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js'),
-          import('https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js')
-        ]);
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        await addDoc(collection(db, 'customer_satisfaction'), { ...data, createdAt: serverTimestamp() });
+        const { getFirestore, addDoc, collection, serverTimestamp } = await ensureFirebase();
+        const db = getFirestore();
+        const docRef = await addDoc(collection(db, 'customer_satisfaction'), { ...data, createdAt: serverTimestamp() });
+        const shareUrl = `${location.origin}${location.pathname}?id=${docRef.id}`;
         alert('บันทึกเข้า Firestore สำเร็จ');
+        fillResult(data, shareUrl);
       } catch (e) {
         console.error(e); alert('บันทึก Firestore ไม่สำเร็จ');
+      }
+    }
+
+    async function loadFromFirebaseById(id){
+      if (!firebaseConfig || !firebaseConfig.apiKey) return alert('ต้องตั้งค่า firebaseConfig เพื่อโหลดข้อมูลจากลิงก์');
+      try {
+        const { getFirestore, doc, getDoc } = await ensureFirebase();
+        const db = getFirestore();
+        const snap = await getDoc(doc(db, 'customer_satisfaction', id));
+        if(snap.exists()){
+          const data = snap.data();
+          fillResult(data, location.href);
+        } else {
+          alert('ไม่พบทึกข้อมูลตามลิงก์นี้');
+        }
+      } catch(e){
+        console.error(e); alert('โหลดข้อมูลไม่สำเร็จ');
       }
     }
 
     // ===== Events =====
     document.getElementById('btnPrint').addEventListener('click', () => window.print());
 
-    document.getElementById('btnSubmit').addEventListener('click', async (e) => {
-      e.preventDefault();
-      const data = collectData();
-      if (!data.company || !data.evaluator || !data.evalDate) {
-        alert('กรุณากรอก บริษัท, ชื่อผู้ประเมิน และ วันที่ประเมิน');
-        return;
-      }
-      if (submitMode === 'download') return downloadCSV(data);
-      if (submitMode === 'script') return submitToScript(data);
-      if (submitMode === 'firebase') return submitToFirebase(data);
+    const btnExportXLSX = document.getElementById('btnExportXLSX');
+    if (btnExportXLSX){
+      btnExportXLSX.addEventListener('click', (e) => {
+        e.preventDefault();
+        const data = collectData();
+        if (!data.company || !data.evaluator || !data.evalDate) {
+          alert('กรุณากรอก บริษัท, ชื่อผู้ประเมิน และ วันที่ประเมิน');
+          return;
+        }
+        downloadXLSX(data);
+      });
+    }
+
+    const btnEmailOnly = document.getElementById('btnEmailOnly');
+    if (btnEmailOnly){
+      btnEmailOnly.addEventListener('click', (e) => {
+        e.preventDefault();
+        const data = collectData();
+        if (!data.company || !data.evaluator || !data.evalDate) {
+          alert('กรุณากรอก บริษัท, ชื่อผู้ประเมิน และ วันที่ประเมิน');
+          return;
+        }
+        openMarketingEmail(data, window.__lastShareUrl || null);
+      });
+    }
+
+    document.getElementById('btnNew').addEventListener('click', () => {
+      location.href = location.pathname; // รีเฟรชกลับโหมดกรอกใหม่ (ลบพารามิเตอร์ id)
     });
 
     // ===== Init =====
     document.getElementById('evalDate').value = todayISO();
     renderForm();
+
+    // ถ้าเปิดด้วยลิงก์ ?id=xxxx ให้โหลดผลมาแสดงทันที (โหมดดูผล)
+    const _id = urlId();
+    if(_id){ toggleResult(true); loadFromFirebaseById(_id); }
+
+    // ===== Tests =====
+    (function runTests(){
+      const out = document.getElementById('testList');
+      const add = (ok, msg) => {
+        const li = document.createElement('li');
+        li.textContent = (ok ? '✅ ' : '❌ ') + msg;
+        li.className = ok ? 'text-emerald-700' : 'text-red-600';
+        out.appendChild(li);
+      };
+
+      try {
+        // (คง test เดิมตามคำสั่ง)
+        add(gradeOf(95)==='A', 'gradeOf(95) → A');
+        add(gradeOf(94)==='B', 'gradeOf(94) → B');
+        add(gradeOf(80)==='C', 'gradeOf(80) → C');
+        add(gradeOf(70)==='D', 'gradeOf(70) → D');
+        add(gradeOf(69)==='E', 'gradeOf(69) → E');
+
+        add(/^\d{4}-\d{2}-\d{2}$/.test(todayISO()), 'todayISO() รูปแบบ YYYY-MM-DD');
+
+        const sample = {
+          company: 'ACME', evaluator: 'Alice "A"', position: 'Mgr', email: 'a@acme.com', evalDate: '2025-11-10', additional: '',
+          sections: [ { code:'D', title:'', max:40, sum:5, items:[{no:1, th:'T', en:'E', score:5, suggest:'มี\nบรรทัดใหม่'}] } ],
+          score: { D:5, Q:0, C:0, total:5, grade:'E' }
+        };
+        const csv = buildCSV(sample);
+        add(csv.includes('Company'), 'CSV มีหัวคอลัมน์');
+        add(csv.includes('Alice ""A""'), 'CSV escape อัญประกาศถูกต้อง');
+        add(csv.includes('\n'), 'CSV ใช้ตัวคั่นบรรทัดเป็น "\\n"');
+        add(!csv.includes('"\n"'), 'CSV ไม่มีตัวอักษรขึ้นบรรทัดใหม่ผิดที่');
+
+        // (เพิ่ม test ใหม่ตามคำสั่ง)
+        const mailto = buildMarketingMailto(sample, 'https://example.com/?id=123', ['mkt@example.com','brand@example.com']);
+        add(/^mailto:/.test(mailto), 'mailto เริ่มต้นด้วย mailto:');
+        add(/subject=/.test(mailto) && /body=/.test(mailto), 'mailto มีพารามิเตอร์ subject และ body');
+
+        // ทดสอบ CSV กรณีมีลูกน้ำ (,)
+        const csv2 = buildCSV({
+          ...sample,
+          company: 'ACME, Inc.',
+          sections: [{...sample.sections[0]}]
+        });
+        add(csv2.includes('\"ACME, Inc.\"') || csv2.includes('"ACME, Inc."'), 'CSV ครอบค่าเครื่องหมายลูกน้ำด้วยอัญประกาศ');
+
+        // XLSX tests
+        add(!!window.XLSX, 'XLSX โหลดสำเร็จ');
+        if (window.XLSX){
+          const ws = XLSX.utils.aoa_to_sheet([["Company","Evaluator"],["ACME","Alice"]]);
+          add(!!ws['A1'] && ws['A1'].v === 'Company', 'XLSX แปลง aoa เป็นชีตได้');
+        }
+
+        // เพิ่ม test: ไม่มีลิงก์ → ใส่โน้ตในเมล
+        const mailto2 = buildMarketingMailto(sample, null, ['mkt@example.com']);
+        add(decodeURIComponent(mailto2).includes('(ไม่มีลิงก์คำตอบ'), 'mailto (ไม่มีลิงก์) ใส่โน้ตชัดเจน');
+
+        // Outlook Web compose URL tests
+        const outlookUrl = buildEmailComposeUrl('outlookWeb', sample, 'https://example.com/?id=123', ['mkt@example.com','brand@example.com']);
+        add(/^https:\/\/outlook\./.test(outlookUrl) && /compose\?/.test(outlookUrl), 'Outlook compose URL ถูกต้อง');
+        add(/body=/.test(outlookUrl), 'Outlook URL มี body=');
+        add(/%0A/.test(outlookUrl), 'Outlook body เข้ารหัสบรรทัดใหม่เป็น %0A');
+
+        // เพิ่ม test โหมด mailto ผ่าน buildEmailComposeUrl
+        const mailtoUrlFromCompose = buildEmailComposeUrl('mailto', sample, null, ['mkt@example.com']);
+        add(/^mailto:/.test(mailtoUrlFromCompose), 'Compose URL (mailto mode) เป็น mailto:');
+      } catch (err) {
+        add(false, 'เกิดข้อผิดพลาดในชุดทดสอบ: ' + (err && err.message));
+      }
+    })();
   </script>
 </body>
 </html>
