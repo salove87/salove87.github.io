@@ -214,8 +214,8 @@
 
     // อีเมลฝ่ายการตลาด (แก้เป็นของจริงได้หลายอีเมล)
     const marketingEmails = ["marketing@yourdomain.com"]; // ตัวอย่าง: ["mkt@domain.com","brand@domain.com"]
-    // โหมดเปิดหน้าส่งเมล: 'outlookWeb' | 'mailto' | 'auto'
-    const EMAIL_MODE = 'outlookWeb';
+    // โหมดเปิดหน้าส่งเมล: 'outlookDesktop' | 'outlookWeb' | 'mailto' | 'auto'
+    const EMAIL_MODE = 'mailto'; // ตั้งค่าให้เปิดโปรแกรม Outlook (ถ้าเป็น default mail app) โดยใช้ mailto: เป็นหลัก
 
     // ===== โครงสร้างคำถาม (จากไฟล์ Excel) =====
     const SURVEY = [
@@ -603,7 +603,6 @@
     // ตัวสร้างลิงก์ Compose สำหรับ Outlook Web หรือ mailto
     function buildEmailComposeUrl(mode, data, shareUrl, recipients){
       const toList = (recipients || []);
-      const to = mode === 'outlookWeb' ? toList.join(';') : toList.join(',');
       const subj = `CSAT ${data.company || ''} ${data.evalDate || ''} — รวม ${data.score?.total ?? 0}/100 (${data.score?.grade || '-'})`;
       const lines = [
         'สรุปผลแบบสำรวจความพึงพอใจลูกค้า',
@@ -621,24 +620,45 @@
       else { lines.push('', '(ไม่มีลิงก์คำตอบ — เปิดใช้โหมด Firestore เพื่อสร้างลิงก์อัตโนมัติ)'); }
       const body = lines.join('\n');
 
+      if (mode === 'outlookDesktop'){
+        // พยายามเปิด Outlook (Desktop/App) ผ่าน ms-outlook://compose ถ้าเครื่องรองรับ
+        const to = toList.join(';');
+        const base = 'ms-outlook://compose';
+        const q = new URLSearchParams({ to, subject: subj, body });
+        return `${base}?${q.toString()}`;
+      }
+
       if (mode === 'outlookWeb' || mode === 'auto'){
-        // ใช้ Outlook on the web deeplink
+        // Outlook on the web deeplink
+        const to = toList.join(';');
         const base = 'https://outlook.office.com/mail/deeplink/compose';
         const q = new URLSearchParams({ to, subject: subj, body });
         return `${base}?${q.toString()}`;
       }
-      // fallback: mailto
+      // fallback: mailto (จะเปิดโปรแกรมอีเมล default ซึ่งถ้าตั้ง Outlook เป็นค่าเริ่มต้นจะเปิด Outlook)
       return buildMarketingMailto(data, shareUrl, recipients);
     }
 
     // เปิดอีเมลไคลเอนต์จริง
     function openMarketingEmail(data, shareUrl){
       try {
+        if (EMAIL_MODE === 'outlookDesktop'){
+          const msUrl = buildEmailComposeUrl('outlookDesktop', data, shareUrl, marketingEmails);
+          const mailtoUrl = buildMarketingMailto(data, shareUrl, marketingEmails);
+          // พยายามเปิด ms-outlook ก่อน แล้ว fallback เป็น mailto หลัง 1.2s (กรณีไม่ได้ลง/ไม่ได้ลงทะเบียนโปรโตคอล)
+          try {
+            window.location.href = msUrl;
+            setTimeout(() => { try { window.location.href = mailtoUrl; } catch(_){} }, 1200);
+          } catch(_) {
+            window.location.href = mailtoUrl;
+          }
+          return;
+        }
         const url = buildEmailComposeUrl(EMAIL_MODE, data, shareUrl, marketingEmails);
         if (EMAIL_MODE === 'outlookWeb') {
           window.open(url, '_blank');
         } else {
-          window.location.href = url;
+          window.location.href = url; // mailto
         }
       } catch(err){ console.error(err); alert('เปิดอีเมลไม่สำเร็จ'); }
     }
@@ -810,6 +830,11 @@
         // เพิ่ม test โหมด mailto ผ่าน buildEmailComposeUrl
         const mailtoUrlFromCompose = buildEmailComposeUrl('mailto', sample, null, ['mkt@example.com']);
         add(/^mailto:/.test(mailtoUrlFromCompose), 'Compose URL (mailto mode) เป็น mailto:');
+
+        // เพิ่ม test โหมด Outlook Desktop (ms-outlook)
+        const msUrl = buildEmailComposeUrl('outlookDesktop', sample, 'https://example.com/?id=123', ['mkt@example.com','brand@example.com']);
+        add(/^ms-outlook:\/\//.test(msUrl) && /compose\?/.test(msUrl), 'Desktop Outlook compose URL ถูกต้อง');
+        add(/to=mkt%40example\.com%3Bbrand%40example\.com/.test(msUrl) || decodeURIComponent(msUrl).includes('to=mkt@example.com;brand@example.com'), 'Desktop Outlook ใช้ ; คั่นผู้รับ');
       } catch (err) {
         add(false, 'เกิดข้อผิดพลาดในชุดทดสอบ: ' + (err && err.message));
       }
