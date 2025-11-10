@@ -9,28 +9,14 @@
   <!-- SheetJS for Excel export -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
-    @media print {
-      .no-print { display: none !important; }
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    }
-    /* ให้ช่องกรอกเห็นขอบชัดเจน */
-    input[type="text"], input[type="email"], input[type="date"], textarea, select {
-      border: 2px solid #e5e7eb; /* gray-300 */
-      border-radius: 0.5rem; /* rounded-lg */
-      padding: 0.5rem 0.75rem; /* px-3 py-2 */
-      outline: none;
-    }
-    input[type="text"]:focus, input[type="email"]:focus, input[type="date"]:focus, textarea:focus, select:focus {
-      border-color: #6b7280; /* gray-500 */
-    }
-    .radio-cell input { width: 1.2rem; height: 1.2rem; }
-    .section-card {
-      background: #fff;
-      border-radius: 1rem; /* rounded-2xl */
-      box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 1px 3px rgba(0,0,0,.1);
-      padding: 1.25rem; /* p-5 */
-      border: 1px solid #f3f4f6; /* gray-100 */
-    }
+    @media print { .no-print{display:none!important} body{-webkit-print-color-adjust:exact;print-color-adjust:exact} }
+    input[type="text"],input[type="email"],input[type="date"],textarea,select{border:2px solid #e5e7eb;border-radius:.5rem;padding:.5rem .75rem;outline:none}
+    input[type="text"]:focus,input[type="email"]:focus,input[type="date"]:focus,textarea:focus,select:focus{border-color:#6b7280}
+    .radio-cell input{width:1.2rem;height:1.2rem}
+    .section-card{background:#fff;border-radius:1rem;box-shadow:0 1px 2px rgba(0,0,0,.05),0 1px 3px rgba(0,0,0,.1);padding:1.25rem;border:1px solid #f3f4f6}
+    /* modal */
+    .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:50}
+    .modal-bg.show{display:flex}
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900">
@@ -41,7 +27,7 @@
       <div id="dbBanner" class="mt-2 text-xs"></div>
     </header>
 
-    <!-- ผู้ประเมิน -->
+    <!-- ข้อมูลผู้ประเมิน -->
     <section id="sectionEvaluator" class="section-card mb-6">
       <h2 class="text-xl font-semibold mb-4">ข้อมูลผู้ประเมิน / Evaluator</h2>
       <div class="grid md:grid-cols-2 gap-4">
@@ -68,7 +54,7 @@
       </div>
     </section>
 
-    <!-- ภาพรวมคะแนน -->
+    <!-- คะแนนรวมขณะกรอก -->
     <section id="sectionScore" class="section-card mb-6">
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
@@ -76,31 +62,18 @@
           <p id="scoreText" class="text-sm text-gray-600">ยังไม่ได้กรอกคะแนน</p>
         </div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-center">
-          <div class="p-3 bg-gray-100 rounded-xl">
-            <div class="text-xs text-gray-600">Delivery</div>
-            <div id="scoreD" class="text-xl font-bold">0 / 40</div>
-          </div>
-          <div class="p-3 bg-gray-100 rounded-xl">
-            <div class="text-xs text-gray-600">Quality</div>
-            <div id="scoreQ" class="text-xl font-bold">0 / 40</div>
-          </div>
-          <div class="p-3 bg-gray-100 rounded-xl">
-            <div class="text-xs text-gray-600">Cost</div>
-            <div id="scoreC" class="text-xl font-bold">0 / 20</div>
-          </div>
-          <div class="p-3 bg-gray-800 text-white rounded-xl">
-            <div class="text-xs opacity-80">รวม / Total</div>
-            <div id="scoreTotal" class="text-xl font-bold">0 / 100</div>
-            <div id="scoreGrade" class="text-sm opacity-90">เกรด: -</div>
-          </div>
+          <div class="p-3 bg-gray-100 rounded-xl"><div class="text-xs text-gray-600">Delivery</div><div id="scoreD" class="text-xl font-bold">0 / 40</div></div>
+          <div class="p-3 bg-gray-100 rounded-xl"><div class="text-xs text-gray-600">Quality</div><div id="scoreQ" class="text-xl font-bold">0 / 40</div></div>
+          <div class="p-3 bg-gray-100 rounded-xl"><div class="text-xs text-gray-600">Cost</div><div id="scoreC" class="text-xl font-bold">0 / 20</div></div>
+          <div class="p-3 bg-gray-800 text-white rounded-xl"><div class="text-xs opacity-80">รวม / Total</div><div id="scoreTotal" class="text-xl font-bold">0 / 100</div><div id="scoreGrade" class="text-sm opacity-90">เกรด: -</div></div>
         </div>
       </div>
     </section>
 
-    <!-- ฟอร์มหลัก จะถูก Render ด้วย JS จากโครงสร้างคำถาม -->
+    <!-- แบบฟอร์ม (render ด้วย JS) -->
     <form id="surveyForm" class="space-y-6"></form>
 
-    <!-- รายละเอียดเพิ่มเติม -->
+    <!-- เพิ่มเติม -->
     <section id="sectionAdditional" class="section-card my-6">
       <label class="block text-sm mb-2 font-medium">รายละเอียดเพิ่มเติม / Additional comments</label>
       <textarea id="additional" rows="4" class="w-full" placeholder="ข้อคิดเห็นเพิ่มเติม ข้อเสนอแนะอื่น ๆ"></textarea>
@@ -117,38 +90,16 @@
       </div>
 
       <div class="grid md:grid-cols-4 gap-3 mt-4">
-        <div class="p-3 bg-gray-50 rounded-xl text-center">
-          <div class="text-xs text-gray-600">Delivery</div>
-          <div id="r_D" class="text-xl font-bold">-</div>
-        </div>
-        <div class="p-3 bg-gray-50 rounded-xl text-center">
-          <div class="text-xs text-gray-600">Quality</div>
-          <div id="r_Q" class="text-xl font-bold">-</div>
-        </div>
-        <div class="p-3 bg-gray-50 rounded-xl text-center">
-          <div class="text-xs text-gray-600">Cost</div>
-          <div id="r_C" class="text-xl font-bold">-</div>
-        </div>
-        <div class="p-3 bg-gray-800 text-white rounded-xl text-center">
-          <div class="text-xs opacity-80">รวม / Total</div>
-          <div id="r_total" class="text-xl font-bold">-</div>
-          <div class="text-sm opacity-90">เกรด <span id="r_grade">-</span></div>
-        </div>
+        <div class="p-3 bg-gray-50 rounded-xl text-center"><div class="text-xs text-gray-600">Delivery</div><div id="r_D" class="text-xl font-bold">-</div></div>
+        <div class="p-3 bg-gray-50 rounded-xl text-center"><div class="text-xs text-gray-600">Quality</div><div id="r_Q" class="text-xl font-bold">-</div></div>
+        <div class="p-3 bg-gray-50 rounded-xl text-center"><div class="text-xs text-gray-600">Cost</div><div id="r_C" class="text-xl font-bold">-</div></div>
+        <div class="p-3 bg-gray-800 text-white rounded-xl text-center"><div class="text-xs opacity-80">รวม / Total</div><div id="r_total" class="text-xl font-bold">-</div><div class="text-sm opacity-90">เกรด <span id="r_grade">-</span></div></div>
       </div>
 
       <div class="mt-4 grid md:grid-cols-3 gap-3 text-sm">
-        <div class="p-3 bg-white rounded-xl border">
-          <div class="text-gray-500">บริษัท</div>
-          <div id="r_company" class="font-medium">-</div>
-        </div>
-        <div class="p-3 bg-white rounded-xl border">
-          <div class="text-gray-500">ผู้ประเมิน</div>
-          <div id="r_evaluator" class="font-medium">-</div>
-        </div>
-        <div class="p-3 bg-white rounded-xl border">
-          <div class="text-gray-500">วันที่ประเมิน</div>
-          <div id="r_date" class="font-medium">-</div>
-        </div>
+        <div class="p-3 bg-white rounded-xl border"><div class="text-gray-500">บริษัท</div><div id="r_company" class="font-medium">-</div></div>
+        <div class="p-3 bg-white rounded-xl border"><div class="text-gray-500">ผู้ประเมิน</div><div id="r_evaluator" class="font-medium">-</div></div>
+        <div class="p-3 bg-white rounded-xl border"><div class="text-gray-500">วันที่ประเมิน</div><div id="r_date" class="font-medium">-</div></div>
       </div>
 
       <div id="r_link_wrap" class="mt-4 bg-white rounded-xl border p-3 hidden">
@@ -158,16 +109,11 @@
           <button id="btnCopyLink" type="button" class="no-print px-3 py-1 rounded-lg bg-blue-600 text-white text-sm">คัดลอกลิงก์</button>
           <span id="copyNote" class="text-xs text-green-600 hidden">คัดลอกแล้ว</span>
         </div>
-        <p class="text-xs text-gray-500 mt-2">* ลิงก์จะมีให้เมื่อใช้โหมด Firestore เท่านั้น</p>
-      </div>
-
-      <div class="mt-3 flex gap-2 no-print">
-        <button id="btnSendMarketing" type="button" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm">ส่งผลให้ฝ่ายการตลาด</button>
-        <span class="text-xs text-gray-500 self-center">(เปิดอีเมลพร้อมลิงก์และสรุปคะแนน)</span>
+        <p class="text-xs text-gray-500 mt-2">* ลิงก์จะมีให้เมื่อบันทึกที่ Firestore</p>
       </div>
     </section>
 
-    <!-- แถบปุ่มการทำงาน: ตามที่ผู้ใช้ต้องการให้เหลือ 3 ปุ่มเท่านั้น -->
+    <!-- ปุ่มหลัก (คงไว้ 3 ปุ่ม) -->
     <div id="actionBar" class="flex flex-col md:flex-row gap-3 no-print">
       <button id="btnEmailOnly" class="px-5 py-3 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700">ส่ง Email</button>
       <button id="btnPrint" type="button" class="px-5 py-3 rounded-xl bg-gray-700 text-white font-semibold hover:bg-gray-800">พิมพ์/บันทึกเป็น PDF</button>
@@ -177,15 +123,44 @@
     <footer class="mt-10 text-xs text-gray-500">FM-MK-001-05 • เกณฑ์เกรด: A 95-100, B 90-94, C 80-89, D 70-79, E &lt; 70</footer>
   </div>
 
+  <!-- Email Provider Picker Modal -->
+  <div id="emailPicker" class="modal-bg">
+    <div class="bg-white rounded-2xl p-5 w-[95vw] max-w-xl shadow-xl">
+      <div class="flex items-start justify-between">
+        <h3 class="text-lg font-semibold">เลือกประเภทอีเมลที่จะใช้ส่ง</h3>
+        <button id="closePicker" class="p-2 rounded-lg hover:bg-gray-100">✕</button>
+      </div>
+      <p class="text-sm text-gray-500 mt-1">ระบบจะเปิดหน้าต่างเขียนอีเมลพร้อมสรุปคะแนนให้</p>
+      <div class="grid grid-cols-2 gap-3 mt-4">
+        <button id="pickGmail" class="p-4 rounded-xl border hover:border-emerald-500 text-left">
+          <div class="font-semibold">Gmail (Web)</div>
+          <div class="text-xs text-gray-500">mail.google.com</div>
+        </button>
+        <button id="pickOutlookDesktop" class="p-4 rounded-xl border hover:border-emerald-500 text-left">
+          <div class="font-semibold">Outlook (โปรแกรมบนคอม)</div>
+          <div class="text-xs text-gray-500">ms-outlook://</div>
+        </button>
+        <button id="pickOutlookWeb" class="p-4 rounded-xl border hover:border-emerald-500 text-left">
+          <div class="font-semibold">Microsoft Outlook (Web)</div>
+          <div class="text-xs text-gray-500">outlook.office.com</div>
+        </button>
+        <button id="pickYahoo" class="p-4 rounded-xl border hover:border-emerald-500 text-left">
+          <div class="font-semibold">Yahoo Mail (Web)</div>
+          <div class="text-xs text-gray-500">mail.yahoo.com</div>
+        </button>
+      </div>
+      <div class="mt-4 flex justify-end gap-2">
+        <button id="cancelPicker" class="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200">ยกเลิก</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     'use strict';
-    // ===== ตั้งค่าส่งข้อมูล (เลือกวิธีหนึ่ง) =====
-    let submitMode = "firebase"; // "download" | "script" | "firebase"
+    // ===== โหมดการส่งข้อมูล (เหลือใช้เฉพาะ Excel + Email) =====
+    const submitMode = 'download'; // ไม่แสดงส่งออนไลน์ตามที่กำหนดไว้ก่อนหน้า
 
-    // 2) Google Apps Script Web App (หากใช้ ให้เปลี่ยน submitMode = "script")
-    const SCRIPT_URL = ""; // วาง URL ของ Web App ที่เชื่อม Google Sheet
-
-    // 3) Firebase Firestore
+    // ===== Firebase (มีไว้สำหรับโหมดบันทึกออนไลน์/โหลดลิงก์) =====
     const firebaseConfig = {
       apiKey: "AIzaSyBFZv2Sc6El2JWs59tWnLufY4mo_oaEDHI",
       authDomain: "fm-mk-001.firebaseapp.com",
@@ -196,579 +171,190 @@
       measurementId: "G-HP3XLFXW2Q"
     };
 
-    // อีเมลฝ่ายการตลาด
+    // อีเมลฝ่ายการตลาด (ปรับได้)
     const marketingEmails = ["marketing@yourdomain.com"]; // ตัวอย่าง: ["mkt@domain.com","brand@domain.com"]
-    // โหมดเปิดหน้าส่งเมล
-    const EMAIL_MODE = 'outlookDesktop'; // พยายามเปิด Outlook Desktop ผ่าน ms-outlook://compose ก่อน (fallback mailto)
 
-    // === Viewer Mode (ซ่อนหน้าฟอร์ม แสดงเฉพาะผล) + สถานะฐานข้อมูล ===
-    const VIEW_ONLY = false; // โหมดดูผลเท่านั้น (ผู้ใช้ต้องการฟอร์มเต็ม → false)
-    function applyViewerMode(){
-      if(!VIEW_ONLY) return;
-      const hide = sel => { const el = document.querySelector(sel); if(el) el.classList.add('hidden'); };
-      hide('#sectionEvaluator');
-      hide('#sectionScore');
-      hide('#sectionAdditional');
-      hide('#surveyForm');
-      hide('#actionBar');
-      const rp = document.getElementById('resultPanel');
-      if (rp) rp.classList.remove('hidden');
-    }
-
-    async function checkFirebaseReady(){
-      const el = document.getElementById('dbBanner');
-      if(!el) return;
-      try{
-        await ensureFirebase();
-        el.textContent = 'สถานะฐานข้อมูล: Firebase พร้อมใช้งาน ✅';
-        el.classList.add('text-emerald-700');
-      }catch(e){
-        el.textContent = 'สถานะฐานข้อมูล: เชื่อมต่อไม่สำเร็จ ❌ (ตรวจสอบ Anonymous Auth / กฎ Firestore / Internet)';
-        el.classList.add('text-red-600');
-        console.error(e);
-      }
-    }
-
-    // ===== โครงสร้างคำถาม =====
+    // ===== แบบคำถาม =====
     const SURVEY = [
-      {
-        code: "D",
-        title: "D การจัดส่ง / Delivery (40 คะแนน)",
-        max: 40,
-        items: [
-          { no: 1, th: "การส่งมอบสินค้าตรงเวลา ที่ลูกค้าต้องการรวมถึงกรณีที่มีการเรียกงานพิเศษ", en: "Delivery on time (including urgent calls)" },
-          { no: 2, th: "การให้ความร่วมมือของเจ้าหน้าที่ในด้านการจัดส่ง", en: "Cooperation of delivery staff" },
-          { no: 3, th: "ปฏิบัติตามกฏระเบียบของลูกค้า", en: "Following customer's rules" },
-          { no: 4, th: "ปัญหาการจัดส่งที่ทำให้ลูกค้าต้องหยุดชะงัก", en: "Customer stop line regarding delivery problem" },
-          { no: 5, th: "ข้อร้องเรียน/การตักเตือนเกี่ยวกับปัญหาด้านการจัดส่ง", en: "Customer complaint/warning re delivery" },
-          { no: 6, th: "ส่งมอบสินค้าครบถ้วนตามที่ลูกค้ากำหนด", en: "Deliver correct product as specified" },
-          { no: 7, th: "การให้ความร่วมมือด้านการรับ-ส่งเอกสาร (P/O, FORECAST)", en: "Responding to P/O, FORECAST" },
-          { no: 8, th: "ความรวดเร็วในการแก้ปัญหาในการจัดส่ง", en: "Rapidity to correct delivery problem" }
-        ]
-      },
-      {
-        code: "Q",
-        title: "Q การควบคุมคุณภาพ / Quality (40 คะแนน)",
-        max: 40,
-        items: [
-          { no: 1, th: "ผลิตภัณฑ์มีคุณภาพเป็นไปตามที่ลูกค้ากำหนด", en: "Product quality as per customer spec" },
-          { no: 2, th: "ความรวดเร็วในการแก้ปัญหาคุณภาพ", en: "Rapidity to correct quality problem" },
-          { no: 3, th: "ความสามารถในการตอบสนองความต้องการของลูกค้าได้อย่างทันท่วงที", en: "Quick action for customer need" },
-          { no: 4, th: "สภาพการบรรจุหีบห่อเป็นไปตามมาตรฐานบรรจุภัณฑ์", en: "Packaging as per standard" },
-          { no: 5, th: "ข้อร้องเรียนจากผู้ใช้งานหรือเรียกคืนสินค้าในช่วงรับประกัน", en: "End user complaints / recalled within warranty" },
-          { no: 6, th: "เอกสารควบคุมคุณภาพ/เอกสารการส่งมอบถูกต้องครบถ้วน", en: "Quality/Shipping documents are correct" },
-          { no: 7, th: "ปัญหาด้านคุณภาพที่ทำให้ลูกค้าต้องหยุดชะงัก", en: "Customer stop line regarding quality problem" },
-          { no: 8, th: "ข้อร้องเรียน/การตักเตือนเกี่ยวกับปัญหาด้านคุณภาพ", en: "Customer complaint/warning re quality" }
-        ]
-      },
-      {
-        code: "C",
-        title: "C การควบคุมราคา / Cost (20 คะแนน)",
-        max: 20,
-        items: [
-          { no: 1, th: "ราคาของผลิตภัณฑ์เหมาะสม", en: "Product price is reasonable" },
-          { no: 2, th: "เสนอราคาทันตามที่ลูกค้ากำหนด", en: "Quotation provided on time" },
-          { no: 3, th: "ตอบสนองความต้องการของลูกค้าได้อย่างทันท่วงที", en: "Respond promptly to customer needs" },
-          { no: 4, th: "รับฟังความคิดเห็นและข้อเสนอแนะจากลูกค้า", en: "Listening to customer suggestions" }
-        ]
-      }
+      { code:'D', title:'D การจัดส่ง / Delivery (40 คะแนน)', max:40, items:[
+        { no:1, th:'การส่งมอบสินค้าตรงเวลา ที่ลูกค้าต้องการรวมถึงกรณีที่มีการเรียกงานพิเศษ', en:'Delivery on time (including urgent calls)' },
+        { no:2, th:'การให้ความร่วมมือของเจ้าหน้าที่ในด้านการจัดส่ง', en:'Cooperation of delivery staff' },
+        { no:3, th:'ปฏิบัติตามกฏระเบียบของลูกค้า', en:"Following customer's rules" },
+        { no:4, th:'ปัญหาการจัดส่งที่ทำให้ลูกค้าต้องหยุดชะงัก', en:'Customer stop line regarding delivery problem' },
+        { no:5, th:'ข้อร้องเรียน/การตักเตือนเกี่ยวกับปัญหาด้านการจัดส่ง', en:'Customer complaint/warning re delivery' },
+        { no:6, th:'ส่งมอบสินค้าครบถ้วนตามที่ลูกค้ากำหนด', en:'Deliver correct product as specified' },
+        { no:7, th:'การให้ความร่วมมือด้านการรับ-ส่งเอกสาร (P/O, FORECAST)', en:'Responding to P/O, FORECAST' },
+        { no:8, th:'ความรวดเร็วในการแก้ปัญหาในการจัดส่ง', en:'Rapidity to correct delivery problem' }
+      ]},
+      { code:'Q', title:'Q การควบคุมคุณภาพ / Quality (40 คะแนน)', max:40, items:[
+        { no:1, th:'ผลิตภัณฑ์มีคุณภาพเป็นไปตามที่ลูกค้ากำหนด', en:'Product quality as per customer spec' },
+        { no:2, th:'ความรวดเร็วในการแก้ปัญหาคุณภาพ', en:'Rapidity to correct quality problem' },
+        { no:3, th:'ความสามารถในการตอบสนองความต้องการของลูกค้าได้อย่างทันท่วงที', en:'Quick action for customer need' },
+        { no:4, th:'สภาพการบรรจุหีบห่อเป็นไปตามมาตรฐานบรรจุภัณฑ์', en:'Packaging as per standard' },
+        { no:5, th:'ข้อร้องเรียนจากผู้ใช้งานหรือเรียกคืนสินค้าในช่วงรับประกัน', en:'End user complaints / recalled within warranty' },
+        { no:6, th:'เอกสารควบคุมคุณภาพ/เอกสารการส่งมอบถูกต้องครบถ้วน', en:'Quality/Shipping documents are correct' },
+        { no:7, th:'ปัญหาด้านคุณภาพที่ทำให้ลูกค้าต้องหยุดชะงัก', en:'Customer stop line regarding quality problem' },
+        { no:8, th:'ข้อร้องเรียน/การตักเตือนเกี่ยวกับปัญหาด้านคุณภาพ', en:'Customer complaint/warning re quality' }
+      ]},
+      { code:'C', title:'C การควบคุมราคา / Cost (20 คะแนน)', max:20, items:[
+        { no:1, th:'ราคาของผลิตภัณฑ์เหมาะสม', en:'Product price is reasonable' },
+        { no:2, th:'เสนอราคาทันตามที่ลูกค้ากำหนด', en:'Quotation provided on time' },
+        { no:3, th:'ตอบสนองความต้องการของลูกค้าได้อย่างทันท่วงที', en:'Respond promptly to customer needs' },
+        { no:4, th:'รับฟังความคิดเห็นและข้อเสนอแนะจากลูกค้า', en:'Listening to customer suggestions' }
+      ]}
     ];
 
-    // ===== Helpers =====
-    const scale = [
-      { value: 5, label: "ดีมาก" },
-      { value: 4, label: "ดี" },
-      { value: 3, label: "ปานกลาง" },
-      { value: 2, label: "น้อย" },
-      { value: 1, label: "ปรับปรุง" },
-    ];
+    const scale = [ {value:5,label:'ดีมาก'},{value:4,label:'ดี'},{value:3,label:'ปานกลาง'},{value:2,label:'น้อย'},{value:1,label:'ปรับปรุง'} ];
 
-    function gradeOf(total) {
-      if (total >= 95) return "A";
-      if (total >= 90) return "B";
-      if (total >= 80) return "C";
-      if (total >= 70) return "D";
-      return "E";
-    }
+    function gradeOf(t){ if(t>=95) return 'A'; if(t>=90) return 'B'; if(t>=80) return 'C'; if(t>=70) return 'D'; return 'E'; }
+    function todayISO(){ const d=new Date(); const o=d.getTimezoneOffset(); return new Date(d.getTime()-o*60000).toISOString().slice(0,10); }
+    function urlId(){ try{ return new URLSearchParams(location.search).get('id'); }catch(e){ return null; } }
 
-    function todayISO() {
-      const d = new Date();
-      const tzOffset = d.getTimezoneOffset();
-      const local = new Date(d.getTime() - tzOffset * 60000);
-      return local.toISOString().slice(0,10);
-    }
-
-    function renderSection(section) {
-      const card = document.createElement('section');
-      card.className = 'section-card';
-
-      const h = document.createElement('h3');
-      h.className = 'text-lg md:text-xl font-semibold mb-3';
-      h.textContent = section.title;
-      card.appendChild(h);
-
-      const table = document.createElement('div');
-      table.className = 'overflow-x-auto';
-
-      const header = document.createElement('div');
-      header.className = 'grid grid-cols-[auto,1fr,repeat(5,110px),minmax(180px,1fr)] text-sm font-semibold bg-gray-100 rounded-lg';
-      header.innerHTML = `
+    function renderSection(section){
+      const card=document.createElement('section'); card.className='section-card';
+      const h=document.createElement('h3'); h.className='text-lg md:text-xl font-semibold mb-3'; h.textContent=section.title; card.appendChild(h);
+      const table=document.createElement('div'); table.className='overflow-x-auto';
+      const header=document.createElement('div'); header.className='grid grid-cols-[auto,1fr,repeat(5,110px),minmax(180px,1fr)] text-sm font-semibold bg-gray-100 rounded-lg';
+      header.innerHTML=`
         <div class="p-3 border-b">ลำดับ</div>
         <div class="p-3 border-b">รายการประเมิน</div>
-        ${scale.map(s => `<div class='p-3 text-center border-b'>${s.label}<div class='text-[11px] text-gray-500'>${s.value}</div></div>`).join('')}
-        <div class="p-3 border-b">ข้อเสนอแนะ</div>
-      `;
+        ${scale.map(s=>`<div class='p-3 text-center border-b'>${s.label}<div class='text-[11px] text-gray-500'>${s.value}</div></div>`).join('')}
+        <div class="p-3 border-b">ข้อเสนอแนะ</div>`;
       table.appendChild(header);
-
-      section.items.forEach(item => {
-        const row = document.createElement('div');
-        row.className = 'grid grid-cols-[auto,1fr,repeat(5,110px),minmax(180px,1fr)] text-sm items-center border-b last:border-b-0';
-
-        const nameCell = document.createElement('div');
-        nameCell.className = 'p-3 font-medium';
-        nameCell.textContent = item.no;
-
-        const descCell = document.createElement('div');
-        descCell.className = 'p-3';
-        descCell.innerHTML = `
-          <div class="font-medium">${item.th}</div>
-          <div class="text-[11px] text-gray-500 italic">${item.en || ''}</div>
-        `;
-
-        row.appendChild(nameCell);
-        row.appendChild(descCell);
-
-        // Radio 5→1 เรียงตามหัวตาราง
-        scale.forEach(s => {
-          const cell = document.createElement('label');
-          cell.className = 'radio-cell p-3 flex justify-center';
-          const id = `${section.code}_${item.no}_${s.value}`;
-          cell.innerHTML = `<input type="radio" name="${section.code}_${item.no}" id="${id}" value="${s.value}" class="accent-gray-700" />`;
-          row.appendChild(cell);
-        });
-
-        const suggestCell = document.createElement('div');
-        suggestCell.className = 'p-2 md:p-3';
-        suggestCell.innerHTML = `<input type="text" class="w-full" name="${section.code}_${item.no}_suggest" placeholder="ขอเสนอแนะ (ถ้ามี)" />`;
-
-        row.appendChild(suggestCell);
-        table.appendChild(row);
+      section.items.forEach(item=>{
+        const row=document.createElement('div'); row.className='grid grid-cols-[auto,1fr,repeat(5,110px),minmax(180px,1fr)] text-sm items-center border-b last:border-b-0';
+        const nameCell=document.createElement('div'); nameCell.className='p-3 font-medium'; nameCell.textContent=item.no;
+        const descCell=document.createElement('div'); descCell.className='p-3'; descCell.innerHTML=`<div class="font-medium">${item.th}</div><div class="text-[11px] text-gray-500 italic">${item.en||''}</div>`;
+        row.appendChild(nameCell); row.appendChild(descCell);
+        scale.forEach(s=>{ const cell=document.createElement('label'); cell.className='radio-cell p-3 flex justify-center'; const id=`${section.code}_${item.no}_${s.value}`; cell.innerHTML=`<input type="radio" name="${section.code}_${item.no}" id="${id}" value="${s.value}" class="accent-gray-700"/>`; row.appendChild(cell); });
+        const sug=document.createElement('div'); sug.className='p-2 md:p-3'; sug.innerHTML=`<input type="text" class="w-full" name="${section.code}_${item.no}_suggest" placeholder="ขอเสนอแนะ (ถ้ามี)"/>`;
+        row.appendChild(sug); table.appendChild(row);
       });
-
-      // สรุปคะแนนหมวด
-      const footer = document.createElement('div');
-      footer.className = 'flex items-center justify-end gap-3 mt-3';
-      footer.innerHTML = `
-        <div class="text-sm text-gray-600">คะแนนหมวดนี้</div>
-        <div id="sum_${section.code}" class="px-3 py-1 rounded-lg bg-gray-100 font-semibold">0 / ${section.max}</div>
-      `;
-
-      card.appendChild(table);
-      card.appendChild(footer);
-      return card;
+      const footer=document.createElement('div'); footer.className='flex items-center justify-end gap-3 mt-3'; footer.innerHTML=`<div class="text-sm text-gray-600">คะแนนหมวดนี้</div><div id="sum_${section.code}" class="px-3 py-1 rounded-lg bg-gray-100 font-semibold">0 / ${section.max}</div>`;
+      card.appendChild(table); card.appendChild(footer); return card;
     }
 
-    function renderForm() {
-      const form = document.getElementById('surveyForm');
-      if (!form) return;
-      form.innerHTML = '';
-      SURVEY.forEach(sec => form.appendChild(renderSection(sec)));
+    function renderForm(){
+      const form=document.getElementById('surveyForm'); if(!form) return;
+      form.innerHTML=''; SURVEY.forEach(sec=>form.appendChild(renderSection(sec)));
       form.addEventListener('change', updateScores);
     }
 
-    function updateScores() {
-      let total = 0;
-      let d = 0, q = 0, c = 0;
-
-      SURVEY.forEach(sec => {
-        let secSum = 0;
-        sec.items.forEach(it => {
-          const radios = document.getElementsByName(`${sec.code}_${it.no}`);
-          radios.forEach(r => { if (r.checked) secSum += Number(r.value); });
-        });
-        const secEl = document.getElementById(`sum_${sec.code}`);
-        if (secEl) secEl.textContent = `${secSum} / ${sec.max}`;
-        total += secSum;
-        if (sec.code === 'D') d = secSum; if (sec.code === 'Q') q = secSum; if (sec.code === 'C') c = secSum;
-      });
-
-      const elD = document.getElementById('scoreD'); if (elD) elD.textContent = `${d} / 40`;
-      const elQ = document.getElementById('scoreQ'); if (elQ) elQ.textContent = `${q} / 40`;
-      const elC = document.getElementById('scoreC'); if (elC) elC.textContent = `${c} / 20`;
-      const elT = document.getElementById('scoreTotal'); if (elT) elT.textContent = `${total} / 100`;
-      const elG = document.getElementById('scoreGrade'); if (elG) elG.textContent = `เกรด: ${gradeOf(total)}`;
-
-      const scoreText = total > 0 ? `คะแนนรวมขณะนี้ ${total}/100 (${gradeOf(total)})` : 'ยังไม่ได้กรอกคะแนน';
-      const st = document.getElementById('scoreText'); if (st) st.textContent = scoreText;
+    function updateScores(){
+      let total=0,d=0,q=0,c=0;
+      SURVEY.forEach(sec=>{ let secSum=0; sec.items.forEach(it=>{ const radios=document.getElementsByName(`${sec.code}_${it.no}`); radios.forEach(r=>{ if(r.checked) secSum+=Number(r.value); }); }); const el=document.getElementById(`sum_${sec.code}`); if(el) el.textContent=`${secSum} / ${sec.max}`; total+=secSum; if(sec.code==='D') d=secSum; if(sec.code==='Q') q=secSum; if(sec.code==='C') c=secSum; });
+      const elD=document.getElementById('scoreD'); if(elD) elD.textContent=`${d} / 40`;
+      const elQ=document.getElementById('scoreQ'); if(elQ) elQ.textContent=`${q} / 40`;
+      const elC=document.getElementById('scoreC'); if(elC) elC.textContent=`${c} / 20`;
+      const elT=document.getElementById('scoreTotal'); if(elT) elT.textContent=`${total} / 100`;
+      const elG=document.getElementById('scoreGrade'); if(elG) elG.textContent=`เกรด: ${gradeOf(total)}`;
+      const st=document.getElementById('scoreText'); if(st) st.textContent= total>0?`คะแนนรวมขณะนี้ ${total}/100 (${gradeOf(total)})`:'ยังไม่ได้กรอกคะแนน';
     }
 
-    function collectData() {
-      const get = id => (document.getElementById(id) ? document.getElementById(id).value : '').trim();
-      const data = {
-        company: get('company'),
-        evaluator: get('evaluator'),
-        position: get('position'),
-        email: get('email'),
-        evalDate: get('evalDate'),
-        additional: get('additional'),
-        sections: [],
-        score: { D: 0, Q: 0, C: 0, total: 0, grade: '-' }
-      };
-
-      SURVEY.forEach(sec => {
-        const items = [];
-        let secSum = 0;
-        sec.items.forEach(it => {
-          const name = `${sec.code}_${it.no}`;
-          let score = '';
-          document.getElementsByName(name).forEach(r => { if (r.checked) score = Number(r.value); });
-          if (score) secSum += score;
-          const suggestInput = document.querySelector(`input[name='${name}_suggest']`);
-          const suggest = suggestInput ? suggestInput.value : '';
-          items.push({ code: name, no: it.no, th: it.th, en: it.en, score, suggest });
-        });
-        data.sections.push({ code: sec.code, title: sec.title, max: sec.max, sum: secSum, items });
-        data.score[sec.code] = secSum;
-        data.score.total += secSum;
-      });
-      data.score.grade = gradeOf(data.score.total);
-      return data;
+    function collectData(){
+      const get=id=>{ const el=document.getElementById(id); return el? (el.value||'').trim():''; };
+      const data={ company:get('company'), evaluator:get('evaluator'), position:get('position'), email:get('email'), evalDate:get('evalDate'), additional:get('additional'), sections:[], score:{D:0,Q:0,C:0,total:0,grade:'-'} };
+      SURVEY.forEach(sec=>{ const items=[]; let secSum=0; sec.items.forEach(it=>{ const name=`${sec.code}_${it.no}`; let score=''; document.getElementsByName(name).forEach(r=>{ if(r.checked) score=Number(r.value); }); if(score) secSum+=score; const sug=document.querySelector(`input[name='${name}_suggest']`); const suggest=sug? (sug.value||'') : ''; items.push({ code:name, no:it.no, th:it.th, en:it.en, score, suggest }); }); data.sections.push({ code:sec.code, title:sec.title, max:sec.max, sum:secSum, items }); data.score[sec.code]=secSum; data.score.total+=secSum; });
+      data.score.grade=gradeOf(data.score.total); return data;
     }
 
     function buildCSV(data){
-      const head = [
-        'Company','Evaluator','Position','Email','Date','Section','ItemNo','Topic(TH)','Topic(EN)','Score','Suggestion','Sum(D)','Sum(Q)','Sum(C)','Total','Grade'
-      ];
-      const rows = [head];
-      data.sections.forEach(sec => {
-        sec.items.forEach(it => {
-          rows.push([
-            data.company,
-            data.evaluator,
-            data.position,
-            data.email,
-            data.evalDate,
-            sec.code,
-            it.no,
-            it.th,
-            it.en || '',
-            it.score || '',
-            (it.suggest || '').replaceAll('\n',' ').trim(),
-            data.score.D,
-            data.score.Q,
-            data.score.C,
-            data.score.total,
-            data.score.grade
-          ]);
-        });
-      });
-      const csv = rows.map(r => r.map(v => `"${String(v ?? '').replaceAll('"','""')}"`).join(',')).join('\n');
-      return csv;
+      const head=['Company','Evaluator','Position','Email','Date','Section','ItemNo','Topic(TH)','Topic(EN)','Score','Suggestion','Sum(D)','Sum(Q)','Sum(C)','Total','Grade'];
+      const rows=[head];
+      data.sections.forEach(sec=>{ sec.items.forEach(it=>{ rows.push([ data.company, data.evaluator, data.position, data.email, data.evalDate, sec.code, it.no, it.th, it.en||'', it.score||'', (it.suggest||'').replaceAll('\n',' ').trim(), data.score.D, data.score.Q, data.score.C, data.score.total, data.score.grade ]); }); });
+      return rows.map(r=>r.map(v=>`"${String(v??'').replaceAll('"','""')}"`).join(',')).join('\n');
     }
 
-    // ===== ผลลัพธ์ =====
-    function qs(sel){ return document.querySelector(sel); }
-    function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
-    function urlId(){ return new URLSearchParams(location.search).get('id'); }
-
-    function toggleResult(show=true){
-      const el = qs('#resultPanel');
-      if (!el) return;
-      el.classList.toggle('hidden', !show);
+    function toggleResult(show=true){ const el=document.getElementById('resultPanel'); if(el) el.classList.toggle('hidden',!show); }
+    function fillResult(data,shareUrl){ if(!data) return; window.__lastData=data; window.__lastShareUrl=shareUrl||null; const set=(sel,val)=>{ const el=document.querySelector(sel); if(el) el.textContent=val; };
+      set('#r_company',data.company||'-'); set('#r_evaluator',data.evaluator||'-'); set('#r_date',data.evalDate||'-'); set('#r_D',`${data.score?.D??0}/40`); set('#r_Q',`${data.score?.Q??0}/40`); set('#r_C',`${data.score?.C??0}/20`); set('#r_total',`${data.score?.total??0}/100`); set('#r_grade',data.score?.grade??'-');
+      const linkWrap=document.getElementById('r_link_wrap'); const linkEl=document.getElementById('r_link'); if(shareUrl&&linkWrap&&linkEl){ linkEl.href=shareUrl; linkEl.textContent=shareUrl; linkWrap.classList.remove('hidden'); const copyBtn=document.getElementById('btnCopyLink'); if(copyBtn){ copyBtn.onclick=()=>{ navigator.clipboard.writeText(shareUrl); const note=document.getElementById('copyNote'); if(note){ note.classList.remove('hidden'); setTimeout(()=>note.classList.add('hidden'),1500); } }; } } else if(linkWrap){ linkWrap.classList.add('hidden'); }
+      toggleResult(true); const form=document.getElementById('surveyForm'); if(form) form.classList.add('hidden'); document.querySelectorAll('section.section-card').forEach(s=>s.classList.add('opacity-70','pointer-events-none'));
     }
 
-    function fillResult(data, shareUrl){
-      if(!data) return;
-      window.__lastData = data;
-      window.__lastShareUrl = shareUrl || null;
-
-      const set = (sel, val) => { const el = qs(sel); if (el) el.textContent = val; };
-      set('#r_company', data.company || '-');
-      set('#r_evaluator', data.evaluator || '-');
-      set('#r_date', data.evalDate || '-');
-      set('#r_D', `${data.score?.D ?? 0}/40`);
-      set('#r_Q', `${data.score?.Q ?? 0}/40`);
-      set('#r_C', `${data.score?.C ?? 0}/20`);
-      set('#r_total', `${data.score?.total ?? 0}/100`);
-      set('#r_grade', data.score?.grade ?? '-');
-
-      const linkWrap = qs('#r_link_wrap');
-      const linkEl = qs('#r_link');
-      if(shareUrl && linkEl && linkWrap){
-        linkEl.href = shareUrl;
-        linkEl.textContent = shareUrl;
-        linkWrap.classList.remove('hidden');
-        const copyBtn = qs('#btnCopyLink');
-        if (copyBtn) {
-          copyBtn.onclick = () => {
-            navigator.clipboard.writeText(shareUrl);
-            const note = qs('#copyNote');
-            if (note){
-              note.classList.remove('hidden');
-              setTimeout(()=>note.classList.add('hidden'), 1500);
-            }
-          };
-        }
-      }else if (linkWrap){
-        linkWrap.classList.add('hidden');
-      }
-
-      const sendBtn = qs('#btnSendMarketing');
-      if (sendBtn) {
-        sendBtn.onclick = () => openMarketingEmail(window.__lastData || data, window.__lastShareUrl || null);
-      }
-
-      toggleResult(true);
-      const form = qs('#surveyForm');
-      if (form) form.classList.add('hidden');
-      qsa('section.section-card').forEach(s => s.classList.add('opacity-70','pointer-events-none'));
+    function downloadXLSX(data){ if(!window.XLSX){ alert('ไม่พบไลบรารี XLSX'); return; }
+      const head=['Company','Evaluator','Position','Email','Date','Section','ItemNo','Topic(TH)','Topic(EN)','Score','Suggestion','Sum(D)','Sum(Q)','Sum(C)','Total','Grade'];
+      const rows=[head]; data.sections.forEach(sec=>{ sec.items.forEach(it=>{ rows.push([ data.company,data.evaluator,data.position,data.email,data.evalDate,sec.code,it.no,it.th,it.en||'',it.score||'',(it.suggest||'').replaceAll('\n',' ').trim(),data.score.D,data.score.Q,data.score.C,data.score.total,data.score.grade ]); }); });
+      const wb=XLSX.utils.book_new(); const ws=XLSX.utils.aoa_to_sheet(rows); XLSX.utils.book_append_sheet(wb,ws,'Scores');
+      const sum=[ ['Company',data.company||''], ['Evaluator',data.evaluator||''], ['Date',data.evalDate||''], ['Delivery (40)',`${data.score.D||0}`], ['Quality (40)',`${data.score.Q||0}`], ['Cost (20)',`${data.score.C||0}`], ['Total (100)',`${data.score.total||0}`], ['Grade',data.score.grade||'-'] ]; const ws2=XLSX.utils.aoa_to_sheet(sum); XLSX.utils.book_append_sheet(wb,ws2,'Summary');
+      const dt=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-'); XLSX.writeFile(wb,`customer-satisfaction-${dt}.xlsx`); fillResult(data,null);
     }
 
-    // ===== ดาวน์โหลด Excel =====
-    function downloadXLSX(data){
-      if (!window.XLSX) { alert('ไม่พบไลบรารี XLSX'); return; }
-      const head = ['Company','Evaluator','Position','Email','Date','Section','ItemNo','Topic(TH)','Topic(EN)','Score','Suggestion','Sum(D)','Sum(Q)','Sum(C)','Total','Grade'];
-      const rows = [head];
-      data.sections.forEach(sec => {
-        sec.items.forEach(it => {
-          rows.push([
-            data.company,
-            data.evaluator,
-            data.position,
-            data.email,
-            data.evalDate,
-            sec.code,
-            it.no,
-            it.th,
-            it.en || '',
-            it.score || '',
-            (it.suggest || '').replaceAll('\n',' ').trim(),
-            data.score.D,
-            data.score.Q,
-            data.score.C,
-            data.score.total,
-            data.score.grade
-          ]);
-        });
-      });
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, 'Scores');
+    // ===== Email compose helpers =====
+    function buildMarketingMailto(data,shareUrl,recipients){ const to=(recipients||[]).join(','); const subj=`CSAT ${data.company||''} ${data.evalDate||''} — รวม ${data.score?.total??0}/100 (${data.score?.grade||'-'})`;
+      const lines=['สรุปผลแบบสำรวจความพึงพอใจลูกค้า',`บริษัท: ${data.company||'-'}`,`ผู้ประเมิน: ${data.evaluator||'-'}`,`วันที่ประเมิน: ${data.evalDate||'-'}`,'',`Delivery: ${data.score?.D??0}/40`,`Quality: ${data.score?.Q??0}/40`,`Cost: ${data.score?.C??0}/20`,`รวม: ${data.score?.total??0}/100`,`เกรด: ${data.score?.grade||'-'}`]; if(shareUrl){ lines.push('' ,`ดูรายละเอียด/ตอบกลับ: ${shareUrl}`);} else { lines.push('','(ไม่มีลิงก์คำตอบ — เปิดใช้โหมด Firestore เพื่อสร้างลิงก์อัตโนมัติ)'); }
+      return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(lines.join('\n'))}`; }
 
-      const sum = [
-        ['Company', data.company || ''],
-        ['Evaluator', data.evaluator || ''],
-        ['Date', data.evalDate || ''],
-        ['Delivery (40)', `${data.score.D || 0}`],
-        ['Quality (40)', `${data.score.Q || 0}`],
-        ['Cost (20)', `${data.score.C || 0}`],
-        ['Total (100)', `${data.score.total || 0}`],
-        ['Grade', data.score.grade || '-']
-      ];
-      const ws2 = XLSX.utils.aoa_to_sheet(sum);
-      XLSX.utils.book_append_sheet(wb, ws2, 'Summary');
-
-      const dt = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
-      XLSX.writeFile(wb, `customer-satisfaction-${dt}.xlsx`);
-
-      fillResult(data, null);
+    function buildEmailComposeUrl(mode,data,shareUrl,recipients){ const toList=(recipients||[]); const subj=`CSAT ${data.company||''} ${data.evalDate||''} — รวม ${data.score?.total??0}/100 (${data.score?.grade||'-'})`;
+      const lines=['สรุปผลแบบสำรวจความพึงพอใจลูกค้า',`บริษัท: ${data.company||'-'}`,`ผู้ประเมิน: ${data.evaluator||'-'}`,`วันที่ประเมิน: ${data.evalDate||'-'}`,'',`Delivery: ${data.score?.D??0}/40`,`Quality: ${data.score?.Q??0}/40`,`Cost: ${data.score?.C??0}/20`,`รวม: ${data.score?.total??0}/100`,`เกรด: ${data.score?.grade||'-'}`]; if(shareUrl){ lines.push('' ,`ดูรายละเอียด/ตอบกลับ: ${shareUrl}`);} else { lines.push('','(ไม่มีลิงก์คำตอบ — เปิดใช้โหมด Firestore เพื่อสร้างลิงก์อัตโนมัติ)'); }
+      const body=lines.join('\n');
+      if(mode==='outlookDesktop'){ const to=toList.join(';'); const base='ms-outlook://compose'; const q=new URLSearchParams({to,subject:subj,body}); return `${base}?${q.toString()}`; }
+      if(mode==='outlookWeb'){ const to=toList.join(';'); const base='https://outlook.office.com/mail/deeplink/compose'; const q=new URLSearchParams({to,subject:subj,body}); return `${base}?${q.toString()}`; }
+      if(mode==='gmailWeb'){ const to=toList.join(','); const base='https://mail.google.com/mail/'; const q=new URLSearchParams({view:'cm',fs:'1',to, su:subj, body}); return `${base}?${q.toString()}`; }
+      if(mode==='yahooWeb'){ const to=toList.join(','); const base='https://mail.yahoo.com/d/compose'; const q=new URLSearchParams({to, subject:subj, body}); return `${base}?${q.toString()}`; }
+      return buildMarketingMailto(data,shareUrl,recipients);
     }
 
-    // ===== Email Compose helpers =====
-    function buildMarketingMailto(data, shareUrl, recipients){
-      const to = (recipients || []).join(',');
-      const subj = `CSAT ${data.company || ''} ${data.evalDate || ''} — รวม ${data.score?.total ?? 0}/100 (${data.score?.grade || '-'})`;
-      const lines = [
-        'สรุปผลแบบสำรวจความพึงพอใจลูกค้า',
-        `บริษัท: ${data.company || '-'}`,
-        `ผู้ประเมิน: ${data.evaluator || '-'}`,
-        `วันที่ประเมิน: ${data.evalDate || '-'}`,
-        '',
-        `Delivery: ${data.score?.D ?? 0}/40`,
-        `Quality: ${data.score?.Q ?? 0}/40`,
-        `Cost: ${data.score?.C ?? 0}/20`,
-        `รวม: ${data.score?.total ?? 0}/100`,
-        `เกรด: ${data.score?.grade || '-'}`
-      ];
-      if (shareUrl) { lines.push('', `ดูรายละเอียด/ตอบกลับ: ${shareUrl}`); }
-      else { lines.push('', '(ไม่มีลิงก์คำตอบ — เปิดใช้โหมด Firestore เพื่อสร้างลิงก์อัตโนมัติ)'); }
-      return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(lines.join('\n'))}`;
-    }
+    function openEmailPicker(){ document.getElementById('emailPicker').classList.add('show'); }
+    function closeEmailPicker(){ document.getElementById('emailPicker').classList.remove('show'); }
 
-    function buildEmailComposeUrl(mode, data, shareUrl, recipients){
-      const toList = (recipients || []);
-      const subj = `CSAT ${data.company || ''} ${data.evalDate || ''} — รวม ${data.score?.total ?? 0}/100 (${data.score?.grade || '-'})`;
-      const lines = [
-        'สรุปผลแบบสำรวจความพึงพอใจลูกค้า',
-        `บริษัท: ${data.company || '-'}`,
-        `ผู้ประเมิน: ${data.evaluator || '-'}`,
-        `วันที่ประเมิน: ${data.evalDate || '-'}`,
-        '',
-        `Delivery: ${data.score?.D ?? 0}/40`,
-        `Quality: ${data.score?.Q ?? 0}/40`,
-        `Cost: ${data.score?.C ?? 0}/20`,
-        `รวม: ${data.score?.total ?? 0}/100`,
-        `เกรด: ${data.score?.grade || '-'}`
-      ];
-      if (shareUrl) { lines.push('', `ดูรายละเอียด/ตอบกลับ: ${shareUrl}`); }
-      else { lines.push('', '(ไม่มีลิงก์คำตอบ — เปิดใช้โหมด Firestore เพื่อสร้างลิงก์อัตโนมัติ)'); }
-      const body = lines.join('\n');
+    function openViaProvider(provider){ const data= window.__lastData || collectData(); if(!data.company||!data.evaluator||!data.evalDate){ alert('กรุณากรอก บริษัท, ชื่อผู้ประเมิน และ วันที่ประเมิน'); return; }
+      const url=buildEmailComposeUrl(provider, data, window.__lastShareUrl||null, marketingEmails);
+      if(provider==='outlookDesktop'){ window.location.href=url; } else { window.open(url,'_blank'); }
+      closeEmailPicker(); }
 
-      if (mode === 'outlookDesktop'){
-        const to = toList.join(';');
-        const base = 'ms-outlook://compose';
-        const q = new URLSearchParams({ to, subject: subj, body });
-        return `${base}?${q.toString()}`;
-      }
-      if (mode === 'outlookWeb' || mode === 'auto'){
-        const to = toList.join(';');
-        const base = 'https://outlook.office.com/mail/deeplink/compose';
-        const q = new URLSearchParams({ to, subject: subj, body });
-        return `${base}?${q.toString()}`;
-      }
-      return buildMarketingMailto(data, shareUrl, recipients);
-    }
-
-    function openMarketingEmail(data, shareUrl){
-      try {
-        if (EMAIL_MODE === 'outlookDesktop'){
-          const msUrl = buildEmailComposeUrl('outlookDesktop', data, shareUrl, marketingEmails);
-          const mailtoUrl = buildMarketingMailto(data, shareUrl, marketingEmails);
-          try {
-            window.location.href = msUrl;
-            setTimeout(() => { try { window.location.href = mailtoUrl; } catch(_){} }, 1200);
-          } catch(_) {
-            window.location.href = mailtoUrl;
-          }
-          return;
-        }
-        const url = buildEmailComposeUrl(EMAIL_MODE, data, shareUrl, marketingEmails);
-        if (EMAIL_MODE === 'outlookWeb') window.open(url, '_blank');
-        else window.location.href = url;
-      } catch(err){ console.error(err); alert('เปิดอีเมลไม่สำเร็จ'); }
-    }
-
-    async function ensureFirebase(){
-      const [{ initializeApp }, { getFirestore, addDoc, collection, serverTimestamp, doc, getDoc }, { getAuth, signInAnonymously }] = await Promise.all([
+    async function ensureFirebase(){ const [{initializeApp},{getFirestore,addDoc,collection,serverTimestamp,doc,getDoc},{getAuth,signInAnonymously}]=await Promise.all([
         import('https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js'),
         import('https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js'),
-        import('https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js')
-      ]);
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      try { await signInAnonymously(auth); } catch(e) { /* อาจเปิด anonymous auth แล้ว */ }
-      return { app, getFirestore, addDoc, collection, serverTimestamp, doc, getDoc };
-    }
+        import('https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js')]);
+      const app=initializeApp(firebaseConfig); const auth=getAuth(app); try{ await signInAnonymously(auth);}catch(e){} return {app,getFirestore,addDoc,collection,serverTimestamp,doc,getDoc}; }
 
-    async function submitToScript(data) {
-      if (!SCRIPT_URL) { alert('กรุณาตั้งค่า SCRIPT_URL ก่อน'); return; }
-      try {
-        await fetch(SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        alert('ส่งข้อมูลไปยัง Google Sheets แล้ว (ตรวจสอบชีตของคุณ)');
-        fillResult(data, null);
-      } catch (e) {
-        console.error(e); alert('ส่งไม่สำเร็จ ลองใหม่หรือตรวจค่า SCRIPT_URL');
-      }
-    }
+    async function loadFromFirebaseById(id){ if(!firebaseConfig||!firebaseConfig.apiKey) return alert('ต้องตั้งค่า firebaseConfig เพื่อโหลดข้อมูลจากลิงก์'); try{ const {getFirestore,doc,getDoc}=await ensureFirebase(); const db=getFirestore(); const snap=await getDoc(doc(db,'customer_satisfaction',id)); if(snap.exists()){ const data=snap.data(); fillResult(data, location.href); } else { alert('ไม่พบข้อมูลตามลิงก์นี้'); } } catch(e){ console.error(e); alert('โหลดข้อมูลไม่สำเร็จ'); } }
 
-    async function submitToFirebase(data) {
-      if (!firebaseConfig || !firebaseConfig.apiKey) { alert('กรุณาตั้งค่า firebaseConfig ให้ครบก่อน'); return; }
-      try {
-        const { getFirestore, addDoc, collection, serverTimestamp } = await ensureFirebase();
-        const db = getFirestore();
-        const docRef = await addDoc(collection(db, 'customer_satisfaction'), { ...data, createdAt: serverTimestamp() });
-        const shareUrl = `${location.origin}${location.pathname}?id=${docRef.id}`;
-        alert('บันทึกเข้า Firestore สำเร็จ');
-        fillResult(data, shareUrl);
-      } catch (e) { console.error(e); alert('บันทึก Firestore ไม่สำเร็จ'); }
-    }
+    function applyViewerMode(){ /* ปิดโหมดดูผลอย่างเดียว */ }
 
-    async function loadFromFirebaseById(id){
-      if (!firebaseConfig || !firebaseConfig.apiKey) return alert('ต้องตั้งค่า firebaseConfig เพื่อโหลดข้อมูลจากลิงก์');
-      try {
-        const { getFirestore, doc, getDoc } = await ensureFirebase();
-        const db = getFirestore();
-        const snap = await getDoc(doc(db, 'customer_satisfaction', id));
-        if(snap.exists()){
-          const data = snap.data();
-          fillResult(data, location.href);
-        } else {
-          alert('ไม่พบทึกข้อมูลตามลิงก์นี้');
-        }
-      } catch(e){ console.error(e); alert('โหลดข้อมูลไม่สำเร็จ'); }
-    }
+    // ===== Init & Events =====
+    window.addEventListener('DOMContentLoaded',()=>{
+      const evalDateEl=document.getElementById('evalDate'); if(evalDateEl) evalDateEl.value=todayISO();
+      renderForm(); updateScores();
 
-    // ===== DOM Ready: bind events & init safely =====
-    window.addEventListener('DOMContentLoaded', () => {
-      const evalDateEl = document.getElementById('evalDate');
-      if (evalDateEl) evalDateEl.value = todayISO();
+      document.getElementById('btnPrint')?.addEventListener('click',()=>window.print());
+      document.getElementById('btnExportXLSX')?.addEventListener('click',(e)=>{ e.preventDefault(); const data=collectData(); if(!data.company||!data.evaluator||!data.evalDate){ alert('กรุณากรอก บริษัท, ชื่อผู้ประเมิน และ วันที่ประเมิน'); return; } downloadXLSX(data); });
 
-      renderForm();
-      applyViewerMode();
-      checkFirebaseReady();
+      // เปิดตัวเลือกผู้ให้บริการอีเมล
+      document.getElementById('btnEmailOnly')?.addEventListener('click',(e)=>{ e.preventDefault(); openEmailPicker(); });
+      document.getElementById('closePicker')?.addEventListener('click',closeEmailPicker);
+      document.getElementById('cancelPicker')?.addEventListener('click',closeEmailPicker);
+      document.getElementById('pickGmail')?.addEventListener('click',()=>openViaProvider('gmailWeb'));
+      document.getElementById('pickOutlookDesktop')?.addEventListener('click',()=>openViaProvider('outlookDesktop'));
+      document.getElementById('pickOutlookWeb')?.addEventListener('click',()=>openViaProvider('outlookWeb'));
+      document.getElementById('pickYahoo')?.addEventListener('click',()=>openViaProvider('yahooWeb'));
 
-      const btnPrint = document.getElementById('btnPrint');
-      if (btnPrint) btnPrint.addEventListener('click', () => window.print());
+      document.getElementById('btnNew')?.addEventListener('click',()=>{ location.href=location.pathname; });
 
-      const btnExportXLSX = document.getElementById('btnExportXLSX');
-      if (btnExportXLSX){
-        btnExportXLSX.addEventListener('click', (e) => {
-          e.preventDefault();
-          const data = collectData();
-          if (!data.company || !data.evaluator || !data.evalDate) {
-            alert('กรุณากรอก บริษัท, ชื่อผู้ประเมิน และ วันที่ประเมิน');
-            return;
-          }
-          downloadXLSX(data);
-        });
-      }
+      // สถานะฐานข้อมูล (แสดงเพียง state เชื่อมต่อ)
+      (async()=>{ try{ await ensureFirebase(); const el=document.getElementById('dbBanner'); if(el){ el.textContent='สถานะฐานข้อมูล: Firebase พร้อมใช้งาน ✅'; el.classList.add('text-emerald-700'); } }catch(e){ const el=document.getElementById('dbBanner'); if(el){ el.textContent='สถานะฐานข้อมูล: เชื่อมต่อไม่สำเร็จ ❌'; el.classList.add('text-red-600'); } } })();
 
-      const btnEmailOnly = document.getElementById('btnEmailOnly');
-      if (btnEmailOnly){
-        btnEmailOnly.addEventListener('click', (e) => {
-          e.preventDefault();
-          if (window.__lastData){
-            openMarketingEmail(window.__lastData, window.__lastShareUrl || null);
-            return;
-          }
-          const data = collectData();
-          if (!data.company || !data.evaluator || !data.evalDate) {
-            alert('กรุณากรอก บริษัท, ชื่อผู้ประเมิน และ วันที่ประเมิน');
-            return;
-          }
-          openMarketingEmail(data, window.__lastShareUrl || null);
-        });
-      }
+      const id=urlId(); if(id){ toggleResult(true); loadFromFirebaseById(id); }
 
-      const btnNew = document.getElementById('btnNew');
-      if (btnNew){
-        btnNew.addEventListener('click', () => { location.href = location.pathname; });
-      }
-
-      // เปิดด้วยลิงก์ ?id=xxxx → โหลดผลมาแสดงทันที (โหมดดูผล)
-      const _id = urlId();
-      if(_id){ toggleResult(true); loadFromFirebaseById(_id); }
-
-      // ===== Internal sanity tests (ไม่มี UI แสดงผล) =====
-      try {
+      // Sanity tests (console เท่านั้น)
+      try{
         console.assert(gradeOf(95)==='A');
-        console.assert(gradeOf(90)==='B' || gradeOf(94)==='B');
+        console.assert(gradeOf(94)==='B');
         console.assert(/\d{4}-\d{2}-\d{2}/.test(todayISO()));
-        const sample = { company:'ACME', evaluator:'Alice', evalDate:'2025-11-10', sections:[], score:{D:10,Q:10,C:10,total:30,grade:'D'} };
-        const m = buildMarketingMailto(sample, 'https://example.com/?id=1', ['mkt@example.com']);
-        console.assert(/^mailto:/.test(m));
-        const ow = buildEmailComposeUrl('outlookWeb', sample, 'https://example.com/?id=1', ['mkt@example.com','brand@example.com']);
+        // urlId test (ไม่ล้มถ้าไม่มีพารามิเตอร์)
+        const _id = urlId(); console.assert(_id===null || typeof _id==='string');
+        // email compose tests
+        const sample={company:'ACME',evaluator:'Alice',evalDate:'2025-11-10',sections:[],score:{D:10,Q:10,C:10,total:30,grade:'D'}};
+        const ow=buildEmailComposeUrl('outlookWeb',sample,'https://example.com/?id=1',['mkt@example.com','brand@example.com']);
         console.assert(/compose\?/.test(ow));
-        const od = buildEmailComposeUrl('outlookDesktop', sample, 'https://example.com/?id=1', ['mkt@example.com','brand@example.com']);
+        const od=buildEmailComposeUrl('outlookDesktop',sample,'https://example.com/?id=1',['mkt@example.com','brand@example.com']);
         console.assert(/^ms-outlook:\/\//.test(od));
-      } catch(err) {
-        console.warn('Sanity tests failed:', err);
-      }
+        const gm=buildEmailComposeUrl('gmailWeb',sample,'https://example.com/?id=1',['mkt@example.com']);
+        console.assert(/^https:\/\/mail.google.com\//.test(gm));
+        const yh=buildEmailComposeUrl('yahooWeb',sample,'https://example.com/?id=1',['mkt@example.com']);
+        console.assert(/^https:\/\/mail.yahoo.com\//.test(yh));
+      }catch(err){ console.warn('Sanity tests failed:', err); }
     });
   </script>
 </body>
