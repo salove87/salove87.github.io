@@ -29,19 +29,18 @@
         }
         .log-table {
             border-collapse: separate;
-            border-spacing: 0 8px; /* Add space between rows */
+            border-spacing: 0 8px;
         }
         .log-table th, .log-table td {
             padding: 12px 16px;
         }
-        /* Mobile-specific table adjustments */
         @media (max-width: 768px) {
             .log-table th, .log-table td {
                 padding: 8px 10px;
-                font-size: 0.875rem; /* Smaller font on mobile */
+                font-size: 0.875rem;
             }
             .log-table thead {
-                display: none; /* Hide header on mobile for card layout */
+                display: none;
             }
             .log-table tbody tr {
                 display: block;
@@ -56,7 +55,6 @@
                 border-bottom: 1px solid #f3f4f6;
             }
             .log-table td:before {
-                /* Add label text using data attributes */
                 content: attr(data-label);
                 font-weight: 600;
                 color: #4b5563;
@@ -74,9 +72,7 @@
         <p class="text-center text-sm text-gray-500 mb-4" id="auth-status">กำลังเชื่อมต่อ...</p>
 
         <!-- Current Date/Time Display -->
-        <div id="current-date-time" class="text-center text-sm font-semibold text-teal-700 mb-6 p-2 bg-teal-50 rounded-lg shadow-inner">
-            <!-- Will be populated by JS -->
-        </div>
+        <div id="current-date-time" class="text-center text-sm font-semibold text-teal-700 mb-6 p-2 bg-teal-50 rounded-lg shadow-inner"></div>
 
         <!-- Form Card -->
         <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
@@ -101,7 +97,29 @@
                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500">
                     </div>
 
-                    <!-- Location Input (NEW) -->
+                    <!-- Department (dropdown) -->
+                    <div>
+                        <label for="department" class="block text-sm font-medium text-gray-700 mb-1">แผนก</label>
+                        <select id="department" name="department" required
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500">
+                            <option value="">-- เลือกแผนก --</option>
+                            <option value="ฝ่ายผลิต 1">บริหาร</option>
+                            <option value="ฝ่ายผลิต 1">ฝ่ายผลิต 1</option>
+                            <option value="ฝ่ายผลิต 2">ฝ่ายผลิต 2</option>
+                            <option value="ประกันคุณภาพ">ประกันคุณภาพ (QA)</option>
+                            <option value="ซ่อมบำรุง">ซ่อมบำรุง</option>
+                            <option value="สโตร์วัตถุดิบ">สโตร์วัตถุดิบ</option>
+                            <option value="ระบบคุณภาพ">วางแผน</option>
+                            <option value="จัดส่ง">จัดส่ง</option>
+                            <option value="บัญชี">บัญชี</option>
+                            <option value="การตลาด">การตลาด</option>
+                            <option value="บุคคล/HR">บุคคล / HR</option>
+                            <option value="ระบบคุณภาพ">ระบบคุณภาพ</option>
+                            <option value="ระบบคุณภาพ">จัดซื้อ</option>
+                        </select>
+                    </div>
+
+                    <!-- Location Input -->
                     <div class="md:col-span-2">
                         <label for="location" class="block text-sm font-medium text-gray-700 mb-1">สถานที่ใช้งาน (Location)</label>
                         <input type="text" id="location" name="location" placeholder="เช่น กรุงเทพฯ > เชียงใหม่ / ส่งของบริษัท"
@@ -145,7 +163,6 @@
             </button>
         </div>
 
-
         <!-- Records Section -->
         <div class="bg-white p-6 rounded-xl shadow-lg">
             <h2 class="text-xl font-semibold text-gray-800 mb-4">รายการบันทึกล่าสุด</h2>
@@ -157,23 +174,23 @@
                             <th scope="col">วันที่/เวลา</th>
                             <th scope="col">รถยนต์</th>
                             <th scope="col">ผู้ใช้งาน</th>
-                            <th scope="col">สถานที่</th> <!-- NEW Column Header -->
+                            <th scope="col">แผนก</th>
+                            <th scope="col">สถานที่</th>
                             <th scope="col">ไมค์ออก</th>
                             <th scope="col">ไมค์เข้า</th>
                             <th scope="col" class="rounded-r-lg">ระยะทาง (กม.)</th>
                         </tr>
                     </thead>
                     <tbody id="log-list">
-                        <tr><td colspan="7" class="text-center py-8">ไม่มีรายการบันทึก</td></tr>
+                        <tr><td colspan="8" class="text-center py-8">ไม่มีรายการบันทึก</td></tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- Loading/Empty State -->
             <div id="loading-state" class="text-center py-4 text-gray-500 hidden">กำลังโหลดข้อมูล...</div>
         </div>
 
-        <!-- Custom Modal for Messages (Instead of alert/confirm) -->
+        <!-- Custom Modal -->
         <div id="custom-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden flex items-center justify-center p-4 z-50">
             <div class="bg-white p-6 rounded-lg shadow-2xl max-w-sm w-full">
                 <h3 id="modal-title" class="text-xl font-bold mb-3 text-gray-800"></h3>
@@ -188,13 +205,11 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy, limit, getDocs, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, query, orderBy, limit, getDocs, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // IMPORTANT: The global variables __app_id, __firebase_config, and __initial_auth_token are provided by the canvas environment.
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         
-        // User's provided configuration (Hardcoded as per request)
         const userProvidedConfig = {
             apiKey: "AIzaSyDKfJvn9yh-g1J5OMA9EBLEyp740b-NyH4",
             authDomain: "vehicle-mileage-31238.firebaseapp.com",
@@ -204,19 +219,15 @@
             appId: "1:968556830605:web:4708cecdbfc44737c267c4",
             measurementId: "G-42QZMXH8VF"
         };
-        // Use the user's config, overriding the environment's config.
+
         const firebaseConfig = userProvidedConfig; 
         
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        // Firestore configuration
         let db;
         let auth;
         let userId = null;
         let vehicleLogsRef;
         const COLLECTION_PATH = `/artifacts/${appId}/public/data/vehicle_logs`;
 
-        // UI elements
         const form = document.getElementById('car-log-form');
         const logList = document.getElementById('log-list');
         const authStatus = document.getElementById('auth-status');
@@ -228,13 +239,8 @@
         const modalTitle = document.getElementById('modal-title');
         const modalMessage = document.getElementById('modal-message');
         const modalClose = document.getElementById('modal-close');
-        
-        // NEW UI element
         const currentDateTimeDiv = document.getElementById('current-date-time');
 
-        // --- Utility Functions ---
-
-        /** Shows a custom modal message instead of using alert() */
         function showModal(title, message) {
             modalTitle.textContent = title;
             modalMessage.textContent = message;
@@ -245,8 +251,6 @@
             modal.classList.add('hidden');
         });
 
-
-        /** Converts Firestore Timestamp to a readable Thai date/time string */
         function formatTimestamp(timestamp) {
             if (!timestamp || !timestamp.toDate) return 'ไม่ระบุ';
             const date = timestamp.toDate();
@@ -258,7 +262,6 @@
             return date.toLocaleTimeString('th-TH', options);
         }
 
-        /** Function to display current client date/time */
         function updateDateTimeDisplay() {
             const now = new Date();
             const options = {
@@ -267,50 +270,32 @@
                 timeZone: 'Asia/Bangkok'
             };
             const dateStr = now.toLocaleDateString('th-TH', options);
-            // Inform the user that the server time will be used for logging
             currentDateTimeDiv.textContent = `วันที่และเวลาปัจจุบัน (ระบบ): ${dateStr} (เวลาที่บันทึกจริงจะใช้เวลาเซิร์ฟเวอร์)`;
         }
 
-        // --- Firebase Initialization and Authentication ---
-
         async function initFirebase() {
             try {
-                setLogLevel('debug'); // *** ACTIVE DEBUG LOGGING ***
-                console.log("[Firebase] Starting initialization with config:", firebaseConfig.projectId);
-                
+                setLogLevel('debug');
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
-                
-                console.log("[Firebase] Firestore and Auth services initialized.");
 
-                // Set up authentication listener
                 onAuthStateChanged(auth, async (user) => {
                     if (user) {
                         userId = user.uid;
-                        console.log(`[Firebase] Auth SUCCESS. User ID: ${userId.substring(0, 8)}...`);
                         authStatus.textContent = `เชื่อมต่อแล้ว (User ID: ${userId.substring(0, 8)}...)`;
                         vehicleLogsRef = collection(db, COLLECTION_PATH);
-                        
-                        // Start listening for logs only after auth is ready
                         listenForLogs();
-                        
-                        // Enable utility buttons
                         deleteLatestBtn.disabled = false;
                         downloadBtn.disabled = false;
-
                     } else {
-                        console.log("[Firebase] Auth status changed: No user (waiting for signIn attempt).");
-                        // User is signed out, attempt sign-in
                         await signInUser();
                     }
                 });
 
-                // Initial sign-in attempt
                 await signInUser();
 
             } catch (error) {
-                console.error("[Firebase] Fatal Initialization failed:", error);
                 authStatus.textContent = `ข้อผิดพลาดในการเชื่อมต่อ Firebase: ${error.code || error.message}`;
                 showModal('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อกับฐานข้อมูลได้ โปรดตรวจสอบการตั้งค่า Firebase Console.');
             }
@@ -318,31 +303,20 @@
 
         async function signInUser() {
             try {
-                // FIX: Use anonymous sign-in directly to avoid auth/custom-token-mismatch error 
-                // when using user's specific Firebase config.
-                
-                console.log("[Firebase] Attempting signInAnonymously (Skipping Custom Token due to user's config)...");
                 await signInAnonymously(auth);
                 authStatus.textContent = 'ลงชื่อเข้าใช้แบบไม่ระบุตัวตน...';
-                
             } catch (error) {
-                console.error("[Firebase] Authentication failed:", error);
                 authStatus.textContent = `การยืนยันตัวตนล้มเหลว: ${error.message}`;
-                // Show modal only if authentication (not init) failed
                 showModal('ข้อผิดพลาดในการเข้าสู่ระบบ', `ไม่สามารถยืนยันตัวตนได้: ${error.message} โปรดตรวจสอบ Firebase Authentication.`);
             }
         }
 
-        // --- Data Handling ---
-
-        /** Renders the list of vehicle logs to the UI table. */
         function renderLogs(logs) {
             loadingState.classList.add('hidden');
             logList.innerHTML = '';
             
-            // NOTE: Must change colspan from 6 to 7 for the new 'สถานที่' column
             if (logs.length === 0) {
-                logList.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-500">ไม่มีรายการบันทึก</td></tr>';
+                logList.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500">ไม่มีรายการบันทึก</td></tr>';
                 deleteLatestBtn.disabled = true;
                 downloadBtn.disabled = true;
                 return;
@@ -355,14 +329,14 @@
                 const tr = document.createElement('tr');
                 tr.className = 'bg-gray-50 hover:bg-gray-100 transition duration-150 ease-in-out border-b border-gray-200';
                 
-                // Calculate distance
                 const distance = (log.odometerIn && log.odometerOut) ? Math.max(0, log.odometerIn - log.odometerOut) : 0;
                 
                 tr.innerHTML = `
                     <td data-label="วันที่/เวลา" class="font-medium text-gray-900">${formatTimestamp(log.timestamp)}</td>
                     <td data-label="รถยนต์" class="font-semibold text-teal-700">${log.vehicle}</td>
                     <td data-label="ผู้ใช้งาน">${log.userName}</td>
-                    <td data-label="สถานที่">${log.location || '-'}</td> <!-- Display location -->
+                    <td data-label="แผนก">${log.department || '-'}</td>
+                    <td data-label="สถานที่">${log.location || '-'}</td>
                     <td data-label="ไมค์ออก" class="text-right">${log.odometerOut.toLocaleString()}</td>
                     <td data-label="ไมค์เข้า" class="text-right">${log.odometerIn.toLocaleString()}</td>
                     <td data-label="ระยะทาง (กม.)" class="font-bold text-blue-600 text-right">${distance.toLocaleString()}</td>
@@ -371,56 +345,48 @@
             });
         }
 
-        /** Sets up real-time listener for the vehicle logs. */
         function listenForLogs() {
             if (!db || !userId) {
-                console.warn("[Firebase] Cannot listen for logs: DB or UserID is missing.");
                 return;
             }
 
             loadingState.classList.remove('hidden');
-            console.log(`[Firebase] Attaching real-time listener for collection: ${COLLECTION_PATH}`);
 
-            // Query: ordered by timestamp (descending) for "Latest Records" view
             const q = query(
                 vehicleLogsRef,
                 orderBy('timestamp', 'desc'),
-                limit(20) // Show up to 20 latest records
+                limit(20)
             );
 
             onSnapshot(q, (snapshot) => {
                 const logs = [];
-                snapshot.forEach((doc) => {
-                    logs.push({ id: doc.id, ...doc.data() });
+                snapshot.forEach((docSnap) => {
+                    logs.push({ id: docSnap.id, ...docSnap.data() });
                 });
                 renderLogs(logs);
-            }, (error) => {
-                console.error("[Firebase] Error listening to logs:", error);
+            }, () => {
                 showModal('ข้อผิดพลาด', 'ไม่สามารถดึงข้อมูลบันทึกการใช้รถได้');
             });
         }
-
-        // --- Event Handlers ---
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             formMessage.classList.add('hidden');
 
             if (!db || !userId) {
-                // This is the check that triggers the modal shown in the image
-                console.error("[Submit] Database not ready: db=", db, "userId=", userId);
                 showModal('ข้อผิดพลาด', 'ฐานข้อมูลยังไม่พร้อมใช้งาน โปรดรอสักครู่');
                 return;
             }
 
             const vehicle = document.getElementById('vehicle').value;
             const userName = document.getElementById('userName').value.trim();
-            const location = document.getElementById('location').value.trim(); // Get new location value
+            const department = document.getElementById('department').value.trim();
+            const location = document.getElementById('location').value.trim();
             const odometerOut = parseInt(document.getElementById('odometerOut').value, 10);
             const odometerIn = parseInt(document.getElementById('odometerIn').value, 10);
 
-            if (!vehicle || !userName || isNaN(odometerOut) || isNaN(odometerIn)) {
-                formMessage.textContent = 'กรุณากรอกข้อมูลที่จำเป็น (รถยนต์, ชื่อผู้ใช้, เลขไมค์ขาออกและขาเข้า) ให้ครบถ้วน';
+            if (!vehicle || !userName || !department || isNaN(odometerOut) || isNaN(odometerIn)) {
+                formMessage.textContent = 'กรุณากรอกข้อมูลที่จำเป็น (รถยนต์, ชื่อผู้ใช้, แผนก, เลขไมค์ขาออกและขาเข้า) ให้ครบถ้วน';
                 formMessage.classList.remove('hidden');
                 return;
             }
@@ -431,7 +397,6 @@
                 return;
             }
             
-            // Disable button during submission
             const submitBtn = form.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
             submitBtn.textContent = 'กำลังบันทึก...';
@@ -440,24 +405,23 @@
                 const newLog = {
                     vehicle,
                     userName,
-                    location, // Save location
+                    department,
+                    location,
                     odometerOut,
                     odometerIn,
                     distance: odometerIn - odometerOut,
-                    timestamp: serverTimestamp(), // Use server timestamp for ordering
-                    userId: userId, // Record who created the entry
+                    timestamp: serverTimestamp(),
+                    userId: userId,
                 };
 
                 await addDoc(vehicleLogsRef, newLog);
                 
                 showModal('สำเร็จ!', 'บันทึกข้อมูลการใช้รถเรียบร้อยแล้ว');
-                form.reset(); // Clear the form on successful submission
+                form.reset();
 
             } catch (error) {
-                console.error("[Firebase] Error adding document: ", error);
                 formMessage.textContent = `ข้อผิดพลาดในการบันทึก: ${error.message}`;
                 formMessage.classList.remove('hidden');
-                // Show more detailed error for database write failure
                 showModal('ข้อผิดพลาดในการบันทึก', `ไม่สามารถบันทึกข้อมูลได้: ${error.message} โปรดตรวจสอบ Firebase Security Rules.`);
             } finally {
                 submitBtn.disabled = false;
@@ -468,7 +432,6 @@
         deleteLatestBtn.addEventListener('click', async () => {
             if (!db || !userId) return;
 
-            // Simple confirmation modal logic (no user action needed for now, but a good practice to show this message)
             showModal('ยืนยันการลบ', 'คุณต้องการลบรายการบันทึกที่ล่าสุดใช่หรือไม่?');
 
             deleteLatestBtn.disabled = true;
@@ -476,7 +439,6 @@
             deleteLatestBtn.textContent = 'กำลังลบ...';
 
             try {
-                // 1. Query the latest document (order by timestamp descending, limit 1)
                 const q = query(vehicleLogsRef, orderBy('timestamp', 'desc'), limit(1));
                 const querySnapshot = await getDocs(q);
 
@@ -485,17 +447,14 @@
                     return;
                 }
 
-                // 2. Get the document ID of the latest log
                 const latestDoc = querySnapshot.docs[0];
                 const docId = latestDoc.id;
 
-                // 3. Delete the document
                 await deleteDoc(doc(db, COLLECTION_PATH, docId));
 
                 showModal('สำเร็จ!', `รายการล่าสุด (${latestDoc.data().userName} / ${docId.substring(0, 8)}...) ถูกลบแล้ว`);
 
             } catch (error) {
-                console.error("Error deleting document: ", error);
                 showModal('ข้อผิดพลาด', `ไม่สามารถลบรายการได้: ${error.message}`);
             } finally {
                 deleteLatestBtn.disabled = false;
@@ -511,7 +470,6 @@
             downloadBtn.textContent = 'กำลังเตรียมไฟล์...';
 
             try {
-                // 1. Fetch ALL data (ordered by timestamp ascending for chronological CSV)
                 const q = query(vehicleLogsRef, orderBy('timestamp', 'asc'));
                 const querySnapshot = await getDocs(q);
                 
@@ -521,35 +479,43 @@
                 }
 
                 const logs = [];
-                querySnapshot.forEach((doc) => {
-                    logs.push(doc.data());
+                querySnapshot.forEach((docSnap) => {
+                    logs.push(docSnap.data());
                 });
 
-                // 2. Prepare CSV data
-                let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // Add BOM for Thai characters
-                // ADDED 'สถานที่' to headers
-                const headers = ["ID บันทึก", "วันที่/เวลา", "รถยนต์", "ผู้ใช้งาน", "สถานที่", "ไมค์ออก (กม.)", "ไมค์เข้า (กม.)", "ระยะทาง (กม.)"];
+                // ใช้ BOM (\uFEFF) + \r\n ให้รองรับภาษาไทยและขึ้นบรรทัดใหม่ถูกต้อง
+                let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+                const headers = [
+                    "ID บันทึก",
+                    "วันที่/เวลา",
+                    "รถยนต์",
+                    "ผู้ใช้งาน",
+                    "แผนก",
+                    "สถานที่",
+                    "ไมค์ออก (กม.)",
+                    "ไมค์เข้า (กม.)",
+                    "ระยะทาง (กม.)"
+                ];
                 csvContent += headers.join(",") + "\r\n";
 
                 logs.forEach(log => {
                     const timestampStr = formatTimestamp(log.timestamp);
-                    const distance = log.odometerIn - log.odometerOut;
+                    const distance = (log.odometerIn ?? 0) - (log.odometerOut ?? 0);
                     
-                    // Added log.location
                     const row = [
-                        log.userId.substring(0, 8), // Use a snippet of the ID for simplicity
-                        `"${timestampStr}"`, // Wrap in quotes to handle commas/spaces
-                        `"${log.vehicle}"`,
-                        `"${log.userName}"`,
-                        `"${log.location || '-'}"`, // Added location, use '-' if empty
-                        log.odometerOut,
-                        log.odometerIn,
+                        log.userId ? log.userId.substring(0, 8) : "-",
+                        `"${timestampStr}"`,
+                        `"${log.vehicle || ''}"`,
+                        `"${log.userName || ''}"`,
+                        `"${log.department || '-'}"`,
+                        `"${log.location || '-'}"`,
+                        log.odometerOut ?? '',
+                        log.odometerIn ?? '',
                         distance
                     ];
                     csvContent += row.join(",") + "\r\n";
                 });
 
-                // 3. Create and trigger download
                 const encodedUri = encodeURI(csvContent);
                 const link = document.createElement("a");
                 link.setAttribute("href", encodedUri);
@@ -561,7 +527,6 @@
                 showModal('ดาวน์โหลดสำเร็จ!', 'ไฟล์ CSV ถูกดาวน์โหลดไปยังเครื่องของคุณแล้ว');
 
             } catch (error) {
-                console.error("Error downloading data: ", error);
                 showModal('ข้อผิดพลาด', `ไม่สามารถดาวน์โหลดข้อมูลได้: ${error.message}`);
             } finally {
                 downloadBtn.disabled = false;
@@ -569,11 +534,7 @@
             }
         });
 
-
-        // --- Start Application ---
         initFirebase();
-        
-        // Start updating the current time display
         updateDateTimeDisplay();
         setInterval(updateDateTimeDisplay, 1000); 
 
