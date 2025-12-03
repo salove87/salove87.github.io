@@ -15,6 +15,7 @@
         .btn-delete:hover { transform: scale(1.05); opacity: 0.9; }
         .log-table { border-collapse: separate; border-spacing: 0 8px; }
         .log-table th, .log-table td { padding: 12px 16px; }
+        /* Responsive Table */
         @media (max-width: 768px) {
             .log-table th, .log-table td { padding: 8px 10px; font-size: 0.875rem; }
             .log-table thead { display: none; }
@@ -38,6 +39,7 @@
         <form id="car-log-form">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
+                    <!-- Vehicle is Required -->
                     <label for="vehicle" class="block text-sm font-medium text-gray-700 mb-1">เลือกรถยนต์</label>
                     <select id="vehicle" name="vehicle" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500">
                         <option value="">-- เลือกรถ --</option>
@@ -47,11 +49,13 @@
                 </div>
 
                 <div>
+                    <!-- User Name is Required -->
                     <label for="userName" class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้ใช้งาน</label>
                     <input id="userName" name="userName" type="text" required placeholder="เช่น สมหญิง / User ID" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500" />
                 </div>
 
                 <div>
+                    <!-- Department is Required -->
                     <label for="department" class="block text-sm font-medium text-gray-700 mb-1">แผนก</label>
                     <select id="department" name="department" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500">
                         <option value="">-- เลือกแผนก --</option>
@@ -72,21 +76,25 @@
                 </div>
 
                 <div>
+                    <!-- Easy Pass is now Required -->
                     <label for="easyPass" class="block text-sm font-medium text-gray-700 mb-1">Easy Pass คงเหลือ (บาท)</label>
-                    <input id="easyPass" name="easyPass" type="number" step="0.25" min="0" placeholder="เช่น 120.50" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500" />
+                    <input id="easyPass" name="easyPass" type="number" step="0.25" min="0" required placeholder="เช่น 120.50" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500" />
                 </div>
 
                 <div class="md:col-span-2">
+                    <!-- Location is now Required -->
                     <label for="location" class="block text-sm font-medium text-gray-700 mb-1">สถานที่ใช้งาน (Location)</label>
-                    <input id="location" name="location" type="text" placeholder="เช่น กรุงเทพฯ > เชียงใหม่ / ส่งของบริษัท" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500" />
+                    <input id="location" name="location" type="text" required placeholder="เช่น กรุงเทพฯ > เชียงใหม่ / ส่งของบริษัท" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500" />
                 </div>
 
                 <div>
+                    <!-- Odometer Out is Required -->
                     <label for="odometerOut" class="block text-sm font-medium text-gray-700 mb-1">เลขไมค์ ขาออก (กม.)</label>
                     <input id="odometerOut" name="odometerOut" type="number" required min="0" step="1" placeholder="ตัวเลขเท่านั้น" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500" />
                 </div>
 
                 <div>
+                    <!-- Odometer In is Required -->
                     <label for="odometerIn" class="block text-sm font-medium text-gray-700 mb-1">เลขไมค์ ขาเข้า (กม.)</label>
                     <input id="odometerIn" name="odometerIn" type="number" required min="0" step="1" placeholder="ตัวเลขเท่านั้น" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500" />
                 </div>
@@ -99,12 +107,12 @@
         </form>
     </div>
 
-    <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mb-8">
+    <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mb-4">
         <button id="delete-latest-btn" disabled class="btn-delete w-full sm:w-1/2 bg-red-500 text-white p-3 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-600 focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50">ลบรายการล่าสุด (Delete Latest)</button>
         <button id="download-btn" disabled class="btn-primary w-full sm:w-1/2 bg-blue-500 text-white p-3 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-600 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50">ดาวน์โหลดข้อมูล (CSV)</button>
     </div>
 
-    <div class="bg-white p-6 rounded-xl shadow-lg">
+    <div class="bg-white p-6 rounded-xl shadow-lg mb-6">
         <h2 class="text-xl font-semibold text-gray-800 mb-4">รายการบันทึกล่าสุด</h2>
         <div class="overflow-x-auto">
             <table class="log-table w-full text-left text-gray-600">
@@ -125,6 +133,9 @@
             </table>
         </div>
         <div id="loading-state" class="text-center py-4 text-gray-500 hidden">กำลังโหลดข้อมูล...</div>
+        <div class="text-center mt-4">
+            <button id="load-more-btn" class="px-4 py-2 bg-teal-100 text-teal-700 rounded-lg border border-teal-200 hover:bg-teal-200">แสดงรายการเพิ่มเติม</button>
+        </div>
     </div>
 
     <div id="custom-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden flex items-center justify-center p-4 z-50">
@@ -140,8 +151,9 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, query, orderBy, limit, getDocs, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, query, orderBy, limit, getDocs, serverTimestamp, setLogLevel, startAfter } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+// Global variables for Firebase
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 const userProvidedConfig = {
     apiKey: "AIzaSyDKfJvn9yh-g1J5OMA9EBLEyp740b-NyH4",
@@ -169,7 +181,9 @@ const modalTitle = document.getElementById('modal-title');
 const modalMessage = document.getElementById('modal-message');
 const modalClose = document.getElementById('modal-close');
 const currentDateTimeDiv = document.getElementById('current-date-time');
+const loadMoreBtn = document.getElementById('load-more-btn');
 
+// Function to show custom modal (replacing alert/confirm)
 function showModal(title, message) {
     modalTitle.textContent = title;
     modalMessage.textContent = message;
@@ -177,6 +191,7 @@ function showModal(title, message) {
 }
 modalClose.addEventListener('click', () => modal.classList.add('hidden'));
 
+// Function to format Firestore Timestamp or ISO string to Thai locale
 function formatTimestamp(timestamp) {
     if (!timestamp) return 'ไม่ระบุ';
     try {
@@ -195,15 +210,21 @@ function formatTimestamp(timestamp) {
     return 'ไม่ระบุ';
 }
 
+// Update the current date and time display on the UI
 function updateDateTimeDisplay() {
     const now = new Date();
     const options = { weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false, timeZone:'Asia/Bangkok' };
     currentDateTimeDiv.textContent = `วันที่และเวลาปัจจุบัน (ระบบ): ${now.toLocaleDateString('th-TH', options)} (เวลาที่บันทึกจริงจะใช้เวลาเซิร์ฟเวอร์)`;
 }
 
+// Pagination / Load more variables
+let displayLimit = 20; // how many logs to fetch from server (in descending order)
+let unsubscribe = null; // for detaching real-time listener
+
+// Initialize Firebase and set up authentication listener
 async function initFirebase() {
     try {
-        setLogLevel('debug');
+        setLogLevel('debug'); // Enable Firebase debug logging
         const app = initializeApp(firebaseConfig);
         db = getFirestore(app);
         auth = getAuth(app);
@@ -213,13 +234,14 @@ async function initFirebase() {
                 userId = user.uid;
                 authStatus.textContent = `เชื่อมต่อแล้ว (User ID: ${userId.substring(0,8)}...)`;
                 vehicleLogsRef = collection(db, COLLECTION_PATH);
-                listenForLogs();
+                listenForLogs(); // Start listening for data once authenticated
                 deleteLatestBtn.disabled = false; downloadBtn.disabled = false;
             } else {
-                await signInUser();
+                await signInUser(); // If not logged in, try to sign in anonymously
             }
         });
 
+        // Initial sign-in attempt
         await signInUser();
     } catch (err) {
         authStatus.textContent = `ข้อผิดพลาดในการเชื่อมต่อ Firebase: ${err.message || err.code}`;
@@ -227,21 +249,43 @@ async function initFirebase() {
     }
 }
 
+// Sign in anonymously
 async function signInUser() {
     try { await signInAnonymously(auth); authStatus.textContent = 'ลงชื่อเข้าใช้แบบไม่ระบุตัวตน...'; }
     catch (err) { authStatus.textContent = `การยืนยันตัวตนล้มเหลว: ${err.message}`; showModal('ข้อผิดพลาดในการเข้าสู่ระบบ', `ไม่สามารถยืนยันตัวตนได้: ${err.message}`); }
 }
 
+// Render the logs list to the table
 function renderLogs(logs) {
-    loadingState.classList.add('hidden'); logList.innerHTML = '';
-    if (!logs || logs.length === 0) { logList.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-gray-500">ไม่มีรายการบันทึก</td></tr>'; deleteLatestBtn.disabled = true; downloadBtn.disabled = true; return; }
-    deleteLatestBtn.disabled = false; downloadBtn.disabled = false;
+    loadingState.classList.add('hidden'); 
+    logList.innerHTML = ''; // Clear previous entries
+    
+    // Check if there are no logs
+    if (!logs || logs.length === 0) { 
+        logList.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-gray-500">ไม่มีรายการบันทึก</td></tr>'; 
+        deleteLatestBtn.disabled = true; 
+        downloadBtn.disabled = true; 
+        return; 
+    }
+    
+    deleteLatestBtn.disabled = false; 
+    downloadBtn.disabled = false;
 
+    // Sort all fetched logs locally by timestamp in descending order (newest first)
+    logs.sort((a, b) => {
+        const at = (a.timestamp && typeof a.timestamp.toDate === 'function') ? a.timestamp.toDate() : new Date(a.clientTimestamp || 0);
+        const bt = (b.timestamp && typeof b.timestamp.toDate === 'function') ? b.timestamp.toDate() : new Date(b.clientTimestamp || 0);
+        return bt - at;
+    });
+
+    // Display all fetched logs (we control how many to request from server via displayLimit)
     logs.forEach(log => {
-        const tr = document.createElement('tr'); tr.className = 'bg-gray-50 hover:bg-gray-100 transition duration-150 ease-in-out border-b border-gray-200';
+        const tr = document.createElement('tr'); 
+        tr.className = 'bg-gray-50 hover:bg-gray-100 transition duration-150 ease-in-out border-b border-gray-200';
         const distance = (log.odometerIn && log.odometerOut) ? Math.max(0, log.odometerIn - log.odometerOut) : 0;
         const easyPass = (log.easyPass !== undefined && log.easyPass !== null) ? Number(log.easyPass).toFixed(2) : '-';
-        const ts = log.timestamp || log.clientTimestamp || null; const tsDisplay = formatTimestamp(ts);
+        const ts = log.timestamp || log.clientTimestamp || null; 
+        const tsDisplay = formatTimestamp(ts);
 
         tr.innerHTML = `
             <td data-label="วันที่/เวลา" class="font-medium text-gray-900">${tsDisplay}</td>
@@ -250,23 +294,67 @@ function renderLogs(logs) {
             <td data-label="แผนก">${log.department || '-'}</td>
             <td data-label="สถานที่">${log.location || '-'}</td>
             <td data-label="Easy Pass" class="text-right">${easyPass}</td>
-            <td data-label="ไมค์ออก" class="text-right">${(log.odometerOut ?? '').toLocaleString ? (log.odometerOut ?? '').toLocaleString() : (log.odometerOut ?? '')}</td>
-            <td data-label="ไมค์เข้า" class="text-right">${(log.odometerIn ?? '').toLocaleString ? (log.odometerIn ?? '').toLocaleString() : (log.odometerIn ?? '')}</td>
-            <td data-label="ระยะทาง (กม.)" class="font-bold text-blue-600 text-right">${distance.toLocaleString()}</td>
+            <td data-label="ไมค์ออก" class="text-right">${(log.odometerOut ?? '').toLocaleString('th-TH')}</td>
+            <td data-label="ไมค์เข้า" class="text-right">${(log.odometerIn ?? '').toLocaleString('th-TH')}</td>
+            <td data-label="ระยะทาง (กม.)" class="font-bold text-blue-600 text-right">${distance.toLocaleString('th-TH')}</td>
         `;
         logList.appendChild(tr);
     });
 }
 
+// Set up real-time listener for the log data with a limit (supports "Load more")
 function listenForLogs() {
     if (!db || !userId) return;
     loadingState.classList.remove('hidden');
-    const q = query(vehicleLogsRef, orderBy('timestamp','desc'), limit(20));
-    onSnapshot(q, (snapshot) => { const logs = []; snapshot.forEach(docSnap => logs.push({ id: docSnap.id, ...docSnap.data() })); renderLogs(logs); }, (err) => { showModal('ข้อผิดพลาด', 'ไม่สามารถดึงข้อมูลบันทึกการใช้รถได้'); });
+
+    // Detach previous listener if exists
+    if (typeof unsubscribe === 'function') unsubscribe();
+
+    // We now query with a limit equal to displayLimit so the server returns the most recent displayLimit documents.
+    // When user clicks "Load more" we increase displayLimit and re-run this listener to fetch more.
+    try {
+        const q = query(vehicleLogsRef, orderBy('timestamp','desc'), limit(displayLimit));
+        unsubscribe = onSnapshot(q, (snapshot) => {
+            const logs = [];
+            snapshot.forEach(docSnap => logs.push({ id: docSnap.id, ...docSnap.data() }));
+            renderLogs(logs);
+
+            // If the server returned fewer items than displayLimit, hide "Load more" because there's no more to fetch.
+            if (snapshot.size < displayLimit) {
+                loadMoreBtn.classList.add('hidden');
+            } else {
+                loadMoreBtn.classList.remove('hidden');
+            }
+        }, (err) => {
+            console.error("Firestore listen failed:", err);
+            showModal('ข้อผิดพลาด', 'ไม่สามารถดึงข้อมูลบันทึกการใช้รถได้');
+            loadingState.classList.add('hidden');
+        });
+    } catch (err) {
+        console.error('listenForLogs error', err);
+        showModal('ข้อผิดพลาด', `ไม่สามารถตั้งค่าการฟังข้อมูล: ${err.message || err}`);
+        loadingState.classList.add('hidden');
+    }
 }
 
+// Handle "Load more" button: increase displayLimit and re-run listener
+loadMoreBtn.addEventListener('click', () => {
+    // Increase limit by 20 each time
+    displayLimit += 20;
+    loadMoreBtn.textContent = 'กำลังโหลดเพิ่มเติม...';
+    loadMoreBtn.disabled = true;
+
+    // Re-run the listener to fetch more documents
+    listenForLogs();
+
+    // Restore button state after a short delay (the onSnapshot callback will adjust visibility appropriately)
+    setTimeout(() => { loadMoreBtn.disabled = false; loadMoreBtn.textContent = 'แสดงรายการเพิ่มเติม'; }, 800);
+});
+
+// Handle form submission to add a new log entry
 form.addEventListener('submit', async (e) => {
-    e.preventDefault(); formMessage.classList.add('hidden');
+    e.preventDefault(); 
+    formMessage.classList.add('hidden');
     if (!db || !userId) { showModal('ข้อผิดพลาด', 'ฐานข้อมูลยังไม่พร้อมใช้งาน โปรดรอสักครู่'); return; }
 
     const vehicle = document.getElementById('vehicle').value;
@@ -275,39 +363,128 @@ form.addEventListener('submit', async (e) => {
     const location = document.getElementById('location').value.trim();
     const odometerOut = parseInt(document.getElementById('odometerOut').value, 10);
     const odometerIn = parseInt(document.getElementById('odometerIn').value, 10);
-    const easyPassVal = document.getElementById('easyPass').value; const easyPass = easyPassVal !== '' ? parseFloat(easyPassVal) : null;
+    const easyPassVal = document.getElementById('easyPass').value; 
+    const easyPass = easyPassVal !== '' ? parseFloat(easyPassVal) : null;
+    
+    // *** VALIDATION LOGIC (All fields required) ***
+    if (!vehicle || !userName || !department || !location || easyPassVal === '' || isNaN(odometerOut) || isNaN(odometerIn)) { 
+        formMessage.textContent = 'กรุณากรอกข้อมูลให้ครบถ้วนทุกช่อง (ต้องไม่เว้นว่าง)'; 
+        formMessage.classList.remove('hidden'); 
+        return; 
+    }
+    if (odometerIn < odometerOut) { 
+        formMessage.textContent = 'เลขไมค์ขาเข้า ต้องมากกว่าหรือเท่ากับ เลขไมค์ขาออกเสมอ'; 
+        formMessage.classList.remove('hidden'); 
+        return; 
+    }
 
-    if (!vehicle || !userName || !department || isNaN(odometerOut) || isNaN(odometerIn)) { formMessage.textContent = 'กรุณากรอกข้อมูลที่จำเป็น (รถยนต์, ชื่อผู้ใช้, แผนก, เลขไมค์ขาออกและขาเข้า) ให้ครบถ้วน'; formMessage.classList.remove('hidden'); return; }
-    if (odometerIn < odometerOut) { formMessage.textContent = 'เลขไมค์ขาเข้า ต้องมากกว่าหรือเท่ากับ เลขไมค์ขาออกเสมอ'; formMessage.classList.remove('hidden'); return; }
-
-    const submitBtn = form.querySelector('button[type="submit"]'); submitBtn.disabled = true; submitBtn.textContent = 'กำลังบันทึก...';
+    const submitBtn = form.querySelector('button[type="submit"]'); 
+    submitBtn.disabled = true; 
+    submitBtn.textContent = 'กำลังบันทึก...';
 
     try {
-        const newLog = { vehicle, userName, department, location, easyPass, odometerOut, odometerIn, distance: odometerIn - odometerOut, timestamp: serverTimestamp(), clientTimestamp: new Date().toISOString(), userId };
+        const newLog = { 
+            vehicle, 
+            userName, 
+            department, 
+            location, 
+            easyPass: easyPass, 
+            odometerOut, 
+            odometerIn, 
+            distance: odometerIn - odometerOut, 
+            timestamp: serverTimestamp(), // Server time for sorting
+            clientTimestamp: new Date().toISOString(), // Client time as backup/secondary sort
+            userId 
+        };
         await addDoc(vehicleLogsRef, newLog);
-        showModal('สำเร็จ!', 'บันทึกข้อมูลการใช้รถเรียบร้อยแล้ว'); form.reset();
-    } catch (err) { formMessage.textContent = `ข้อผิดพลาดในการบันทึก: ${err.message}`; formMessage.classList.remove('hidden'); showModal('ข้อผิดพลาดในการบันทึก', `ไม่สามารถบันทึกข้อมูลได้: ${err.message} โปรดตรวจสอบ Firebase Security Rules.`); }
+        showModal('สำเร็จ!', 'บันทึกข้อมูลการใช้รถเรียบร้อยแล้ว'); 
+        form.reset();
+
+        // After adding a new log, reset displayLimit to show recent items (optional)
+        // displayLimit = Math.max(20, displayLimit);
+    } catch (err) { 
+        console.error("Firestore addDoc failed:", err);
+        formMessage.textContent = `ข้อผิดพลาดในการบันทึก: ${err.message}`; 
+        formMessage.classList.remove('hidden'); 
+        showModal('ข้อผิดพลาดในการบันทึก', `ไม่สามารถบันทึกข้อมูลได้: ${err.message} โปรดตรวจสอบ Firebase Security Rules.`); 
+    }
     finally { submitBtn.disabled = false; submitBtn.textContent = 'บันทึกข้อมูลการใช้รถ'; }
 });
 
+// Handle deletion of the latest log entry
 deleteLatestBtn.addEventListener('click', async () => {
-    if (!db || !userId) return; showModal('ยืนยันการลบ', 'คุณต้องการลบรายการบันทึกที่ล่าสุดใช่หรือไม่?'); deleteLatestBtn.disabled = true; const originalText = deleteLatestBtn.textContent; deleteLatestBtn.textContent = 'กำลังลบ...';
+    if (!db || !userId) return; 
+    deleteLatestBtn.disabled = true; 
+    const originalText = deleteLatestBtn.textContent; 
+    deleteLatestBtn.textContent = 'กำลังลบ...';
+
     try {
-        const q = query(vehicleLogsRef, orderBy('timestamp','desc'), limit(1)); const querySnapshot = await getDocs(q);
-        if (querySnapshot.empty) { showModal('ไม่พบข้อมูล', 'ไม่พบรายการบันทึกใดๆ ที่จะลบ'); return; }
-        const latestDoc = querySnapshot.docs[0]; const docId = latestDoc.id; await deleteDoc(doc(db, COLLECTION_PATH, docId)); showModal('สำเร็จ!', `รายการล่าสุด (${latestDoc.data().userName} / ${docId.substring(0,8)}...) ถูกลบแล้ว`);
-    } catch (err) { showModal('ข้อผิดพลาด', `ไม่สามารถลบรายการได้: ${err.message}`); }
-    finally { deleteLatestBtn.disabled = false; deleteLatestBtn.textContent = originalText; }
+        // Query the latest document based on server timestamp
+        const q = query(vehicleLogsRef, orderBy('timestamp','desc'), limit(1)); 
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) { 
+            showModal('ไม่พบข้อมูล', 'ไม่พบรายการบันทึกใดๆ ที่จะลบ'); 
+            return; 
+        }
+        
+        const latestDoc = querySnapshot.docs[0]; 
+        const docId = latestDoc.id; 
+        
+        // Custom confirmation modal (replacing window.confirm)
+        const confirmed = await new Promise(resolve => {
+            const confirmModal = document.createElement('div');
+            confirmModal.className = 'fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-[9999]';
+            confirmModal.innerHTML = `
+                <div class="bg-white p-6 rounded-lg shadow-2xl max-w-sm w-full">
+                    <h3 class="text-xl font-bold mb-3 text-gray-800">ยืนยันการลบ</h3>
+                    <p class="text-gray-600 mb-4">คุณต้องการลบรายการบันทึกที่ล่าสุดโดย ${latestDoc.data().userName} ใช่หรือไม่?</p>
+                    <div class="flex justify-end space-x-2">
+                        <button id="cancel-delete" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">ยกเลิก</button>
+                        <button id="confirm-delete" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">ยืนยัน</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(confirmModal);
+
+            document.getElementById('cancel-delete').onclick = () => { confirmModal.remove(); resolve(false); };
+            document.getElementById('confirm-delete').onclick = () => { confirmModal.remove(); resolve(true); };
+        });
+
+        if (confirmed) {
+            await deleteDoc(doc(db, COLLECTION_PATH, docId)); 
+            showModal('สำเร็จ!', `รายการล่าสุด (${latestDoc.data().userName} / ${docId.substring(0,8)}...) ถูกลบแล้ว`);
+        } else {
+            showModal('ยกเลิก', 'การลบรายการถูกยกเลิก');
+        }
+
+    } catch (err) { 
+        console.error("Firestore delete failed:", err);
+        showModal('ข้อผิดพลาด', `ไม่สามารถลบรายการได้: ${err.message}`); 
+    }
+    finally { 
+        deleteLatestBtn.disabled = false; 
+        deleteLatestBtn.textContent = originalText; 
+    }
 });
 
+// Handle CSV data download
 downloadBtn.addEventListener('click', async () => {
-    if (!db || !userId) return; downloadBtn.disabled = true; const originalText = downloadBtn.textContent; downloadBtn.textContent = 'กำลังเตรียมไฟล์...';
-    try {
-        const q = query(vehicleLogsRef, orderBy('timestamp','asc')); const querySnapshot = await getDocs(q);
-        if (querySnapshot.empty) { showModal('ไม่มีข้อมูล', 'ไม่มีข้อมูลบันทึกให้ดาวน์โหลด'); return; }
-        const logs = []; querySnapshot.forEach(docSnap => logs.push(docSnap.data()));
+    if (!db || !userId) return; 
+    downloadBtn.disabled = true; 
+    const originalText = downloadBtn.textContent; 
+    downloadBtn.textContent = 'กำลังเตรียมไฟล์...';
 
-        // Build CSV safely: use BOM + \r\n for newlines
+    try {
+        // Fetch ALL documents, sorted by timestamp ascending
+        const q = query(vehicleLogsRef, orderBy('timestamp','asc'));
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) { showModal('ไม่มีข้อมูล', 'ไม่มีข้อมูลบันทึกให้ดาวน์โหลด'); return; }
+        const logs = []; 
+        querySnapshot.forEach(docSnap => logs.push(docSnap.data()));
+
+        // Build CSV safely: use BOM (\uFEFF) for Excel compatibility with Thai characters + \r\n for newlines
         let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
         const headers = ["ID บันทึก","วันที่/เวลา","รถยนต์","ผู้ใช้งาน","แผนก","สถานที่","Easy Pass (บาท)","ไมค์ออก (กม.)","ไมค์เข้า (กม.)","ระยะทาง (กม.)"];
         csvContent += headers.join(",") + "\r\n";
@@ -315,19 +492,46 @@ downloadBtn.addEventListener('click', async () => {
         logs.forEach(log => {
             const timestampStr = formatTimestamp(log.timestamp || log.clientTimestamp);
             const distance = (log.odometerIn ?? 0) - (log.odometerOut ?? 0);
-            const row = [ log.userId ? log.userId.substring(0,8) : '-', `"${timestampStr}"`, `"${(log.vehicle||'').replace(/"/g, '""')}"`, `"${(log.userName||'').replace(/"/g,'""')}"`, `"${(log.department||'-').replace(/"/g,'""')}"`, `"${(log.location||'-').replace(/"/g,'""')}"`, (log.easyPass ?? ''), (log.odometerOut ?? ''), (log.odometerIn ?? ''), distance ];
+            
+            // Helper to quote and escape values for CSV
+            const csvEscape = (value) => `"${String(value || '').replace(/"/g, '""')}"`;
+
+            const row = [ 
+                log.userId ? log.userId.substring(0,8) : '-', 
+                csvEscape(timestampStr), 
+                csvEscape(log.vehicle), 
+                csvEscape(log.userName), 
+                csvEscape(log.department), 
+                csvEscape(log.location), 
+                (log.easyPass ?? ''), 
+                (log.odometerOut ?? ''), 
+                (log.odometerIn ?? ''), 
+                distance 
+            ];
             csvContent += row.join(',') + "\r\n";
         });
 
+        // Create and trigger download link
         const encodedUri = encodeURI(csvContent);
-        const link = document.createElement('a'); link.setAttribute('href', encodedUri); link.setAttribute('download', `car_logbook_${new Date().toISOString().slice(0,10)}.csv`);
-        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        const link = document.createElement('a'); 
+        link.setAttribute('href', encodedUri); 
+        link.setAttribute('download', `car_logbook_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link); 
+        link.click(); 
+        document.body.removeChild(link);
+        
         showModal('ดาวน์โหลดสำเร็จ!', 'ไฟล์ CSV ถูกดาวน์โหลดไปยังเครื่องของคุณแล้ว');
-    } catch (err) { showModal('ข้อผิดพลาด', `ไม่สามารถดาวน์โหลดข้อมูลได้: ${err.message}`); }
+    } catch (err) { 
+        console.error("Download failed:", err);
+        showModal('ข้อผิดพลาด', `ไม่สามารถดาวน์โหลดข้อมูลได้: ${err.message}`); 
+    }
     finally { downloadBtn.disabled = false; downloadBtn.textContent = originalText; }
 });
 
-initFirebase(); updateDateTimeDisplay(); setInterval(updateDateTimeDisplay, 1000);
+// Initialize the app on load
+initFirebase(); 
+updateDateTimeDisplay(); 
+setInterval(updateDateTimeDisplay, 1000); // Update time every second
 
 </script>
 </body>
