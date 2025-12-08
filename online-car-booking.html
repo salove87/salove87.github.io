@@ -262,11 +262,11 @@
         // Firebase Imports (ต้องใช้ type="module" ใน script tag)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, query, onSnapshot, serverTimestamp, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, query, onSnapshot, serverTimestamp, addDoc, updateDoc, deleteDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // ***************************************************************
-        // ขั้นตอนที่ 1: กำหนดค่า Firebase Config ของคุณ (แก้ไขแล้ว)
+        // ขั้นตอนที่ 1: กำหนดค่า Firebase Config (แก้ไขแล้ว)
         // ***************************************************************
         // ค่าเหล่านี้ถูกนำมาจากข้อมูลที่คุณให้มา เพื่อให้ใช้งานบน Host ภายนอกได้
         const USER_FIREBASE_CONFIG = {
@@ -279,7 +279,7 @@
             measurementId: "G-KCPHGGCJ56"
         };
         
-        // ใช้ config จาก Canvas หรือใช้ config ที่ผู้ใช้กำหนด
+        // ใช้ config จาก Canvas (หากมี) หรือใช้ config ที่ผู้ใช้กำหนด
         const finalConfig = (typeof __firebase_config !== 'undefined' && Object.keys(JSON.parse(__firebase_config)).length > 0) 
             ? JSON.parse(__firebase_config) 
             : USER_FIREBASE_CONFIG;
@@ -310,7 +310,7 @@
         }
 
         // ฟังก์ชันสำหรับจัดรูปแบบวันที่/เวลา
-        function formatDateTime(isoString) {
+        function formatDateTime(isoString, includeTime = true) {
             if (!isoString) return 'N/A';
             try {
                  // ถ้าเป็น Firestore Timestamp Object (จาก serverTimestamp)
@@ -319,11 +319,16 @@
                  }
 
                  const date = new Date(isoString);
-                 return date.toLocaleDateString('th-TH', { 
+                 const options = { 
                      year: 'numeric', month: 'short', day: 'numeric', 
-                     hour: '2-digit', minute: '2-digit', 
-                     hour12: false 
-                 }) + ' น.';
+                 };
+                 if (includeTime) {
+                     options.hour = '2-digit';
+                     options.minute = '2-digit';
+                     options.hour12 = false;
+                 }
+                 
+                 return date.toLocaleDateString('th-TH', options) + (includeTime ? ' น.' : '');
             } catch (e) {
                 console.error("Date formatting error:", e);
                 return 'รูปแบบวันที่ไม่ถูกต้อง';
@@ -400,6 +405,8 @@
                         <span class="font-medium">เริ่ม:</span> ${formatDateTime(booking.startTime)} 
                         <span class="mx-2 text-gray-500">ถึง</span> 
                         <span class="font-medium">สิ้นสุด:</span> ${formatDateTime(booking.endTime)}
+                        <span class="mx-2 text-gray-400">|</span> 
+                        <span class="font-medium">จองเมื่อ:</span> ${formatDateTime(booking.bookingDate, true)}
                     </p>
                 `;
                 bookingsList.appendChild(bookingItem);
@@ -498,6 +505,53 @@
             return true;
         }
 
+        // --- CONFLICT CHECKER FUNCTION ---
+        function isTimeConflicting(newStart, newEnd, existingStart, existingEnd) {
+            const newStartTime = new Date(newStart).getTime();
+            const newEndTime = new Date(newEnd).getTime();
+            const existingStartTime = new Date(existingStart).getTime();
+            const existingEndTime = new Date(existingEnd).getTime();
+
+            // Conflict if:
+            // The new period and existing period overlap (they are not disjoint)
+            // (New starts before existing ends AND New ends after existing starts)
+            return (newStartTime < existingEndTime && newEndTime > existingStartTime);
+        }
+
+        async function checkForConflict(newStart, newEnd, carType) {
+            // ดึงรายการจองปัจจุบันทั้งหมดจาก Firestore (ใช้ getDocs สำหรับตรวจสอบ ณ ขณะนั้น)
+            const publicCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'company_bookings');
+            try {
+                const snapshot = await getDocs(query(publicCollectionRef));
+                const existingBookings = snapshot.docs.map(doc => doc.data());
+
+                const conflictingBooking = existingBookings.find(booking => {
+                    // ตรวจสอบเฉพาะรถประเภทเดียวกัน และรายการที่ยัง "ไม่เสร็จสิ้น"
+                    const status = getUsageStatus(booking.startTime, booking.endTime).status;
+                    if (booking.carType === carType && (status === 'ยังไม่ได้ใช้งาน' || status === 'กำลังใช้')) {
+                        return isTimeConflicting(newStart, newEnd, booking.startTime, booking.endTime);
+                    }
+                    return false;
+                });
+
+                if (conflictingBooking) {
+                    const carName = conflictingBooking.carType === 'almera' ? 'Nissan Almera' : 'รถ EV (ไฟฟ้า)';
+                    // MODIFIED MESSAGE
+                    const conflictDetails = `จองซ้ำซ้อน ไม่สามารถทำรายการได้! รถ ${carName} ถูกจองแล้วโดย ${conflictingBooking.bookerName} (แผนก ${conflictingBooking.bookerDepartment}) ในช่วงเวลา ${formatDateTime(conflictingBooking.startTime)} ถึง ${formatDateTime(conflictingBooking.endTime)} กรุณาเลือกเวลาอื่น`;
+                    showAlert(conflictDetails, 'error');
+                    return true;
+                }
+                return false;
+
+            } catch (error) {
+                console.error("Error during conflict check:", error);
+                showAlert(`เกิดข้อผิดพลาดในการตรวจสอบการจองซ้ำซ้อน: ${error.message}`, 'error');
+                return true; // Assume conflict if check fails to prevent accidental double-booking
+            }
+        }
+        // --- END: CONFLICT CHECKER FUNCTION ---
+
+
         // --- EDIT MODAL FUNCTIONS ---
         const editModal = document.getElementById('editModal');
         const editBookingForm = document.getElementById('editBookingForm');
@@ -557,6 +611,24 @@
                      showAlert('ไม่พบรายการจองนี้ในระบบ', 'error');
                      return;
                 }
+
+                // *** MODIFIED: Check for conflict BEFORE saving edit ***
+                // Temporarily remove the booking being edited from the conflict check
+                const bookingsExcludingCurrent = latestPublicBookings.filter(b => b.id !== bookingId);
+                
+                const isConflicting = bookingsExcludingCurrent.some(booking => {
+                    const status = getUsageStatus(booking.startTime, booking.endTime).status;
+                    if (booking.carType === existingBooking.carType && (status === 'ยังไม่ได้ใช้งาน' || status === 'กำลังใช้')) {
+                        return isTimeConflicting(newStartTime, newEndTime, booking.startTime, booking.endTime);
+                    }
+                    return false;
+                });
+
+                if (isConflicting) {
+                    showAlert('การแก้ไขนี้ซ้ำซ้อนกับรายการจองอื่น กรุณาตรวจสอบตารางเวลา', 'error');
+                    return; // Stop execution
+                }
+                // *** END MODIFIED ***
 
                 // Prepare updated data
                 const updatedData = {
@@ -649,9 +721,25 @@
         
         // การตั้งค่า Firebase และ Listener
         
+        // ค่าเหล่านี้ถูกนำมาจากข้อมูลที่คุณให้มา เพื่อให้ใช้งานบน Host ภายนอกได้
+        const USER_FIREBASE_CONFIG_DATA = {
+            apiKey: "AIzaSyAgTPzz6xqCOVYgWUK0z8-978qKUoDvTy8",
+            authDomain: "onlinecarbooking-b623d.firebaseapp.com",
+            projectId: "onlinecarbooking-b623d",
+            storageBucket: "onlinecarbooking-b623d.firebasestorage.app",
+            messagingSenderId: "39587745476",
+            appId: "1:39587745476:web:30be6ad23ac47bc3c5c391",
+            measurementId: "G-KCPHGGCJ56"
+        };
+        
+        // ใช้ config จาก Canvas หรือใช้ config ที่ผู้ใช้กำหนด
+        const finalConfigForInit = (typeof __firebase_config !== 'undefined' && Object.keys(JSON.parse(__firebase_config)).length > 0) 
+            ? JSON.parse(__firebase_config) 
+            : USER_FIREBASE_CONFIG_DATA;
+
         // ตรวจสอบว่า config มีค่าที่ถูกต้องก่อน init (ตรวจสอบว่าไม่ใช่ค่า placeholder)
-        if (finalConfig.projectId && finalConfig.projectId !== 'YOUR_PROJECT_ID_HERE') {
-            app = initializeApp(finalConfig);
+        if (finalConfigForInit.projectId && finalConfigForInit.projectId !== 'YOUR_PROJECT_ID_HERE') {
+            app = initializeApp(finalConfigForInit);
             db = getFirestore(app);
             auth = getAuth(app);
 
@@ -711,18 +799,27 @@
 
                 const startTimeISO = document.getElementById('startTime').value;
                 const endTimeISO = document.getElementById('endTime').value;
+                const carType = document.querySelector('input[name="carType"]:checked')?.value || 'almera';
                 const submitButton = e.submitter;
 
                 // 1. ตรวจสอบความถูกต้องของวันที่/เวลา
                 if (!validateDates(startTimeISO, endTimeISO)) {
                     return;
                 }
+                
+                // *** NEW: ตรวจสอบการจองซ้ำซ้อน ***
+                if (await checkForConflict(startTimeISO, endTimeISO, carType)) {
+                    // ข้อความแจ้งเตือนถูกแสดงภายใน checkForConflict
+                    return; 
+                }
+                // *** END NEW ***
+
 
                 // 2. รวบรวมข้อมูลฟอร์ม
                 const formData = {
                     startTime: startTimeISO,
                     endTime: endTimeISO,
-                    carType: document.querySelector('input[name="carType"]:checked')?.value || 'almera',
+                    carType: carType, // ใช้ค่าที่ตรวจสอบแล้ว
                     purpose: document.getElementById('purpose').value,
                     
                     bookerName: document.getElementById('bookerName').value,
@@ -767,3 +864,4 @@
     </script>
 </body>
 </html>
+
