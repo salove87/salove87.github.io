@@ -265,11 +265,29 @@
         import { getFirestore, collection, query, onSnapshot, serverTimestamp, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // ตัวแปรส่วนกลางสำหรับ Firebase และข้อมูลผู้ใช้
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        // ***************************************************************
+        // ขั้นตอนที่ 1: กำหนดค่า Firebase Config ของคุณ (แก้ไขแล้ว)
+        // ***************************************************************
+        // ค่าเหล่านี้ถูกนำมาจากข้อมูลที่คุณให้มา เพื่อให้ใช้งานบน Host ภายนอกได้
+        const USER_FIREBASE_CONFIG = {
+            apiKey: "AIzaSyAgTPzz6xqCOVYgWUK0z8-978qKUoDvTy8",
+            authDomain: "onlinecarbooking-b623d.firebaseapp.com",
+            projectId: "onlinecarbooking-b623d",
+            storageBucket: "onlinecarbooking-b623d.firebasestorage.app",
+            messagingSenderId: "39587745476",
+            appId: "1:39587745476:web:30be6ad23ac47bc3c5c391",
+            measurementId: "G-KCPHGGCJ56"
+        };
+        
+        // ใช้ config จาก Canvas หรือใช้ config ที่ผู้ใช้กำหนด
+        const finalConfig = (typeof __firebase_config !== 'undefined' && Object.keys(JSON.parse(__firebase_config)).length > 0) 
+            ? JSON.parse(__firebase_config) 
+            : USER_FIREBASE_CONFIG;
 
+        // ตัวแปรส่วนกลางสำหรับ Firebase และข้อมูลผู้ใช้
+        const appId = typeof __app_id !== 'undefined' ? __app_id : finalConfig.projectId || 'default-app-id';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
         // ตั้งค่าระดับการล็อกของ Firestore
         setLogLevel('Debug');
 
@@ -630,8 +648,10 @@
         // --- INITIALIZATION ---
         
         // การตั้งค่า Firebase และ Listener
-        if (Object.keys(firebaseConfig).length > 0) {
-            app = initializeApp(firebaseConfig);
+        
+        // ตรวจสอบว่า config มีค่าที่ถูกต้องก่อน init (ตรวจสอบว่าไม่ใช่ค่า placeholder)
+        if (finalConfig.projectId && finalConfig.projectId !== 'YOUR_PROJECT_ID_HERE') {
+            app = initializeApp(finalConfig);
             db = getFirestore(app);
             auth = getAuth(app);
 
@@ -661,9 +681,13 @@
             });
 
         } else {
-            // กรณีไม่มี Firebase Config
+            // กรณีไม่มี Firebase Config ที่ถูกต้อง
             document.getElementById('userIdDisplay').textContent = "User ID: ไม่สามารถระบุได้ (ขาด Firebase Config)";
-            document.getElementById('publicLoadingIndicator').textContent = "ไม่สามารถเชื่อมต่อ Firebase ได้ กรุณาตรวจสอบการตั้งค่า";
+            document.getElementById('publicLoadingIndicator').textContent = "ไม่สามารถเชื่อมต่อ Firebase ได้ กรุณาใส่ config ในโค้ด";
+            
+            // ปิดการใช้งานปุ่ม Submit
+            const submitBtn = document.getElementById('submitButton');
+            if(submitBtn) submitBtn.disabled = true;
         }
 
         // Event Listener สำหรับการอัปเดตสถานะการใช้งานทุก 10 วินาที
@@ -679,8 +703,9 @@
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
 
+                // ตรวจสอบความพร้อมของระบบก่อนส่งข้อมูล
                 if (!db || !userId) {
-                    showAlert('ระบบยังไม่พร้อมใช้งาน (User ID ไม่พร้อม) กรุณารอสักครู่', 'error');
+                    showAlert('ระบบยังไม่พร้อมใช้งาน (User ID ไม่พร้อม) กรุณารอสักครู่ หรือตรวจสอบ Firebase Config', 'error');
                     return;
                 }
 
