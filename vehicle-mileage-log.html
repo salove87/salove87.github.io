@@ -15,6 +15,9 @@
         .btn-delete:hover { transform: scale(1.05); opacity: 0.9; }
         .log-table { border-collapse: separate; border-spacing: 0 8px; }
         .log-table th, .log-table td { padding: 12px 16px; }
+        .action-btn { padding:6px 8px; border-radius:6px; font-size:0.875rem; }
+        .action-edit { background:#fff7ed; color:#92400e; border:1px solid #fcd34d; }
+        .action-delete { background:#fff1f2; color:#9f1239; border:1px solid #fecaca; }
         .warning { color:#92400e; background:#fff7ed; padding:8px; border-radius:6px; }
         .badge { display:inline-block; background:#e6fffa; color:#0f766e; padding:6px 10px; border-radius:8px; font-weight:600; margin-right:8px; }
         /* Responsive Table */
@@ -125,10 +128,11 @@
                         <th>Easy Pass (บาท)</th>
                         <th>ไมค์ออก</th>
                         <th>ไมค์เข้า</th>
-                        <th class="rounded-r-lg">ระยะทาง (กม.)</th>
+                        <th>ระยะทาง (กม.)</th>
+                        <th class="rounded-r-lg">จัดการ</th>
                     </tr>
                 </thead>
-                <tbody id="log-list"><tr><td colspan="9" class="text-center py-8">ไม่มีรายการบันทึก</td></tr></tbody>
+                <tbody id="log-list"><tr><td colspan="10" class="text-center py-8">ไม่มีรายการบันทึก</td></tr></tbody>
             </table>
         </div>
         <div id="loading-state" class="text-center py-4 text-gray-500 hidden">กำลังโหลดข้อมูล...</div>
@@ -150,7 +154,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, query, orderBy, limit, getDocs, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, doc, addDoc, deleteDoc, updateDoc, onSnapshot, collection, query, orderBy, limit, getDocs, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 const firebaseConfig = {
@@ -167,7 +171,7 @@ const COLLECTION_PATH = `/artifacts/${appId}/public/data/vehicle_logs`;
 let db, auth, userId = null, vehicleLogsRef;
 let unsubscribe = null, displayLimit = 20;
 
-const lastOdometers = { 'Nissan Almera': 77634, 'EV': 3045 };
+let lastOdometers = { 'Nissan Almera': 77634, 'EV': 3045 };
 const USE_MOCK = false; // connected to Firebase now
 const MOCK_LOGS = [
     { id: 'mock1', vehicle: 'Nissan Almera', userName: 'สมชาย', department: 'จัดส่ง', location: 'กทม. > ชลบุรี', easyPass: 50.00, odometerOut: 77634, odometerIn: 77690, clientTimestamp: new Date().toISOString() },
@@ -203,13 +207,88 @@ function formatTimestamp(timestamp){ if(!timestamp) return 'ไม่ระบ�
 function updateDateTimeDisplay(){ const now=new Date(); const options={weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:'Asia/Bangkok'}; currentDateTimeDiv.textContent=`วันที่และเวลาปัจจุบัน (ระบบ): ${now.toLocaleString('th-TH',options)} (เวลาที่บันทึกจริงจะใช้เวลาเซิร์ฟเวอร์)` }
 updateDateTimeDisplay(); setInterval(updateDateTimeDisplay,1000);
 
-function renderLogs(logs){ loadingState.classList.add('hidden'); logList.innerHTML=''; if(!logs||logs.length===0){ logList.innerHTML='<tr><td colspan="9" class="text-center py-8 text-gray-500">ไม่มีรายการบันทึก</td></tr>'; deleteLatestBtn.disabled=true; downloadBtn.disabled=true; return; } deleteLatestBtn.disabled=false; downloadBtn.disabled=false;
+// Update the lastOdometers from a list of logs (take the max odometerIn per vehicle)
+function recomputeLastOdometersFromLogs(logs){ const map = {}; logs.forEach(l=>{ if(!l || !l.vehicle) return; const inKm = Number(l.odometerIn) || 0; if(!(l.vehicle in map) || inKm > map[l.vehicle]) map[l.vehicle] = inKm; }); // fill defaults if missing
+    ['Nissan Almera','EV'].forEach(v=>{ if(!(v in map)) map[v] = lastOdometers[v] || 0; }); lastOdometers = map; updateLastOdomDisplay(); }
+
+function updateLastOdomDisplay(){ // show the current recorded last odometers
+    const parts = [];
+    for(const [k,v] of Object.entries(lastOdometers)){
+        parts.push(`${k}: ${Number(v).toLocaleString('th-TH')} กม.`);
+    }
+    lastOdomDisplay.textContent = parts.join(' • ');
+}
+updateLastOdomDisplay();
+
+function renderLogs(logs){ loadingState.classList.add('hidden'); logList.innerHTML=''; if(!logs||logs.length===0){ logList.innerHTML='<tr><td colspan="10" class="text-center py-8 text-gray-500">ไม่มีรายการบันทึก</td></tr>'; deleteLatestBtn.disabled=true; downloadBtn.disabled=true; return; } deleteLatestBtn.disabled=false; downloadBtn.disabled=false;
+    // recompute last odometers so UI reflects newest saved data
+    recomputeLastOdometersFromLogs(logs);
+
     function getLogTime(item){ try{ if(item&&item.timestamp&&typeof item.timestamp.toDate==='function') return item.timestamp.toDate().getTime(); if(item&&item.clientTimestamp){ const d=safeParseDate(item.clientTimestamp); if(d) return d.getTime(); const n=new Date(item.clientTimestamp); if(!isNaN(n)) return n.getTime(); } }catch(e){} return 0; }
     logs.sort((a,b)=>getLogTime(b)-getLogTime(a));
+
     logs.forEach(log=>{ const tr=document.createElement('tr'); tr.className='bg-gray-50 hover:bg-gray-100 transition duration-150 ease-in-out border-b border-gray-200'; const distance=(Number.isFinite(log.odometerIn)&&Number.isFinite(log.odometerOut))?Math.max(0,log.odometerIn-log.odometerOut):0; const easyPass=(log.easyPass!==undefined&&log.easyPass!==null)?Number(log.easyPass).toFixed(2):'-'; const ts=log.timestamp||log.clientTimestamp||null; const tsDisplay=formatTimestamp(ts);
-        tr.innerHTML=`<td data-label="วันที่/เวลา" class="font-medium text-gray-900">${tsDisplay}</td><td data-label="รถยนต์" class="font-semibold text-teal-700">${log.vehicle||''}</td><td data-label="ผู้ใช้งาน">${log.userName||''}</td><td data-label="แผนก">${log.department||'-'}</td><td data-label="สถานที่">${log.location||'-'}</td><td data-label="Easy Pass" class="text-right">${easyPass}</td><td data-label="ไมค์ออก" class="text-right">${(log.odometerOut??'').toLocaleString('th-TH')}</td><td data-label="ไมค์เข้า" class="text-right">${(log.odometerIn??'').toLocaleString('th-TH')}</td><td data-label="ระยะทาง (กม.)" class="font-bold text-blue-600 text-right">${distance.toLocaleString('th-TH')}</td>`;
+        // action buttons: edit / delete
+        const editBtn = `<button class="action-btn action-edit" data-id="${log.id}">แก้ไข</button>`;
+        const delBtn = `<button class="action-btn action-delete ml-2" data-id="${log.id}">ลบ</button>`;
+        tr.innerHTML=`<td data-label="วันที่/เวลา" class="font-medium text-gray-900">${tsDisplay}</td><td data-label="รถยนต์" class="font-semibold text-teal-700">${log.vehicle||''}</td><td data-label="ผู้ใช้งาน">${log.userName||''}</td><td data-label="แผนก">${log.department||'-'}</td><td data-label="สถานที่">${log.location||'-'}</td><td data-label="Easy Pass" class="text-right">${easyPass}</td><td data-label="ไมค์ออก" class="text-right">${(log.odometerOut??'').toLocaleString('th-TH')}</td><td data-label="ไมค์เข้า" class="text-right">${(log.odometerIn??'').toLocaleString('th-TH')}</td><td data-label="ระยะทาง (กม.)" class="font-bold text-blue-600 text-right">${distance.toLocaleString('th-TH')}</td><td data-label="จัดการ" class="text-right">${editBtn}${delBtn}</td>`;
         logList.appendChild(tr);
-    }); }
+    });
+
+    // Attach event listeners for newly created buttons
+    document.querySelectorAll('.action-delete').forEach(btn=>{ btn.addEventListener('click', async (e)=>{ const id = btn.getAttribute('data-id'); if(!id) return; const confirmed = confirm('ยืนยันการลบรายการนี้?'); if(!confirmed) return; try{ if(USE_MOCK){ const idx = MOCK_LOGS.findIndex(x=>String(x.id)===String(id)); if(idx>=0){ MOCK_LOGS.splice(idx,1); renderLogs(MOCK_LOGS); showModal('สำเร็จ','ลบข้อมูลเรียบร้อย'); } } else { await deleteDoc(doc(db, COLLECTION_PATH, id)); showModal('สำเร็จ','ลบข้อมูลเรียบร้อย'); } } catch(err){ console.error('delete failed',err); showModal('ข้อผิดพลาด', `ไม่สามารถลบได้: ${err.message}`); } }); });
+
+    document.querySelectorAll('.action-edit').forEach(btn=>{ btn.addEventListener('click', async (e)=>{ const id = btn.getAttribute('data-id'); if(!id) return; // find record
+            let record = null;
+            if(USE_MOCK) record = MOCK_LOGS.find(x=>String(x.id)===String(id));
+            else {
+                // fetch single doc
+                try{ const q = query(collection(db, COLLECTION_PATH), orderBy('timestamp','desc'), limit(displayLimit)); // fallback if needed
+                }catch(e){}
+            }
+            // Build simple edit modal
+            const editModal = document.createElement('div'); editModal.className='fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-[9999]';
+            editModal.innerHTML = `
+                <div class="bg-white p-6 rounded-lg shadow-2xl max-w-md w-full">
+                    <h3 class="text-xl font-bold mb-3 text-gray-800">แก้ไขรายการ (ID: ${id.substring(0,8)})</h3>
+                    <div class="space-y-2">
+                        <label class="block text-sm">ผู้ใช้งาน</label>
+                        <input id="edit-user" class="w-full p-2 border rounded" value="${(record?.userName)||''}" />
+                        <label class="block text-sm">แผนก</label>
+                        <input id="edit-dept" class="w-full p-2 border rounded" value="${(record?.department)||''}" />
+                        <label class="block text-sm">สถานที่</label>
+                        <input id="edit-loc" class="w-full p-2 border rounded" value="${(record?.location)||''}" />
+                        <label class="block text-sm">Easy Pass</label>
+                        <input id="edit-easy" type="number" step="0.25" class="w-full p-2 border rounded" value="${(record?.easyPass)||''}" />
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><label class="block text-sm">ไมค์ออก</label><input id="edit-out" type="number" class="w-full p-2 border rounded" value="${(record?.odometerOut)||''}" /></div>
+                            <div><label class="block text-sm">ไมค์เข้า</label><input id="edit-in" type="number" class="w-full p-2 border rounded" value="${(record?.odometerIn)||''}" /></div>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex justify-end space-x-2"><button id="cancel-edit" class="px-4 py-2 bg-gray-200 rounded">ยกเลิก</button><button id="save-edit" class="px-4 py-2 bg-teal-500 text-white rounded">บันทึก</button></div>
+                </div>
+            `;
+            document.body.appendChild(editModal);
+            document.getElementById('cancel-edit').onclick = ()=>{ editModal.remove(); };
+            document.getElementById('save-edit').onclick = async ()=>{
+                const newUser = document.getElementById('edit-user').value.trim();
+                const newDept = document.getElementById('edit-dept').value.trim();
+                const newLoc = document.getElementById('edit-loc').value.trim();
+                const newEasy = parseFloat(document.getElementById('edit-easy').value) || 0;
+                const newOut = parseInt(document.getElementById('edit-out').value,10);
+                const newIn = parseInt(document.getElementById('edit-in').value,10);
+                if(isNaN(newOut) || isNaN(newIn)){ alert('กรุณากรอกไมค์ให้ถูกต้อง'); return; }
+                if(newIn < newOut){ alert('ไมค์เข้า ต้อง >= ไมค์ออก'); return; }
+                try{
+                    if(USE_MOCK){ const idx = MOCK_LOGS.findIndex(x=>String(x.id)===String(id)); if(idx>=0){ MOCK_LOGS[idx] = { ...MOCK_LOGS[idx], userName:newUser, department:newDept, location:newLoc, easyPass:newEasy, odometerOut:newOut, odometerIn:newIn }; renderLogs(MOCK_LOGS); }
+                    } else {
+                        await updateDoc(doc(db, COLLECTION_PATH, id), { userName:newUser, department:newDept, location:newLoc, easyPass:newEasy, odometerOut:newOut, odometerIn:newIn, clientTimestamp:new Date().toISOString() });
+                    }
+                    editModal.remove(); showModal('สำเร็จ','แก้ไขข้อมูลเรียบร้อย');
+                } catch(err){ console.error('update failed',err); showModal('ข้อผิดพลาด', `ไม่สามารถแก้ไขได้: ${err.message}`); }
+            };
+    }); });
+}
 
 // Firebase init + auth
 async function initFirebase(){ try{ setLogLevel('debug'); const app = initializeApp(firebaseConfig); db = getFirestore(app); auth = getAuth(app);
@@ -248,7 +327,7 @@ form.addEventListener('submit', async (e)=>{ e.preventDefault(); hideFormError()
     } catch(err){ console.error('Firestore addDoc failed:', err); showFormError(`ข้อผิดพลาดในการบันทึก: ${err.message}`); showModal('ข้อผิดพลาดในการบันทึก', `ไม่สามารถบันทึกข้อมูลได้: ${err.message} โปรดตรวจสอบ Firebase Security Rules.`); } finally { submitBtn.disabled = false; submitBtn.textContent = 'บันทึกข้อมูลการใช้รถ'; }
 });
 
-// Delete latest
+// Delete latest (keeps existing function)
 deleteLatestBtn.addEventListener('click', async ()=>{
     if(!db && !USE_MOCK) return; deleteLatestBtn.disabled = true; const originalText = deleteLatestBtn.textContent; deleteLatestBtn.textContent = 'กำลังลบ...';
     try{
@@ -261,25 +340,25 @@ deleteLatestBtn.addEventListener('click', async ()=>{
     } catch(err){ console.error('Firestore delete failed:', err); showModal('ข้อผิดพลาด', `ไม่สามารถลบรายการได้: ${err.message}`); } finally { deleteLatestBtn.disabled = false; deleteLatestBtn.textContent = originalText; }
 });
 
-// Download CSV
+// Download CSV (fixed BOM/newline)
 downloadBtn.addEventListener('click', async ()=>{
     if(!db && !USE_MOCK) return; downloadBtn.disabled = true; const originalText = downloadBtn.textContent; downloadBtn.textContent = 'กำลังเตรียมไฟล์...';
     try{
         let logs = [];
         if(USE_MOCK) logs = MOCK_LOGS.slice();
-        else { const q = query(collection(db, COLLECTION_PATH), orderBy('timestamp','asc')); const querySnapshot = await getDocs(q); if(querySnapshot.empty){ showModal('ไม่มีข้อมูล', 'ไม่มีข้อมูลบันทึกให้ดาวน์โหลด'); return; } querySnapshot.forEach(docSnap => logs.push(docSnap.data())); }
+        else { const q = query(collection(db, COLLECTION_PATH), orderBy('timestamp','asc')); const querySnapshot = await getDocs(q); if(querySnapshot.empty){ showModal('ไม่มีข้อมูล', 'ไม่มีข้อมูลบันทึกให้ดาวน์โหลด'); downloadBtn.disabled = false; downloadBtn.textContent = originalText; return; } querySnapshot.forEach(docSnap => logs.push(docSnap.data())); }
 
         const headers = ["ID บันทึก","วันที่/เวลา","รถยนต์","ผู้ใช้งาน","แผนก","สถานที่","Easy Pass (บาท)","ไมค์ออก (กม.)","ไมค์เข้า (กม.)","ระยะทาง (กม.)"];
-        const csvEscape = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
-        const rows = [headers.map(csvEscape)];
+        const rows = [headers];
         logs.forEach(log => {
             const timestampStr = formatTimestamp(log.timestamp || log.clientTimestamp);
             const distance = (log.odometerIn ?? 0) - (log.odometerOut ?? 0);
             const row = [ log.userId ? String(log.userId).substring(0,8) : (log.id ? String(log.id).substring(0,8) : '-'), timestampStr, log.vehicle ?? '', log.userName ?? '', log.department ?? '', log.location ?? '', (log.easyPass ?? ''), (log.odometerOut ?? ''), (log.odometerIn ?? ''), distance ];
-            rows.push(row.map(csvEscape));
+            rows.push(row);
         });
 
-        const csvString = '\uFEFF' + rows.map(r => r.join(',')).join('\r\n');
+        // Build CSV with BOM and CRLF safely
+        const csvString = '\uFEFF' + rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');
         const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a'); link.setAttribute('href', url); link.setAttribute('download', `car_logbook_${new Date().toISOString().slice(0,10)}.csv`);
@@ -294,6 +373,8 @@ if(USE_MOCK){ renderLogs(MOCK_LOGS); authStatus.textContent = 'โหมดท�
 </script>
 </body>
 </html>
+
+
 
 
 
