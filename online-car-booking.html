@@ -343,46 +343,12 @@
             bookingsList.innerHTML = ''; // Clear previous list
             latestPublicBookings = bookings; // อัปเดตข้อมูลล่าสุด
 
-            if (!Array.isArray(bookings) || bookings.length === 0) {
+            if (bookings.length === 0) {
                 bookingsList.innerHTML = `<p class="text-gray-500 text-center p-4 bg-gray-50 rounded-lg">ยังไม่มีรายการจองในระบบ</p>`;
                 return;
             }
 
-            // Normalize timestamps (handle Firestore Timestamp objects)
-            function toMillis(t) {
-                if (!t) return 0;
-                try {
-                    if (typeof t === 'object' && typeof t.toDate === 'function') return t.toDate().getTime();
-                    return new Date(t).getTime();
-                } catch (e) { return 0; }
-            }
-
-            // Group bookings by status
-            const groups = { 'กำลังใช้': [], 'ยังไม่ได้ใช้งาน': [], 'เสร็จสิ้น': [] };
-            bookings.forEach(b => {
-                const st = getUsageStatus(b.startTime, b.endTime).status;
-                if (!groups[st]) groups[st] = [];
-                groups[st].push(b);
-            });
-
-            // Sort each group by startTime ascending
-            Object.keys(groups).forEach(k => {
-                groups[k].sort((a, b) => toMillis(a.startTime) - toMillis(b.startTime));
-            });
-
-            // Decide final order: if any 'กำลังใช้' exist -> ['กำลังใช้','ยังไม่ได้ใช้งาน','เสร็จสิ้น']
-            // otherwise -> ['ยังไม่ได้ใช้งาน','กำลังใช้','เสร็จสิ้น']
-            const hasActive = groups['กำลังใช้'] && groups['กำลังใช้'].length > 0;
-            const order = hasActive ? ['กำลังใช้','ยังไม่ได้ใช้งาน','เสร็จสิ้น'] : ['ยังไม่ได้ใช้งาน','กำลังใช้','เสร็จสิ้น'];
-
-            // Build final list
-            const orderedList = [];
-            order.forEach(statusKey => {
-                if (groups[statusKey] && groups[statusKey].length) orderedList.push(...groups[statusKey]);
-            });
-
-            // Render orderedList
-            orderedList.forEach(booking => {
+            bookings.forEach(booking => {
                 const { status, color } = getUsageStatus(booking.startTime, booking.endTime);
                 const isMine = booking.userId === userId;
 
@@ -391,17 +357,18 @@
                     'green': 'bg-green-100 text-green-800 border-green-500',
                     'gray': 'bg-gray-100 text-gray-800 border-gray-500'
                 };
-
+                
                 const carName = booking.carType === 'almera' ? 'Nissan Almera' : 'รถ EV (ไฟฟ้า)';
                 const borderColor = isMine ? 'border-purple-600' : statusClasses[color].replace('bg-', 'border-');
                 const backgroundColor = isMine ? 'bg-purple-50' : statusClasses[color].replace('border-l-4 border-', 'bg-');
-
+                
                 const bookingItem = document.createElement('div');
                 bookingItem.className = `p-4 border-l-4 rounded-lg shadow-md ${backgroundColor} ${borderColor}`;
 
+                // --- MODIFIED: Add Edit and Delete Buttons ---
                 let actionButtonsHtml = '';
-                // allow edit/delete only for owner and only when not started
-                if (status === 'ยังไม่ได้ใช้งาน' && isMine) {
+                // Allow actions if status is 'Not Used Yet' (color === 'blue') for ANY user
+                if (color === 'blue') { 
                     actionButtonsHtml = `
                         <button type="button" data-id="${booking.id}" data-carType="${booking.carType}" 
                             data-start="${booking.startTime}" data-end="${booking.endTime}"
@@ -416,7 +383,7 @@
                         </button>
                     `;
                 }
-
+                
                 bookingItem.innerHTML = `
                     <div class="flex justify-between items-start mb-2">
                         <span class="text-lg font-bold">${carName}</span>
@@ -427,6 +394,7 @@
                             ${actionButtonsHtml}
                         </div>
                     </div>
+                    <!-- Display Booker Name and Department -->
                     <p class="text-sm mb-1 text-gray-700">
                         <strong>ผู้จอง:</strong> <span class="font-semibold text-gray-800">${booking.bookerName || 'N/A'}</span> 
                         <span class="text-gray-500 mx-2">|</span> 
@@ -443,7 +411,7 @@
                 `;
                 bookingsList.appendChild(bookingItem);
             });
-
+            
             // Re-attach event listeners for newly rendered buttons
             document.querySelectorAll('.edit-booking-btn').forEach(button => {
                 button.addEventListener('click', openEditModal);
@@ -764,4 +732,135 @@
             measurementId: "G-KCPHGGCJ56"
         };
         
-        // ใช้ config จ
+        // ใช้ config จาก Canvas หรือใช้ config ที่ผู้ใช้กำหนด
+        const finalConfigForInit = (typeof __firebase_config !== 'undefined' && Object.keys(JSON.parse(__firebase_config)).length > 0) 
+            ? JSON.parse(__firebase_config) 
+            : USER_FIREBASE_CONFIG_DATA;
+
+        // ตรวจสอบว่า config มีค่าที่ถูกต้องก่อน init (ตรวจสอบว่าไม่ใช่ค่า placeholder)
+        if (finalConfigForInit.projectId && finalConfigForInit.projectId !== 'YOUR_PROJECT_ID_HERE') {
+            app = initializeApp(finalConfigForInit);
+            db = getFirestore(app);
+            auth = getAuth(app);
+
+            const initializeAuth = async () => {
+                try {
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Firebase Auth Error:", error);
+                }
+            };
+
+            // ตรวจสอบสถานะการยืนยันตัวตน
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    userId = user.uid;
+                    document.getElementById('userIdDisplay').textContent = `User ID: ${userId}`;
+                    setupPublicFirestoreListener(); 
+                } else {
+                    if (!userId) {
+                        initializeAuth();
+                    }
+                }
+            });
+
+        } else {
+            // กรณีไม่มี Firebase Config ที่ถูกต้อง
+            document.getElementById('userIdDisplay').textContent = "User ID: ไม่สามารถระบุได้ (ขาด Firebase Config)";
+            document.getElementById('publicLoadingIndicator').textContent = "ไม่สามารถเชื่อมต่อ Firebase ได้ กรุณาใส่ config ในโค้ด";
+            
+            // ปิดการใช้งานปุ่ม Submit
+            const submitBtn = document.getElementById('submitButton');
+            if(submitBtn) submitBtn.disabled = true;
+        }
+
+        // Event Listener สำหรับการอัปเดตสถานะการใช้งานทุก 10 วินาที
+        setInterval(() => {
+            if (latestPublicBookings.length > 0) {
+                renderPublicBookings(latestPublicBookings);
+            }
+        }, 10000); 
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('bookingForm');
+            
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                // ตรวจสอบความพร้อมของระบบก่อนส่งข้อมูล
+                if (!db || !userId) {
+                    showAlert('ระบบยังไม่พร้อมใช้งาน (User ID ไม่พร้อม) กรุณารอสักครู่ หรือตรวจสอบ Firebase Config', 'error');
+                    return;
+                }
+
+                const startTimeISO = document.getElementById('startTime').value;
+                const endTimeISO = document.getElementById('endTime').value;
+                const carType = document.querySelector('input[name="carType"]:checked')?.value || 'almera';
+                const submitButton = e.submitter;
+
+                // 1. ตรวจสอบความถูกต้องของวันที่/เวลา
+                if (!validateDates(startTimeISO, endTimeISO)) {
+                    return;
+                }
+                
+                // *** NEW: ตรวจสอบการจองซ้ำซ้อน ***
+                if (await checkForConflict(startTimeISO, endTimeISO, carType)) {
+                    // ข้อความแจ้งเตือนถูกแสดงภายใน checkForConflict
+                    return; 
+                }
+                // *** END NEW ***
+
+
+                // 2. รวบรวมข้อมูลฟอร์ม
+                const formData = {
+                    startTime: startTimeISO,
+                    endTime: endTimeISO,
+                    carType: carType, // ใช้ค่าที่ตรวจสอบแล้ว
+                    purpose: document.getElementById('purpose').value,
+                    
+                    bookerName: document.getElementById('bookerName').value,
+                    bookerDepartment: document.getElementById('bookerDepartment').value,
+
+                    bookingDate: serverTimestamp(), // วันที่จอง (Timestamp จาก server)
+                    userId: userId // เพิ่ม userId เพื่อระบุผู้จองใน Public List
+                };
+
+                // 3. ปิดปุ่มและแสดงสถานะโหลด
+                submitButton.disabled = true;
+                submitButton.textContent = 'กำลังบันทึก...';
+                submitButton.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+                submitButton.classList.add('bg-gray-400', 'cursor-not-allowed');
+
+                try {
+                    // 4. บันทึกข้อมูลลงใน Firestore (Dual Write: บันทึกทั้งส่วนตัวและส่วนกลาง)
+                    const privateCollectionRef = collection(db, 'artifacts', appId, 'users', userId, 'bookings');
+                    const publicCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'company_bookings');
+                    
+                    // 4a. บันทึกส่วนตัว (เพื่อให้เจ้าของดูประวัติได้)
+                    await addDoc(privateCollectionRef, formData);
+
+                    // 4b. บันทึกส่วนกลาง (เพื่อแสดงใน "ตารางการจองรวมของบริษัท")
+                    await addDoc(publicCollectionRef, formData); 
+
+                    // 5. แสดงข้อความสำเร็จ
+                    showAlert('การจองรถสำเร็จ! ข้อมูลได้ปรากฏในตารางรวมแล้ว', 'success');
+                    form.reset(); // ล้างฟอร์ม
+                } catch (error) {
+                    console.error("Error adding document: ", error);
+                    showAlert(`เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${error.message}`, 'error');
+                } finally {
+                    // 6. คืนค่าปุ่ม
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'ยืนยันการจอง';
+                    submitButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                    submitButton.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
