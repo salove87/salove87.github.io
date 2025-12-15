@@ -354,48 +354,81 @@
     });
     empId.addEventListener('blur', ()=>autofillNameFromEmpId(empId.value));
 
-    // ===== Validation =====
-    const HOLIDAYS = new Set([]);
-    function isWeekendOrHoliday(iso){
-      if(!iso) return false;
-      const d = new Date(iso + 'T00:00:00');
-      const day = d.getDay();
-      return day === 0 || day === 6 || HOLIDAYS.has(iso);
+  // ===== Validation =====
+// อนุญาตลาได้: จันทร์–เสาร์ และวันนักขัตฤกษ์
+// ❌ ห้ามเฉพาะวันอาทิตย์
+
+const HOLIDAYS = new Set([
+  // ใส่วันนักขัตฤกษ์ได้ตามต้องการ (ไม่บล็อกการลา)
+  // '2026-01-01',
+]);
+
+function isDisallowedSubmitDate(iso){
+  if(!iso) return false;
+  const d = new Date(iso + 'T00:00:00');
+  return d.getDay() === 0; // 0 = อาทิตย์
+}
+
+function normalizeLeaveDays(val){
+  const t = String(val ?? '').trim();
+  if(!t) return '';
+  return /วัน$/.test(t) ? t : (t + ' วัน');
+}
+
+function validateRow(values){
+  const errors = [];
+  const warnings = [];
+  const v = { ...values };
+
+  const required = [
+    'empId','empName','department','leaveType',
+    'startDate','endDate','leaveDays',
+    'reason','approver','submitDate'
+  ];
+  required.forEach(k=>{
+    if(!String(v[k] ?? '').trim())
+      errors.push(`กรุณากรอก ${k}`);
+  });
+
+  const s = new Date(v.startDate + 'T00:00:00');
+  const e = new Date(v.endDate + 'T00:00:00');
+  if(isNaN(s) || isNaN(e))
+    errors.push('รูปแบบวันที่ไม่ถูกต้อง');
+  else if(e < s)
+    errors.push('ช่วงวันที่ไม่ถูกต้อง (สิ้นสุดก่อนเริ่ม)');
+
+  // ❗ ห้ามส่งใบลาเฉพาะวันอาทิตย์
+  if(isDisallowedSubmitDate(v.submitDate))
+    errors.push('ห้ามส่งใบลาในวันอาทิตย์');
+
+  // ลาพักร้อนต้องยื่นล่วงหน้าอย่างน้อย 1 วัน
+  if(v.leaveType === 'ลาพักร้อน' && !isNaN(s)){
+    const sub = new Date(v.submitDate + 'T00:00:00');
+    const diffDays = (s - sub) / 86400000;
+    if(diffDays < 1){
+      v.leaveType = 'ลากิจ';
+      warnings.push(
+        'ส่งลาพักร้อนย้อนหลัง/วันเดียวกัน ระบบแปลงเป็น "ลากิจ"'
+      );
     }
-    function normalizeLeaveDays(val){
-      const t = String(val ?? '').trim();
-      if(!t) return '';
-      return /วัน$/.test(t) ? t : (t + ' วัน');
-    }
-    function fmtTS(ts){
-      try{ if(ts?.toDate) return ts.toDate().toLocaleString('th-TH',{hour12:false}); }catch{}
-      try{ return new Date(ts).toLocaleString('th-TH',{hour12:false}); }catch{}
-      return '';
-    }
-    function validateRow(values){
-      const errors = [];
-      const warnings = [];
-      const v = { ...values };
-      const required = ['empId','empName','department','leaveType','startDate','endDate','leaveDays','reason','approver','submitDate'];
-      required.forEach(k=>{ if(!String(v[k] ?? '').trim()) errors.push(`กรุณากรอก ${k}`); });
-      const s = new Date(v.startDate + 'T00:00:00');
-      const e = new Date(v.endDate + 'T00:00:00');
-      if(isNaN(s) || isNaN(e)) errors.push('รูปแบบวันที่ไม่ถูกต้อง');
-      else if(e < s) errors.push('ช่วงวันที่ไม่ถูกต้อง (สิ้นสุดก่อนเริ่ม)');
-      if(isWeekendOrHoliday(v.submitDate)) errors.push('ห้ามส่งใบลาในวันหยุด');
-      if(v.leaveType === 'ลาพักร้อน' && !isNaN(s)){
-        const sub = new Date(v.submitDate + 'T00:00:00');
-        const diffDays = (s - sub)/86400000;
-        if(diffDays < 1){
-          v.leaveType = 'ลากิจ';
-          warnings.push('ส่งลาพักร้อนย้อนหลัง/วันเดียวกัน ระบบแปลงเป็น "ลากิจ"');
-        }
-      }
-      const daysNum = parseFloat(String(v.leaveDays).replace(' วัน',''));
-      if(isNaN(daysNum) || daysNum < 0.5) errors.push('จำนวนวันขั้นต่ำ 0.5 วัน');
-      v.leaveDays = normalizeLeaveDays(daysNum);
-      return { ok: errors.length === 0, errors, warnings, value: v };
-    }
+  }
+
+  const daysNum = parseFloat(
+    String(v.leaveDays).replace(' วัน','')
+  );
+  if(isNaN(daysNum) || daysNum < 0.5)
+    errors.push('จำนวนวันขั้นต่ำ 0.5 วัน');
+
+  v.leaveDays = normalizeLeaveDays(daysNum);
+
+  return {
+    ok: errors.length === 0,
+    errors,
+    warnings,
+    value: v
+  };
+}
+
 
     // ===== Storage drivers (Firestore / Local fallback) =====
     function explainFirestoreError(err){
@@ -570,3 +603,4 @@
   </script>
 </body>
 </html>
+
