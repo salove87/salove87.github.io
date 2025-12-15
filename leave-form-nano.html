@@ -428,6 +428,18 @@ function validateRow(values){
     value: v
   };
 }
+// ===== Format Timestamp (จำเป็นต่อการแสดงผลตาราง) =====
+function fmtTS(ts){
+  try{
+    if(ts?.toDate){
+      return ts.toDate().toLocaleString('th-TH', { hour12:false });
+    }
+  }catch(e){}
+  try{
+    return new Date(ts).toLocaleString('th-TH', { hour12:false });
+  }catch(e){}
+  return '';
+}
 
 
     // ===== Storage drivers (Firestore / Local fallback) =====
@@ -603,4 +615,5 @@ function validateRow(values){
   </script>
 </body>
 </html>
+
 
