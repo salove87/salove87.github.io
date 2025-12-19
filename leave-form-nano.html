@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>แบบฟอร์มใบลา 2026 (พร้อมแนบไฟล์) - บริษัท นาโน มิเรอร์ อินดัสทรี้ จำกัด</title>
+  <title>แบบฟอร์มใบลา 2026 (พร้อมแนบไฟล์ & คุมโควตา) - บริษัท นาโน มิเรอร์ อินดัสทรี้ จำกัด</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     .toast{position:fixed;bottom:20px;right:20px;color:#fff;padding:10px 20px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.15);opacity:0;transform:translateY(20px);transition:opacity .3s ease,transform .3s ease;z-index:50}
@@ -16,7 +16,6 @@
     .btn{display:inline-flex;align-items:center;gap:.5rem}
     .img-preview-container { text-align: center; margin-top: 10px; }
     .img-preview { max-width: 100%; max-height: 400px; border-radius: 8px; border: 1px solid #ddd; }
-    /* Error border class */
     .input-error { border-color: #dc2626 !important; background-color: #fef2f2 !important; }
   </style>
 </head>
@@ -42,7 +41,7 @@
       </ul>
     </div>
 
-    <!-- FORM: Added 'novalidate' to disable default browser validation -->
+    <!-- FORM -->
     <form id="leaveForm" class="space-y-4" novalidate>
       <div>
         <label class="block text-gray-700">รหัสพนักงาน</label>
@@ -72,7 +71,7 @@
         </select>
       </div>
 
-      <!-- ส่วนแนบไฟล์ (แสดงเมื่อเลือก ลาป่วยมีใบรับรองแพทย์) -->
+      <!-- ส่วนแนบไฟล์ -->
       <div id="fileUploadSection" class="hidden bg-blue-50 p-3 rounded-lg border border-blue-200">
         <label class="block text-blue-800 font-semibold mb-2">📎 แนบรูปถ่ายใบรับรองแพทย์</label>
         <input type="file" id="fileInput" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
@@ -159,7 +158,6 @@
       <label>จำนวนวันลา:</label>
       <input type="number" step="0.5" min="0.5" id="editDays" class="w-full p-2 border rounded mb-2">
       
-      <!-- Edit Image Section -->
       <div id="editImageSection" class="mt-2 mb-2 p-2 bg-gray-100 rounded">
         <label class="text-sm font-bold">เปลี่ยนรูปภาพ/หลักฐาน:</label>
         <input type="file" id="editFileInput" accept="image/*" class="w-full text-xs mt-1">
@@ -189,7 +187,7 @@
     </div>
   </div>
 
-  <!-- PASSWORD MODAL (DELETE) -->
+  <!-- PASSWORD MODAL -->
   <div id="passwordModal" class="modal">
     <div class="modal-content">
       <h3 class="text-lg font-bold mb-3">🔒 ใส่รหัสผ่านฝ่ายบุคคลเพื่อยืนยันการลบ</h3>
@@ -206,9 +204,9 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+    // Added 'where' to Firestore imports for filtering
+    import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, getDocs, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 
-    // ==== Firebase Config ====
     const firebaseConfig = {
       apiKey: "AIzaSyB9Gzqb2sgYdhg0G5_ivc_GemeQp0yUy8Y",
       authDomain: "leave-form-cd603.firebaseapp.com",
@@ -219,7 +217,6 @@
       measurementId: "G-V9Z02K9LT6"
     };
 
-    // === Toast ===
     const toast = document.getElementById('toast');
     function showToast(message, type = 'success') {
       toast.textContent = message;
@@ -229,7 +226,6 @@
     }
     window.addEventListener('error', (e)=>{ showToast(`⚠️ JS Error: ${e.message}`, 'error'); });
 
-    // === App Init ===
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
@@ -259,7 +255,6 @@
       return iso;
     }
 
-    // Elements
     const form = document.getElementById('leaveForm');
     const leaveTable = document.getElementById('leaveTable');
     const downloadCSVBtn = document.getElementById('downloadCSV');
@@ -276,7 +271,6 @@
     const approver = document.getElementById('approver');
     const submitDate = document.getElementById('submitDate');
     
-    // File Upload Elements
     const fileUploadSection = document.getElementById('fileUploadSection');
     const fileInput = document.getElementById('fileInput');
     const previewImage = document.getElementById('previewImage');
@@ -285,29 +279,27 @@
     submitDate.setAttribute('readonly','readonly');
 
     const HR_PASSWORD = '303647';
+    const MAX_VACATION_DAYS = 6; // Limit for Vacation Leave
     
-    // Image View Modal Elements
     const imageModal = document.getElementById('imageModal');
     const modalImageDisplay = document.getElementById('modalImageDisplay');
     const closeImageModal = document.getElementById('closeImageModal');
 
-    // Toggle File Upload Section based on Leave Type
     leaveType.addEventListener('change', () => {
       if(leaveType.value === 'ลาป่วยมีใบรับรองแพทย์') {
         fileUploadSection.classList.remove('hidden');
       } else {
         fileUploadSection.classList.add('hidden');
-        fileInput.value = ''; // Reset file if hidden
+        fileInput.value = ''; 
         previewImage.classList.add('hidden');
         previewImage.src = '';
       }
     });
 
-    // Handle File Selection (Preview & Validation)
     fileInput.addEventListener('change', function() {
       const file = this.files[0];
       if (file) {
-        if(file.size > 10 * 1024 * 1024) { // Limit 10MB input before compress
+        if(file.size > 10 * 1024 * 1024) { 
              alert("ไฟล์ใหญ่เกินไป กรุณาเลือกไฟล์อื่น");
              this.value = '';
              return;
@@ -324,7 +316,6 @@
       }
     });
 
-    // ===== Image Compression Utility =====
     function compressImage(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -470,24 +461,14 @@
     });
     empId.addEventListener('blur', ()=>autofillNameFromEmpId(empId.value));
 
-    // ===== UI Helpers for Validation =====
-    function clearInputError(input){
-        input.classList.remove('input-error');
-    }
-    
-    function addInputError(input){
-        input.classList.add('input-error');
-        // Add animation shake? Optional.
-    }
-    
-    // Clear errors on input
+    function clearInputError(input){ input.classList.remove('input-error'); }
+    function addInputError(input){ input.classList.add('input-error'); }
     const inputs = form.querySelectorAll('input, select, textarea');
     inputs.forEach(input => {
         input.addEventListener('input', () => clearInputError(input));
         input.addEventListener('change', () => clearInputError(input));
     });
 
-    // ===== Validation =====
     function isDisallowedSubmitDate(iso){
       if(!iso) return false;
       const d = new Date(iso + 'T00:00:00');
@@ -504,9 +485,8 @@
       const errors = [];
       const warnings = [];
       const v = { ...values };
-      const invalidFields = []; // Store IDs of invalid fields
+      const invalidFields = []; 
 
-      // Field Name Mapping for Thai Error Messages & DOM IDs
       const fieldConfig = {
         empId: { label: 'รหัสพนักงาน', id: 'empId' },
         empName: { label: 'ชื่อ-นามสกุล', id: 'empName' },
@@ -520,7 +500,6 @@
         submitDate: { label: 'วันที่ส่งใบลา', id: 'submitDate' }
       };
 
-      // Check Required Fields
       Object.keys(fieldConfig).forEach(k=>{ 
           if(!String(v[k] ?? '').trim()) {
               errors.push(`กรุณากรอก "${fieldConfig[k].label}" ให้ครบถ้วน`);
@@ -528,9 +507,8 @@
           }
       });
 
-      // --- Year Validation (Prevent 0020, 2569 etc) ---
-      const minYear = 2024; // Allow recent past
-      const maxYear = 2100; // Reasonable future cap
+      const minYear = 2024; 
+      const maxYear = 2100; 
       
       const checkYear = (dateStr, fieldId, label) => {
           if(!dateStr) return;
@@ -539,7 +517,6 @@
               errors.push(`ปีของ "${label}" ผิดปกติ (ต่ำกว่า ${minYear})`);
               invalidFields.push(fieldId);
           } else if (y > maxYear) {
-              // Likely Buddhist Era input (e.g., 2569)
               if(y > 2400 && y < 2600) {
                    errors.push(`ปีของ "${label}" กรุณากรอกเป็น ค.ศ. (เช่น ${y-543})`);
               } else {
@@ -551,20 +528,10 @@
 
       checkYear(v.startDate, 'startDate', 'วันที่เริ่มลา');
       checkYear(v.endDate, 'endDate', 'วันที่สิ้นสุดลา');
-      // --------------------------------------------------
 
       const s = new Date(v.startDate + 'T00:00:00');
       const e = new Date(v.endDate + 'T00:00:00');
       
-      // Specifically check valid dates if not empty
-      if(v.startDate && isNaN(s.getTime())) {
-          // Note: checkYear usually catches the 0020 case, but logic flow might still hit this if JS parses 0020 as valid Date object
-          // So we rely on checkYear for year range, and this for generic Invalid Date
-      }
-      if(v.endDate && isNaN(e.getTime())) {
-           // Same here
-      }
-
       if(!isNaN(s.getTime()) && !isNaN(e.getTime()) && e < s) {
           errors.push('ช่วงวันที่ไม่ถูกต้อง (สิ้นสุดก่อนเริ่ม)');
           invalidFields.push('startDate');
@@ -603,14 +570,14 @@
 
     function explainFirestoreError(err){
       const code = err?.code || '';
-      const map = { 'permission-denied': 'สิทธิ์ไม่พอ (Firestore Rules บล็อก)', 'unauthenticated': 'ยังไม่ได้ล็อกอิน', 'unavailable': 'เครือข่ายขัดข้อง' };
+      const map = { 'permission-denied': 'สิทธิ์ไม่พอ', 'unauthenticated': 'ยังไม่ได้ล็อกอิน', 'unavailable': 'เครือข่ายขัดข้อง' };
       return map[code] || (err?.message || 'ไม่ทราบสาเหตุ');
     }
 
-    const isSecureOrigin = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
     const LS_KEY = 'leave-requests:nano';
     function lsLoad(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||'[]'); }catch{ return []; } }
     function lsSave(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
+    
     function makeLocalDriver(){
       let listeners = [];
       function notify(){ listeners.forEach(fn => fn(lsLoad())); }
@@ -621,16 +588,19 @@
         async create(payload){ const data = lsLoad(); const row = { id: crypto.randomUUID(), ...payload, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }; data.unshift(row); lsSave(data); notify(); return { id: row.id }; },
         async update(id, payload){ const data = lsLoad(); const i = data.findIndex(x=>x.id===id); if(i<0) throw new Error('ไม่พบข้อมูล'); data[i] = { ...data[i], ...payload, updatedAt: new Date().toISOString() }; lsSave(data); notify(); },
         async remove(id){ const data = lsLoad().filter(x=>x.id!==id); lsSave(data); notify(); },
-        async getAll(){ return lsLoad(); } // For CSV
+        async getAll(){ return lsLoad(); },
+        // Add getEmployeeHistory for local storage
+        async getEmployeeHistory(id){ 
+             const all = lsLoad(); 
+             return all.filter(x => x.empId === id);
+        }
       };
     }
     
-    // === OPTIMIZED FIRESTORE DRIVER ===
     function makeFirestoreDriver(){
       const colRef = collection(db, 'leave_requests');
       return {
         kind: 'firestore',
-        // Update: Limit snapshot to last 50 items for performance
         subscribe(onData, onError){ 
             const q = query(colRef, orderBy('createdAt','desc'), limit(50)); 
             return onSnapshot(q, snap => { onData(snap.docs.map(d => ({ id: d.id, ...d.data() }))); }, err => onError?.(err)); 
@@ -638,16 +608,24 @@
         async create(payload){ return addDoc(colRef, { ...payload, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }); },
         async update(id, payload){ return updateDoc(doc(db, 'leave_requests', id), { ...payload, updatedAt: serverTimestamp() }); },
         async remove(id){ return deleteDoc(doc(db, 'leave_requests', id)); },
-        // New: Fetch ALL data for CSV (One-time fetch)
         async getAll(){ 
              const q = query(colRef, orderBy('createdAt','desc'));
              const snap = await getDocs(q);
              return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        },
+        // ADDED: Fetch specific employee history
+        async getEmployeeHistory(id){
+             // Query by empId to get history
+             const q = query(colRef, where('empId', '==', id));
+             const snap = await getDocs(q);
+             return snap.docs.map(d => d.data());
         }
       };
     }
 
     let driver = null; let unsubscribe = null; let cache = [];
+    const isSecureOrigin = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
     function attachSubscription(){
       if(unsubscribe) try{ unsubscribe(); }catch{}
       unsubscribe = driver.subscribe(rows => { cache = rows; renderTable(); }, (err)=>{
@@ -663,20 +641,16 @@
       .catch(err=>{ console.error(err); driver = makeLocalDriver(); attachSubscription(); showToast('ใช้โหมด Local แทน','error'); });
     }
 
-    // ===== Render Table =====
     function renderTable(){
       leaveTable.innerHTML = '';
       cache.forEach(row => {
         const tr = document.createElement('tr');
-        
-        // Define columns
         const cols = [
             { t: row.empId || '-', c: 'text-center' },
             { t: row.empName || '', c: '' },
             { t: row.leaveType || '', c: '' },
         ];
         
-        // Attachment Column
         const tdImg = document.createElement('td');
         tdImg.className = 'p-3 text-center';
         if (row.attachment) {
@@ -692,7 +666,6 @@
             tdImg.textContent = '-';
         }
 
-        // Rest of columns
         const cols2 = [
             { t: fmtDateDMY(row.startDate) || '', c: 'text-center' },
             { t: fmtDateDMY(row.endDate) || '', c: 'text-center' },
@@ -701,13 +674,11 @@
             { t: fmtDateDMY(row.submitDate) || '', c: 'text-center' },
         ];
 
-        // Action Column
         const tdActions = document.createElement('td'); tdActions.className='p-3 text-center';
         const btnEdit = document.createElement('button'); btnEdit.className='text-blue-600 hover:text-blue-800 underline mr-2'; btnEdit.textContent='✏️'; btnEdit.dataset.action='edit'; btnEdit.dataset.id=row.id;
         const btnDel = document.createElement('button'); btnDel.className='text-red-600 hover:text-red-800 underline'; btnDel.textContent='🗑️'; btnDel.dataset.action='delete'; btnDel.dataset.id=row.id;
         tdActions.appendChild(btnEdit); tdActions.appendChild(btnDel);
 
-        // Append All
         cols.forEach(x => { const td=document.createElement('td'); td.className=`p-3 ${x.c}`; td.textContent=x.t; tr.appendChild(td); });
         tr.appendChild(tdImg);
         cols2.forEach(x => { const td=document.createElement('td'); td.className=`p-3 ${x.c}`; td.textContent=x.t; tr.appendChild(td); });
@@ -717,7 +688,6 @@
       });
     }
 
-    // Modal Close
     closeImageModal.onclick = () => { imageModal.style.display = 'none'; };
     window.onclick = (e) => {
         if(e.target === imageModal) imageModal.style.display = 'none';
@@ -725,15 +695,13 @@
         if(e.target === passwordModal) passwordModal.style.display = 'none';
     };
 
-    // ===== Submit with Image Compression =====
     form.addEventListener('submit', async (e)=>{
       e.preventDefault();
       
       const submitBtn = document.getElementById('submitBtn');
       submitBtn.disabled = true;
-      submitBtn.textContent = 'กำลังบันทึก...';
+      submitBtn.textContent = 'กำลังตรวจสอบ...';
 
-      // Clear all previous visual errors
       form.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
 
       try {
@@ -754,14 +722,13 @@
             approver: approver.value.trim(),
             submitDate: submitDate.value,
             systemTime: systemTimeEl.value,
-            attachment: attachmentBase64 // Add compressed image string
+            attachment: attachmentBase64
         };
 
         const { ok, errors, warnings, value, invalidFields } = validateRow(row);
         
         if(!ok){ 
-            showToast('❌ พบข้อผิดพลาด: ' + errors[0], 'error'); // Show first error prominently
-            // Highlight all invalid fields
+            showToast('❌ พบข้อผิดพลาด: ' + errors[0], 'error'); 
             if(invalidFields && invalidFields.length > 0){
                 invalidFields.forEach(id => {
                     const el = document.getElementById(id);
@@ -772,10 +739,38 @@
             return; 
         }
 
+        // === Vacation Leave Quota Check ===
+        if (value.leaveType === 'ลาพักร้อน') {
+            const history = await driver.getEmployeeHistory(value.empId);
+            
+            // Check specific year based on start date
+            const reqYear = parseInt(value.startDate.split('-')[0]);
+            
+            // Calculate used days for this year
+            let usedDays = 0;
+            history.forEach(h => {
+                if (h.leaveType === 'ลาพักร้อน' && h.startDate && h.startDate.startsWith(String(reqYear))) {
+                    const d = parseFloat(String(h.leaveDays).replace(' วัน','')) || 0;
+                    usedDays += d;
+                }
+            });
+
+            const requesting = parseFloat(String(value.leaveDays).replace(' วัน','')) || 0;
+            
+            if (usedDays + requesting > MAX_VACATION_DAYS) {
+                 showToast(`❌ ลาพักร้อนเกินโควตา (ใช้ไป ${usedDays}, ขอเพิ่ม ${requesting}, รวม ${usedDays+requesting} > ${MAX_VACATION_DAYS} วัน)`, 'error');
+                 submitBtn.disabled = false; 
+                 submitBtn.textContent = 'ส่งใบลา';
+                 return; // Stop submission
+            }
+        }
+        // ==================================
+
+        submitBtn.textContent = 'กำลังบันทึก...';
         await driver.create(value);
         
         form.reset();
-        fileUploadSection.classList.add('hidden'); // hide upload
+        fileUploadSection.classList.add('hidden'); 
         previewImage.classList.add('hidden');
         submitDate.value = todayISO();
         
@@ -794,7 +789,6 @@
       }
     });
 
-    // ===== Edit / Delete =====
     const editModal = document.getElementById('editModal');
     const editStart = document.getElementById('editStart');
     const editEnd = document.getElementById('editEnd');
@@ -822,8 +816,7 @@
         const currentDays = String(cache[idx].leaveDays || '').replace(' วัน','');
         editDays.value = currentDays || 1;
 
-        // Show current image in edit modal if exists
-        editFileInput.value = ''; // Reset file input
+        editFileInput.value = ''; 
         if(cache[idx].attachment){
             editCurrentImg.src = cache[idx].attachment;
             editCurrentImgContainer.classList.remove('hidden');
@@ -835,7 +828,6 @@
 
         saveEdit.onclick = async ()=>{
           let newAttachment = cache[idx].attachment;
-          // Check if new file uploaded in edit
           if(editFileInput.files.length > 0){
               try {
                   saveEdit.textContent = 'กำลังอัปโหลด...';
@@ -855,8 +847,6 @@
               attachment: newAttachment
           };
           
-          // Reuse validation but we need to mock other fields since we only edit date/days
-          // Better: Merge with existing to validate full row
           const fullRow = { ...cache[idx], ...upd };
           const { ok, errors, warnings, value } = validateRow(fullRow);
           
@@ -889,7 +879,6 @@
       }
     });
 
-    // ===== CSV export =====
     function csvEscape(value){ const s = String(value ?? '').replace(/"/g,'""'); return '"' + s + '"'; }
     function generateCSV(data){
       const rows = [[ 'รหัส','ชื่อพนักงาน','ประเภทการลา','มีไฟล์แนบ','เริ่ม','สิ้นสุด','จำนวนวัน','เหตุผลการลา','ผู้อนุมัติ','วันที่ส่งใบลา','เวลาที่ส่ง' ]];
@@ -904,10 +893,7 @@
       try {
           csvLoading.classList.remove('hidden');
           downloadCSVBtn.disabled = true;
-          
-          // Fetch ALL data for CSV (bypass limit)
           const allData = await driver.getAll();
-          
           const csv = generateCSV(allData);
           const blob = new Blob(["\ufeff"+csv], {type:'text/csv;charset=utf-8;'});
           const url = URL.createObjectURL(blob);
@@ -923,3 +909,4 @@
   </script>
 </body>
 </html>
+
