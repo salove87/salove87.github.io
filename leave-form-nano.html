@@ -678,7 +678,12 @@
         const cols2 = [
             { t: fmtDateDMY(row.startDate) || '', c: 'text-center' },
             { t: fmtDateDMY(row.endDate) || '', c: 'text-center' },
-            { t: row.leaveDays || '', c: 'text-center' },
+{ 
+  t: row.leaveDays 
+     ? row.leaveDays + (row.halfDayPeriod ? ` (${row.halfDayPeriod})` : '')
+     : '', 
+  c: 'text-center' 
+},
             { t: row.approver || '', c: 'text-center' },
             { t: fmtDateDMY(row.submitDate) || '', c: 'text-center' },
         ];
@@ -919,6 +924,7 @@
   </script>
 </body>
 </html>
+
 
 
 
