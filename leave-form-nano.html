@@ -89,19 +89,24 @@
           <input type="date" id="endDate" class="w-full p-2 border rounded-lg transition-colors" required>
         </div>
       </div>
-      <div>
-        <label class="block text-gray-700">จำนวนวันลา</label>
-        <input type="number" step="0.5" min="0.5" id="leaveDays" class="w-full p-2 border rounded-lg transition-colors" placeholder="เช่น 0.5, 1, 1.5" required>
-      </div>
-     <div>
-  <label class="block text-gray-700">กรณีลาครึ่งวัน</label>
-  <select id="halfDayPeriod" class="w-full p-2 border rounded-lg">
-    <option value="">ไม่ระบุ</option>
-    <option value="เช้า">ครึ่งวันเช้า</option>
-    <option value="บ่าย">ครึ่งวันบ่าย</option>
-  </select>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div>
+    <label class="block text-gray-700">จำนวนวันลา</label>
+    <input type="number" step="0.5" min="0.5" id="leaveDays"
+      class="w-full p-2 border rounded-lg transition-colors">
+  </div>
+
+  <div>
+    <label class="block text-gray-700">กรณีลาครึ่งวัน</label>
+    <select id="halfDayPeriod"
+      class="w-full p-2 border rounded-lg transition-colors">
+      <option value="">ไม่ระบุ</option>
+      <option value="เช้า">ครึ่งวันเช้า</option>
+      <option value="บ่าย">ครึ่งวันบ่าย</option>
+    </select>
+  </div>
 </div>
-</div>
+
       <div>
         <label class="block text-gray-700">เหตุผลการลา</label>
         <textarea id="reason" rows="3" class="w-full p-2 border rounded-lg transition-colors" required></textarea>
@@ -924,6 +929,7 @@
   </script>
 </body>
 </html>
+
 
 
 
