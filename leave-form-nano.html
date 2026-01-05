@@ -93,13 +93,14 @@
         <label class="block text-gray-700">จำนวนวันลา</label>
         <input type="number" step="0.5" min="0.5" id="leaveDays" class="w-full p-2 border rounded-lg transition-colors" placeholder="เช่น 0.5, 1, 1.5" required>
       </div>
-      <div id="halfDaySection" class="hidden">
-  <label class="block text-gray-700">ช่วงเวลาการลา (กรณีครึ่งวัน)</label>
+     <div>
+  <label class="block text-gray-700">กรณีลาครึ่งวัน</label>
   <select id="halfDayPeriod" class="w-full p-2 border rounded-lg">
-    <option value="">-- เลือกช่วงเวลา --</option>
+    <option value="">ไม่ระบุ</option>
     <option value="เช้า">ครึ่งวันเช้า</option>
     <option value="บ่าย">ครึ่งวันบ่าย</option>
   </select>
+</div>
 </div>
       <div>
         <label class="block text-gray-700">เหตุผลการลา</label>
@@ -917,5 +918,6 @@
   </script>
 </body>
 </html>
+
 
 
