@@ -732,6 +732,7 @@
             submitDate: submitDate.value,
             systemTime: systemTimeEl.value,
             attachment: attachmentBase64
+            halfDayPeriod: document.getElementById('halfDayPeriod').value || '',
         };
 
         const { ok, errors, warnings, value, invalidFields } = validateRow(row);
@@ -918,6 +919,7 @@
   </script>
 </body>
 </html>
+
 
 
 
