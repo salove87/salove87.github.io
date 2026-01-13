@@ -172,7 +172,12 @@
       <input type="date" id="editEnd" class="w-full p-2 border rounded mb-2">
       <label>จำนวนวันลา:</label>
       <input type="number" step="0.5" min="0.5" id="editDays" class="w-full p-2 border rounded mb-2">
-      
+      <label class="mt-2 block">กรณีลาครึ่งวัน:</label>
+<select id="editHalfDayPeriod" class="w-full p-2 border rounded mb-2">
+  <option value="">กรุณาระบุ</option>
+  <option value="เช้า">ครึ่งวันเช้า</option>
+  <option value="บ่าย">ครึ่งวันบ่าย</option>
+</select>
       <div id="editImageSection" class="mt-2 mb-2 p-2 bg-gray-100 rounded">
         <label class="text-sm font-bold">เปลี่ยนรูปภาพ/หลักฐาน:</label>
         <input type="file" id="editFileInput" accept="image/*" class="w-full text-xs mt-1">
@@ -836,7 +841,7 @@
         editEnd.value = cache[idx].endDate || '';
         const currentDays = String(cache[idx].leaveDays || '').replace(' วัน','');
         editDays.value = currentDays || 1;
-
+        document.getElementById('editHalfDayPeriod').value = cache[idx].halfDayPeriod || '';
         editFileInput.value = ''; 
         if(cache[idx].attachment){
             editCurrentImg.src = cache[idx].attachment;
@@ -861,12 +866,13 @@
           }
 
           const upd = { 
-              startDate: editStart.value, 
-              endDate: editEnd.value, 
-              leaveDays: editDays.value, 
-              submitDate: cache[idx].submitDate,
-              attachment: newAttachment
-          };
+            startDate: editStart.value, 
+            endDate: editEnd.value, 
+            leaveDays: editDays.value, 
+            halfDayPeriod: document.getElementById('editHalfDayPeriod').value || '',
+            submitDate: cache[idx].submitDate,
+            attachment: newAttachment
+            };
           
           const fullRow = { ...cache[idx], ...upd };
           const { ok, errors, warnings, value } = validateRow(fullRow);
@@ -930,6 +936,7 @@
   </script>
 </body>
 </html>
+
 
 
 
