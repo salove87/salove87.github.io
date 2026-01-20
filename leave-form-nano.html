@@ -912,11 +912,27 @@
 
     function csvEscape(value){ const s = String(value ?? '').replace(/"/g,'""'); return '"' + s + '"'; }
     function generateCSV(data){
-      const rows = [[ 'รหัส','ชื่อพนักงาน','ประเภทการลา','มีไฟล์แนบ','เริ่ม','สิ้นสุด','จำนวนวัน','เหตุผลการลา','ผู้อนุมัติ','วันที่ส่งใบลา','เวลาที่ส่ง' ]];
+     const rows = [[
+  'รหัส','ชื่อพนักงาน','แผนก','ประเภทการลา','มีไฟล์แนบ',
+  'เริ่ม','สิ้นสุด','จำนวนวัน','เหตุผลการลา',
+  'ผู้อนุมัติ','วันที่ส่งใบลา','เวลาที่ส่ง'
+]];
       data.forEach(r=>{ 
         const hasFile = r.attachment ? "มีแนบไฟล์" : "ไม่มี";
-        rows.push([ r.empId||'', r.empName||'', r.leaveType||'', hasFile, r.startDate||'', r.endDate||'', r.leaveDays||'', r.reason||'', r.approver||'', r.submitDate||'', r.systemTime||'' ]); 
-      });
+        rows.push([
+  r.empId||'',
+  r.empName||'',
+  r.department||'',      // ✅ เพิ่มตรงนี้
+  r.leaveType||'',
+  hasFile,
+  r.startDate||'',
+  r.endDate||'',
+  r.leaveDays||'',
+  r.reason||'',
+  r.approver||'',
+  r.submitDate||'',
+  r.systemTime||''
+]);
       return rows.map(cols => cols.map(csvEscape).join(',')).join('\n');
     }
 
@@ -940,6 +956,7 @@
   </script>
 </body>
 </html>
+
 
 
 
