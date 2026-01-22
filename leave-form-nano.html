@@ -17,6 +17,17 @@
     .img-preview-container { text-align: center; margin-top: 10px; }
     .img-preview { max-width: 100%; max-height: 400px; border-radius: 8px; border: 1px solid #ddd; }
     .input-error { border-color: #dc2626 !important; background-color: #fef2f2 !important; }
+    .new-blink {
+  font-size: 0.75rem;        /* ตัวเล็ก */
+  color: #dc2626;            /* แดงสุภาพ */
+  margin-left: 4px;
+  animation: blink 1.2s infinite;
+}
+
+@keyframes blink {
+  0%, 50%, 100% { opacity: 1; }
+  25%, 75% { opacity: 0.3; }
+}
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col items-center p-6">
@@ -674,26 +685,21 @@
             { t: row.empName || '', c: '' },
            {
   t: (() => {
-    let label = row.leaveType || '';
+    let text = row.leaveType || '';
 
-    // === NEW 8 ชั่วโมง ===
-    if (row.createdAt && row.leaveDays) {
-      const created =
-        row.createdAt.toDate
-          ? row.createdAt.toDate()
-          : new Date(row.createdAt);
+    if (row.createdAt) {
+      const created = row.createdAt.toDate
+        ? row.createdAt.toDate()
+        : new Date(row.createdAt);
 
       const diffHr = (Date.now() - created.getTime()) / 36e5;
-      const days = parseFloat(String(row.leaveDays).replace(' วัน', ''));
 
-      if (diffHr <= 24 && days === 1) {
-        label += ' ';
-        label += '🆕';
-        label += '<span class="ml-1 text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">NEW 8 ชม.</span>';
+      if (diffHr <= 24) {
+        text += ' <span class="new-blink">ใหม่</span>';
       }
     }
 
-    return label;
+    return text;
   })(),
   c: '',
   html: true
@@ -996,6 +1002,7 @@ function generateCSV(data){
   </script>
 </body>
 </html>
+
 
 
 
