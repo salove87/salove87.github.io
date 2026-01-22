@@ -672,7 +672,32 @@
         const cols = [
             { t: row.empId || '-', c: 'text-center' },
             { t: row.empName || '', c: '' },
-            { t: row.leaveType || '', c: '' },
+           {
+  t: (() => {
+    let label = row.leaveType || '';
+
+    // === NEW 8 ชั่วโมง ===
+    if (row.createdAt && row.leaveDays) {
+      const created =
+        row.createdAt.toDate
+          ? row.createdAt.toDate()
+          : new Date(row.createdAt);
+
+      const diffHr = (Date.now() - created.getTime()) / 36e5;
+      const days = parseFloat(String(row.leaveDays).replace(' วัน', ''));
+
+      if (diffHr <= 24 && days === 1) {
+        label += ' ';
+        label += '🆕';
+        label += '<span class="ml-1 text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">NEW 8 ชม.</span>';
+      }
+    }
+
+    return label;
+  })(),
+  c: '',
+  html: true
+},
         ];
         
         const tdImg = document.createElement('td');
@@ -708,7 +733,8 @@
         const btnDel = document.createElement('button'); btnDel.className='text-red-600 hover:text-red-800 underline'; btnDel.textContent='🗑️'; btnDel.dataset.action='delete'; btnDel.dataset.id=row.id;
         tdActions.appendChild(btnEdit); tdActions.appendChild(btnDel);
 
-        cols.forEach(x => { const td=document.createElement('td'); td.className=`p-3 ${x.c}`; td.textContent=x.t; tr.appendChild(td); });
+        cols.forEach(x => { const td=document.createElement('td'); td.className=`p-3 ${x.c}`; if (x.html) td.innerHTML = x.t;
+else td.textContent = x.t;; tr.appendChild(td); });
         tr.appendChild(tdImg);
         cols2.forEach(x => { const td=document.createElement('td'); td.className=`p-3 ${x.c}`; td.textContent=x.t; tr.appendChild(td); });
         tr.appendChild(tdActions);
@@ -970,6 +996,7 @@ function generateCSV(data){
   </script>
 </body>
 </html>
+
 
 
 
