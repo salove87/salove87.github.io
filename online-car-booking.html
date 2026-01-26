@@ -20,6 +20,28 @@
     <div class="max-w-4xl mx-auto bg-white shadow-2xl rounded-xl p-6 md:p-10 lg:p-12 mt-8">
         <header class="mb-8 text-center">
             <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-800 mb-2">🚗 ระบบจองรถบริษัท</h1>
+            <!-- 🔔 ประกาศสถานะรถ -->
+<div class="mb-6 rounded-xl border border-orange-300 bg-orange-50 p-4 shadow-sm">
+  <div class="flex items-start gap-3">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-orange-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M13 16h-1v-4h-1m1-4h.01M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+
+    <div>
+      <p class="font-semibold text-orange-800">
+        ประกาศแจ้งให้ทราบ
+      </p>
+      <p class="text-sm text-orange-700 mt-1">
+        รถยนต์ <span class="font-semibold">นิสสัน (Nissan Almera)</span>
+        อยู่ระหว่างการซ่อมบำรุง
+        <br class="hidden sm:block">
+        ขอความร่วมมือ <span class="font-semibold">งดเลือกใช้งานรถคันนี้เป็นการชั่วคราว</span>
+        จนกว่าจะมีประกาศแจ้งอีกครั้ง
+      </p>
+    </div>
+  </div>
+</div>
             <p id="userIdDisplay" class="text-sm text-gray-500 mb-4 break-words">User ID: กำลังโหลด...</p>
             <p class="text-gray-500">กรุณาจองรถด้านล่าง และตรวจสอบตารางการจองรวม</p>
         </header>
@@ -451,5 +473,6 @@
     </script>
 </body>
 </html>
+
 
 
