@@ -595,7 +595,7 @@ if(isNaN(daysNum) || daysNum < 0.5) {
 
 // ❌ ห้ามสร้างใบลาใหม่ ที่มีครึ่งวัน + หลายวัน
 if (!isEdit && v.halfDayPeriod && daysNum > 0.5) {
-    errors.push('กรณีลาครึ่งวัน ต้องคีย์แยก 1 วันเท่านั้น');
+    errors.push('กรณีลาครึ่งวันต่อเนื่องต้องส่งใบลาแยกกันกับเต็มวันขอบคุณค่ะ');
     invalidFields.push('leaveDays');
 }
 
@@ -1011,6 +1011,7 @@ function generateCSV(data){
   </script>
 </body>
 </html>
+
 
 
 
