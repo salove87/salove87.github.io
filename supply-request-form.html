@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>แบบฟอร์มเบิกเครื่องใช้สำนักงาน - Toolbox</title>
+    <div class="flex justify-end gap-2 mb-4">
+  <button onclick="setLanguage('th')" class="px-3 py-1 rounded bg-gray-200">
+    ไทย
+  </button>
+  <button onclick="setLanguage('my')" class="px-3 py-1 rounded bg-gray-200">
+    မြန်မာ
+  </button>
+</div>
     <!-- โค้ด Google AdSense -->
     <meta name="google-adsense-account" content="ca-pub-3455272174981579">
     <!-- Tailwind CSS CDN -->
@@ -17,6 +25,40 @@
 
     <!-- Firebase + App Code -->
     <script type="module">
+        <script>
+  const translations = {
+    th: {
+      department_label: "แผนกที่เบิก",
+      department_placeholder: "เช่น แผนกการตลาด",
+      items_label: "รายการเบิกของ",
+      items_placeholder: "เช่น กระดาษ A4 จำนวน 2 รีม",
+      requester_label: "ชื่อผู้เบิก",
+      submit_btn: "ส่งรายการเบิก"
+    },
+    my: {
+      department_label: "တောင်းခံသောဌာန",
+      department_placeholder: "ဥပမာ - စျေးကွက်ဌာန",
+      items_label: "တောင်းခံသောပစ္စည်းများ",
+      items_placeholder: "ဥပမာ - A4 စာရွက် ၂ ထုပ်",
+      requester_label: "တောင်းခံသူအမည်",
+      submit_btn: "တောင်းခံချက် ပို့မည်"
+    }
+  };
+
+  function setLanguage(lang) {
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+      el.textContent = translations[lang][el.dataset.i18n];
+    });
+
+    document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+      el.placeholder = translations[lang][el.dataset.i18nPlaceholder];
+    });
+  }
+
+  // ค่าเริ่มต้น
+  setLanguage('th');
+</script>
+
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import {
             getFirestore, collection, addDoc, onSnapshot, serverTimestamp,
@@ -296,39 +338,37 @@
         <div class="bg-white p-6 rounded-lg shadow-md mb-8">
             <form id="request-form" onsubmit="event.preventDefault(); window.handleSubmit();" class="space-y-4">
                 <div>
-                    <label for="department" class="block text-sm font-medium text-gray-700">แผนกที่เบิก</label>
-                    <input
-                        type="text" id="department"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm
-                               focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                        required placeholder="เช่น แผนกการตลาด, แผนกบัญชี"
-                    />
+                   <label
+  class="block text-sm font-medium text-gray-700"
+  data-i18n="department_label">
+  แผนกที่เบิก
+</label>
+          <input
+  type="text"
+  id="department"
+  data-i18n-placeholder="department_placeholder"
+  placeholder="เช่น แผนกการตลาด"
+/>
+
                 </div>
                 <div>
-                    <label for="items" class="block text-sm font-medium text-gray-700">รายการเบิกของ (สามารถพิมพ์ได้)</label>
-                    <textarea
-                        id="items" rows="4"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm
-                               focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                        placeholder="ตัวอย่าง: กระดาษ A4 จำนวน 2 รีม, ปากกาหมึกแห้งสีน้ำเงิน 10 ด้าม"
-                        required
-                    ></textarea>
+                 <label data-i18n="items_label">รายการเบิกของ</label>
+<textarea
+  id="items"
+  data-i18n-placeholder="items_placeholder"
+></textarea>
                 </div>
                 <div>
-                    <label for="requesterName" class="block text-sm font-medium text-gray-700">ชื่อผู้เบิก</label>
-                    <input
-                        type="text" id="requesterName"
+               <label data-i18n="requester_label">ชื่อผู้เบิก</label>
+<input type="text" id="requesterName">
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm
                                focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                         required
                     />
                 </div>
-                <button
-                    type="submit"
-                    class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white
-                           bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    ส่งรายการเบิก
-                </button>
+              <button type="submit" data-i18n="submit_btn">
+  ส่งรายการเบิก
+</button>
             </form>
         </div>
 
@@ -381,3 +421,4 @@
     </div>
 </body>
 </html>
+
