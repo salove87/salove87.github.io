@@ -587,12 +587,19 @@
         }
       }
 
-      const daysNum = parseFloat(String(v.leaveDays).replace(' วัน',''));
-      if(isNaN(daysNum) || daysNum < 0.5) {
-          errors.push('จำนวนวันขั้นต่ำ 0.5 วัน');
-          invalidFields.push('leaveDays');
-      }
-      v.leaveDays = normalizeLeaveDays(daysNum);
+const daysNum = parseFloat(String(v.leaveDays).replace(' วัน',''));
+if(isNaN(daysNum) || daysNum < 0.5) {
+    errors.push('จำนวนวันขั้นต่ำ 0.5 วัน');
+    invalidFields.push('leaveDays');
+}
+
+// ❌ ห้ามสร้างใบลาใหม่ ที่มีครึ่งวัน + หลายวัน
+if (!isEdit && v.halfDayPeriod && daysNum > 0.5) {
+    errors.push('กรณีลาครึ่งวัน ต้องคีย์แยก 1 วันเท่านั้น');
+    invalidFields.push('leaveDays');
+}
+
+v.leaveDays = normalizeLeaveDays(daysNum);
 
       return { ok: errors.length === 0, errors, warnings, value: v, invalidFields };
     }
@@ -1004,6 +1011,7 @@ function generateCSV(data){
   </script>
 </body>
 </html>
+
 
 
 
