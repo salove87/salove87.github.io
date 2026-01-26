@@ -35,6 +35,28 @@
 
 <div class="max-w-4xl mx-auto">
     <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">ระบบบันทึกการใช้รถ</h1>
+    <!-- 🔔 ประกาศสถานะรถ -->
+<div class="mb-6 rounded-xl border border-orange-300 bg-orange-50 p-4 shadow-sm">
+  <div class="flex items-start gap-3">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-orange-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M13 16h-1v-4h-1m1-4h.01M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+
+    <div>
+      <p class="font-semibold text-orange-800">
+        ประกาศแจ้งให้ทราบ
+      </p>
+      <p class="text-sm text-orange-700 mt-1">
+        รถยนต์ <span class="font-semibold">นิสสัน (Nissan Almera)</span>
+        อยู่ระหว่างการซ่อมบำรุง
+        <br class="hidden sm:block">
+        ขอความร่วมมือ <span class="font-semibold">งดเลือกใช้งานรถคันนี้เป็นการชั่วคราว</span>
+        จนกว่าจะมีประกาศแจ้งอีกครั้ง
+      </p>
+    </div>
+  </div>
+</div>
     <p id="auth-status" class="text-center text-sm text-gray-500 mb-4">กำลังเชื่อมต่อ...</p>
 
     <div id="current-date-time" class="text-center text-sm font-semibold text-teal-700 mb-6 p-2 bg-teal-50 rounded-lg shadow-inner"></div>
@@ -374,6 +396,7 @@ if(USE_MOCK){ renderLogs(MOCK_LOGS); authStatus.textContent = 'โหมดท�
 </script>
 </body>
 </html>
+
 
 
 
