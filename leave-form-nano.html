@@ -516,7 +516,7 @@
       return /วัน$/.test(t) ? t : (t + ' วัน');
     }
 
-    function validateRow(values){
+    function validateRow(values, isEdit = false){
       const errors = [];
       const warnings = [];
       const v = { ...values };
@@ -787,20 +787,21 @@ else td.textContent = x.t;; tr.appendChild(td); });
             halfDayPeriod: document.getElementById('halfDayPeriod').value || '',
         };
 
-        const { ok, errors, warnings, value, invalidFields } = validateRow(row);
-        
-        if(!ok){ 
-            showToast('❌ พบข้อผิดพลาด: ' + errors[0], 'error'); 
-            if(invalidFields && invalidFields.length > 0){
-                invalidFields.forEach(id => {
-                    const el = document.getElementById(id);
-                    if(el) addInputError(el);
-                });
-            }
-            submitBtn.disabled = false; submitBtn.textContent = 'ส่งใบลา';
-            return; 
-        }
+const { ok, errors, warnings, value, invalidFields } =
+  validateRow(row, false); // ❌ สร้างใบลาใหม่
 
+if(!ok){ 
+    showToast('❌ พบข้อผิดพลาด: ' + errors[0], 'error'); 
+    if(invalidFields && invalidFields.length > 0){
+        invalidFields.forEach(id => {
+            const el = document.getElementById(id);
+            if(el) addInputError(el);
+        });
+    }
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'ส่งใบลา';
+    return; 
+}
         // === Vacation Leave Quota Check ===
         if (value.leaveType === 'ลาพักร้อน') {
             const history = await driver.getEmployeeHistory(value.empId);
@@ -911,7 +912,8 @@ else td.textContent = x.t;; tr.appendChild(td); });
             };
           
           const fullRow = { ...cache[idx], ...upd };
-          const { ok, errors, warnings, value } = validateRow(fullRow);
+const { ok, errors, warnings, value } =
+  validateRow(fullRow, true); // ✔️ แก้ไขใบลา
           
           if(!ok){ showToast('❌ ' + errors.join(' | '), 'error'); return; }
           
@@ -1002,6 +1004,7 @@ function generateCSV(data){
   </script>
 </body>
 </html>
+
 
 
 
