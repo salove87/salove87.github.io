@@ -774,6 +774,14 @@ else td.textContent = x.t;; tr.appendChild(td); });
       form.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
 
       try {
+        // บังคับแนบใบรับรองแพทย์
+if(leaveType.value === 'ลาป่วยมีใบรับรองแพทย์' && fileInput.files.length === 0){
+    showToast('❌ กรุณาแนบใบรับรองแพทย์ก่อนส่งใบลา', 'error');
+    addInputError(fileInput);
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'ส่งใบลา';
+    return;
+}
         let attachmentBase64 = null;
         if(fileInput.files.length > 0){
             attachmentBase64 = await compressImage(fileInput.files[0]);
@@ -1012,6 +1020,7 @@ function generateCSV(data){
   </script>
 </body>
 </html>
+
 
 
 
