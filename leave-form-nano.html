@@ -846,7 +846,10 @@ if(!ok){
         // ==================================
 
         submitBtn.textContent = 'กำลังบันทึก...';
-        await driver.create(value);
+        await driver.create({
+         ...value,
+        attachment: attachmentBase64
+        });
         
         form.reset();
         fileUploadSection.classList.add('hidden'); 
@@ -1020,6 +1023,7 @@ function generateCSV(data){
   </script>
 </body>
 </html>
+
 
 
 
