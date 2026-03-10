@@ -137,7 +137,8 @@ onSnapshot(q,snap=>{
  const tr=document.createElement("tr");
  tr.className="border-b";
 
- const status=data.complete?"✅ ครบ":"⏳ รอดำเนินการ";
+ const statusText=data.complete?"✅ ครบ":"⏳ รอดำเนินการ";
+ const statusColor=data.complete?"bg-green-600":"bg-yellow-500";
 
  const time=data.timestamp?
  new Date(data.timestamp.toMillis()).toLocaleString():"-";
@@ -146,11 +147,28 @@ onSnapshot(q,snap=>{
  <td class="p-2">${data.requesterName}</td>
  <td class="p-2">${data.department}</td>
  <td class="p-2">${data.items}</td>
- <td class="p-2">
- <button class="bg-indigo-500 text-white px-2 py-1 rounded text-xs">${status}</button>
+ <td class="p-2 flex gap-2">
+ <button class="${statusColor} text-white px-2 py-1 rounded text-xs">${statusText}</button>
+ <button class="bg-blue-600 text-white px-2 py-1 rounded text-xs action-complete">✔</button>
+ <button class="bg-gray-500 text-white px-2 py-1 rounded text-xs action-pending">↺</button>
  </td>
  <td class="p-2">${time}</td>
  `;
+
+ const completeBtn=tr.querySelector(".action-complete");
+ const pendingBtn=tr.querySelector(".action-pending");
+
+ completeBtn.onclick=()=>{
+ updateDoc(doc(db,collectionPath,d.id),{
+ complete:true
+ });
+ };
+
+ pendingBtn.onclick=()=>{
+ updateDoc(doc(db,collectionPath,d.id),{
+ complete:false
+ });
+ };
 
  tableBody.appendChild(tr);
  });
@@ -262,5 +280,6 @@ document.getElementById('btn-'+l).classList.add('lang-active')
 
 </body>
 </html>
+
 
 
