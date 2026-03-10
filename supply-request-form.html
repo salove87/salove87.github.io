@@ -1,383 +1,266 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>แบบฟอร์มเบิกเครื่องใช้สำนักงาน - Toolbox</title>
-    <!-- โค้ด Google AdSense -->
-    <meta name="google-adsense-account" content="ca-pub-3455272174981579">
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>แบบฟอร์มเบิกอุปกรณ์สำนักงาน | Office Supply Request</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;600&family=Noto+Sans+Myanmar:wght@300;400;600&display=swap" rel="stylesheet">
 
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .card { background-color: white; border-radius: 0.75rem;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
-    </style>
+<style>
+body{font-family:'Noto Sans Thai','Noto Sans Myanmar',sans-serif;background:#f1f5f9}
+.card{background:white;border-radius:14px;box-shadow:0 10px 25px rgba(0,0,0,0.08)}
+.lang-btn{padding:6px 14px;border-radius:8px;border:1px solid #ddd;font-size:14px}
+.lang-active{background:#4f46e5;color:white;border-color:#4f46e5}
+</style>
 
-    <!-- Firebase + App Code -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import {
-            getFirestore, collection, addDoc, onSnapshot, serverTimestamp,
-            query, orderBy, deleteDoc, getDocs, doc, updateDoc
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-
-        // Firebase Config (แก้ storageBucket ให้ถูกต้อง)
-        const firebaseConfig = {
-          apiKey: "AIzaSyASVRfcI29rcxgzQuOC6R-CMT7X7vBWg_g",
-          authDomain: "onlinetoolbox-d7c04.firebaseapp.com",
-          projectId: "onlinetoolbox-d7c04",
-          storageBucket: "onlinetoolbox-d7c04.appspot.com",
-          messagingSenderId: "873410566683",
-          appId: "1:873410566683:web:6c7e3058085b09acb036be",
-          measurementId: "G-7XSCKFGGFG"
-        };
-
-        // รับ appId จากตัวแปร global ภายนอกได้ (ถ้าไม่มี ใช้ค่าเริ่มต้น)
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-
-        // --------- Toast Helper ---------
-        let toastTimer = null;
-        function showToast(message = 'ดำเนินการสำเร็จ', timeoutMs = 2500) {
-          const toast = document.getElementById('toast');
-          const msgEl = document.getElementById('toast-message');
-          const closeBtn = document.getElementById('toast-close');
-          if (!toast || !msgEl) return;
-
-          msgEl.textContent = message;
-          toast.classList.remove('hidden');
-          requestAnimationFrame(() => toast.classList.remove('opacity-0')); // fade-in
-
-          if (toastTimer) clearTimeout(toastTimer);
-          toastTimer = setTimeout(hideToast, timeoutMs);
-
-          if (closeBtn) {
-            closeBtn.onclick = () => {
-              if (toastTimer) clearTimeout(toastTimer);
-              hideToast();
-            };
-          }
-
-          function hideToast() {
-            toast.classList.add('opacity-0');
-            setTimeout(() => toast.classList.add('hidden'), 300); // match duration-300
-          }
-        }
-
-        // Debounce helper
-        const debounce = (fn, delay = 500) => {
-            let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
-        };
-
-        async function authenticateAndSetupListeners() {
-            try {
-                if (typeof __initial_auth_token !== 'undefined') {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-
-                const requestsCollection = collection(db, `artifacts/${appId}/public/data/supply-requests`);
-                const q = query(requestsCollection, orderBy('timestamp', 'desc'));
-
-                onSnapshot(q, (snapshot) => {
-                    const requests = snapshot.docs.map(d => {
-                        const data = d.data();
-                        return {
-                            id: d.id,
-                            requesterName: data.requesterName ?? "",
-                            department: data.department ?? "",
-                            items: data.items ?? "",
-                            complete: typeof data.complete === 'boolean' ? data.complete : false,
-                            notComplete: data.notComplete ?? "",
-                            timestamp: data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleString() : 'N/A'
-                        };
-                    });
-                    renderRequests(requests);
-                });
-            } catch (error) {
-                console.error("Firebase authentication or setup failed:", error);
-                document.getElementById('request-table-body').innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-sm text-red-500">
-                    มีปัญหาในการเชื่อมต่อกับ Firebase Authentication. โปรดตรวจสอบการตั้งค่า.
-                </td></tr>`;
-            }
-        }
-        authenticateAndSetupListeners();
-
-        function renderRequests(requests) {
-            const tableBody = document.getElementById('request-table-body');
-            tableBody.innerHTML = '';
-
-            if (requests.length === 0) {
-                const noDataRow = document.createElement('tr');
-                noDataRow.innerHTML = `<td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">ไม่มีรายการเบิกของ</td>`;
-                tableBody.appendChild(noDataRow);
-                return;
-            }
-
-            requests.forEach(req => {
-                const row = document.createElement('tr');
-                const chkId = `chk-${req.id}`;
-                const noteId = `note-${req.id}`;
-
-                row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${req.requesterName}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${req.department}</td>
-                    <td class="px-6 py-4 whitespace-pre-wrap text-sm text-gray-600">${req.items}</td>
-
-                    <td class="px-6 py-4 text-sm text-gray-700">
-                        <label class="inline-flex items-center gap-2">
-                            <input type="checkbox" id="${chkId}" ${req.complete ? 'checked' : ''} class="h-4 w-4 rounded border-gray-300">
-                            <span>ครบ</span>
-                        </label>
-                        <input
-                            type="text"
-                            id="${noteId}"
-                            placeholder="ระบุสิ่งที่ไม่ครบ"
-                            class="mt-2 block w-full rounded-md border border-gray-300 px-2 py-1 text-sm ${req.complete ? 'hidden' : ''}"
-                            value="${req.notComplete ? String(req.notComplete).replace(/"/g, '&quot;') : ''}"
-                        >
-                    </td>
-
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${req.timestamp}</td>
-                `;
-
-                tableBody.appendChild(row);
-
-                // Wiring events
-                const checkboxEl = row.querySelector(`#${chkId}`);
-                const noteEl = row.querySelector(`#${noteId}`);
-
-                // Toggle visibility & update Firestore when checkbox changes
-                checkboxEl.addEventListener('change', async () => {
-                    try {
-                        if (checkboxEl.checked) {
-                            // Hide and clear note when mark complete
-                            noteEl.classList.add('hidden');
-                            noteEl.value = '';
-                            await updateDoc(doc(db, `artifacts/${appId}/public/data/supply-requests/${req.id}`), {
-                                complete: true,
-                                notComplete: ""
-                            });
-                        } else {
-                            // Show note when mark incomplete
-                            noteEl.classList.remove('hidden');
-                            await updateDoc(doc(db, `artifacts/${appId}/public/data/supply-requests/${req.id}`), {
-                                complete: false
-                            });
-                        }
-                    } catch (e) {
-                        console.error('Error updating status:', e);
-                        alert('อัปเดตสถานะไม่สำเร็จ โปรดลองอีกครั้ง');
-                        // revert UI if failed
-                        checkboxEl.checked = !checkboxEl.checked;
-                        if (checkboxEl.checked) noteEl.classList.add('hidden'); else noteEl.classList.remove('hidden');
-                    }
-                });
-
-                // Update note with debounce
-                const debouncedSave = debounce(async (val) => {
-                    try {
-                        await updateDoc(doc(db, `artifacts/${appId}/public/data/supply-requests/${req.id}`), {
-                            notComplete: val
-                        });
-                    } catch (e) {
-                        console.error('Error updating note:', e);
-                        alert('บันทึกข้อความ “ไม่ครบ” ไม่สำเร็จ');
-                    }
-                }, 500);
-
-                noteEl.addEventListener('input', (e) => {
-                    debouncedSave(e.target.value.trim());
-                });
-            });
-        }
-
-        // ---------- Submit / Delete / Download ----------
-        window.handleSubmit = async () => {
-            const department = document.getElementById('department').value.trim();
-            const items = document.getElementById('items').value.trim();
-            const requesterName = document.getElementById('requesterName').value.trim();
-            const submitBtn = document.querySelector('#request-form button[type="submit"]');
-
-            if (!department || !items || !requesterName) {
-                alert('กรุณากรอกข้อมูลให้ครบถ้วน');
-                return;
-            }
-
-            try {
-                if (submitBtn) {
-                  submitBtn.disabled = true;
-                  submitBtn.classList.add('opacity-60', 'cursor-not-allowed');
-                }
-
-                await addDoc(collection(db, `artifacts/${appId}/public/data/supply-requests`), {
-                    department,
-                    items,
-                    requesterName,
-                    complete: false,       // ค่าเริ่มต้น
-                    notComplete: "",       // ค่าเริ่มต้น
-                    timestamp: serverTimestamp(),
-                    userId: auth.currentUser?.uid ?? null,
-                });
-
-                // เคลียร์ฟิลด์
-                document.getElementById('department').value = '';
-                document.getElementById('items').value = '';
-                document.getElementById('requesterName').value = '';
-
-                // โชว์ Toast สำเร็จ
-                showToast('ส่งคำร้องเรียบร้อย');
-            } catch (e) {
-                console.error("Error adding document: ", e);
-                alert('บันทึกรายการไม่สำเร็จ โปรดลองอีกครั้ง');
-            } finally {
-                if (submitBtn) {
-                  submitBtn.disabled = false;
-                  submitBtn.classList.remove('opacity-60', 'cursor-not-allowed');
-                }
-            }
-        };
-
-        window.handleDeleteAll = async () => {
-            const today = new Date();
-            if (today.getDate() !== 1) {
-                alert('ฟังก์ชันนี้สามารถใช้งานได้เฉพาะวันที่ 1 ของทุกเดือน');
-                return;
-            }
-            if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบรายการเบิกทั้งหมด?')) return;
-            try {
-                const requestsCollection = collection(db, `artifacts/${appId}/public/data/supply-requests`);
-                const snapshot = await getDocs(requestsCollection);
-                const deletePromises = snapshot.docs.map(d => deleteDoc(d.ref));
-                await Promise.all(deletePromises);
-                alert('ลบรายการเบิกทั้งหมดแล้ว');
-            } catch (e) {
-                console.error("Error deleting documents: ", e);
-                alert('ลบรายการไม่สำเร็จ โปรดลองอีกครั้ง');
-            }
-        };
-
-        window.handleDownload = () => {
-            const table = document.querySelector('table');
-            if (!table) {
-                alert('ไม่มีข้อมูลให้ดาวน์โหลด');
-                return;
-            }
-            const csv = [...table.rows].map(row => {
-                const cells = Array.from(row.cells).map(cell => `"${cell.textContent.trim().replace(/"/g, '""')}"`);
-                return cells.join(',');
-            }).join('\n');
-
-            const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `supply-requests-${new Date().toLocaleDateString('th-TH')}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
-        };
-    </script>
 </head>
 
-<body class="p-8 bg-gray-100 min-h-screen font-sans">
-    <div class="max-w-5xl mx-auto">
-        <h1 class="text-3xl font-bold text-center mb-2">แบบฟอร์มเบิกเครื่องใช้สำนักงาน</h1>
-        <p class="text-center text-gray-600 mb-8">สำหรับแจ้งรายการเบิกของใช้ในองค์กร</p>
+<body class="p-6">
 
-        <!-- Request Form -->
-        <div class="bg-white p-6 rounded-lg shadow-md mb-8">
-            <form id="request-form" onsubmit="event.preventDefault(); window.handleSubmit();" class="space-y-4">
-                <div>
-                    <label for="department" class="block text-sm font-medium text-gray-700">แผนกที่เบิก</label>
-                    <input
-                        type="text" id="department"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm
-                               focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                        required placeholder="เช่น แผนกการตลาด, แผนกบัญชี"
-                    />
-                </div>
-                <div>
-                    <label for="items" class="block text-sm font-medium text-gray-700">รายการเบิกของ (สามารถพิมพ์ได้)</label>
-                    <textarea
-                        id="items" rows="4"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm
-                               focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                        placeholder="ตัวอย่าง: กระดาษ A4 จำนวน 2 รีม, ปากกาหมึกแห้งสีน้ำเงิน 10 ด้าม"
-                        required
-                    ></textarea>
-                </div>
-                <div>
-                    <label for="requesterName" class="block text-sm font-medium text-gray-700">ชื่อผู้เบิก</label>
-                    <input
-                        type="text" id="requesterName"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm
-                               focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                        required
-                    />
-                </div>
-                <button
-                    type="submit"
-                    class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white
-                           bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    ส่งรายการเบิก
-                </button>
-            </form>
-        </div>
+<div class="max-w-5xl mx-auto">
 
-        <!-- Action Buttons -->
-        <div class="flex justify-end space-x-2 mb-4">
-            <button
-                onclick="window.handleDownload()"
-                class="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white
-                       bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                ดาวน์โหลดข้อมูล
-            </button>
-            <button
-                onclick="window.handleDeleteAll()"
-                class="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white
-                       bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                ลบรายการเบิกทั้งหมด (สิ้นเดือน)
-            </button>
-        </div>
+<div class="flex justify-between items-center mb-6">
+<h1 id="title" class="text-2xl font-semibold">แบบฟอร์มเบิกอุปกรณ์สำนักงาน</h1>
+<div class="flex gap-2">
+<button onclick="setLang('th')" id="btn-th" class="lang-btn lang-active">ไทย</button>
+<button onclick="setLang('mm')" id="btn-mm" class="lang-btn">မြန်မာ</button>
+</div>
+</div>
 
-        <!-- Request List -->
-        <h2 class="text-2xl font-bold mb-4">รายการเบิกของทั้งหมด</h2>
-        <div class="bg-white p-6 rounded-lg shadow-md overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อผู้เบิก</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">แผนก</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">รายการเบิกของ</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">สถานะ / ไม่ครบ</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ส่งเมื่อ</th>
-                    </tr>
-                </thead>
-                <tbody id="request-table-body" class="bg-white divide-y divide-gray-200">
-                    <!-- Data will be rendered here -->
-                </tbody>
-            </table>
-        </div>
-    </div>
+<div class="card p-6 mb-6">
+<form id="request-form" class="space-y-4">
 
-    <!-- Toast -->
-    <div id="toast"
-         class="fixed top-4 right-4 z-50 hidden opacity-0 transition-opacity duration-300">
-      <div class="rounded-md shadow-lg bg-green-600 text-white px-4 py-3 text-sm flex items-start gap-3">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-none" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-7.25 7.25a1 1 0 01-1.414 0l-3-3a1 1 0 011.414-1.414l2.293 2.293 6.543-6.543a1 1 0 011.414 0z" clip-rule="evenodd"/>
-        </svg>
-        <p id="toast-message" class="leading-5">ส่งคำร้องเรียบร้อย</p>
-        <button id="toast-close" class="ml-2 text-white/80 hover:text-white">ปิด</button>
-      </div>
-    </div>
+<div>
+<label id="lbl-dept" class="text-sm font-medium">แผนก</label>
+<input id="department" class="mt-1 w-full border rounded-lg p-2" placeholder="เช่น บัญชี" required>
+</div>
+
+<div>
+<label id="lbl-items" class="text-sm font-medium">รายการที่ต้องการเบิก</label>
+<textarea id="items" class="mt-1 w-full border rounded-lg p-2" rows="4" placeholder="เช่น กระดาษ A4 2 รีม" required></textarea>
+</div>
+
+<div>
+<label id="lbl-name" class="text-sm font-medium">ชื่อผู้เบิก</label>
+<input id="requesterName" class="mt-1 w-full border rounded-lg p-2" required>
+</div>
+
+<button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700" id="btn-submit">ส่งรายการ</button>
+
+</form>
+</div>
+
+<div class="flex justify-end gap-2 mb-4">
+<button onclick="downloadCSV()" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm">ดาวน์โหลด</button>
+<button onclick="deleteAll()" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm">ลบทั้งหมด</button>
+</div>
+
+<div class="card p-6">
+<h2 id="title-list" class="text-lg font-semibold mb-4">รายการเบิกทั้งหมด</h2>
+
+<div class="overflow-x-auto">
+<table class="w-full text-sm">
+<thead class="border-b bg-gray-50">
+<tr>
+<th class="p-2 text-left" id="th-name">ชื่อ</th>
+<th class="p-2 text-left" id="th-dept">แผนก</th>
+<th class="p-2 text-left" id="th-items">รายการ</th>
+<th class="p-2 text-left" id="th-status">สถานะ</th>
+<th class="p-2 text-left">เวลา</th>
+</tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getFirestore,collection,addDoc,onSnapshot,serverTimestamp,deleteDoc,getDocs,doc,updateDoc,query,orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getAuth,signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+const firebaseConfig={
+ apiKey:"AIzaSyASVRfcI29rcxgzQuOC6R-CMT7X7vBWg_g",
+ authDomain:"onlinetoolbox-d7c04.firebaseapp.com",
+ projectId:"onlinetoolbox-d7c04",
+ storageBucket:"onlinetoolbox-d7c04.appspot.com",
+ messagingSenderId:"873410566683",
+ appId:"1:873410566683:web:6c7e3058085b09acb036be"
+};
+
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+const auth=getAuth(app);
+
+await signInAnonymously(auth);
+
+const collectionPath="supply-requests";
+
+const form=document.getElementById("request-form");
+const tableBody=document.getElementById("tableBody");
+
+form.addEventListener("submit",async e=>{
+ e.preventDefault();
+
+ const department=document.getElementById("department").value.trim();
+ const items=document.getElementById("items").value.trim();
+ const requesterName=document.getElementById("requesterName").value.trim();
+
+ if(!department||!items||!requesterName){
+ alert("กรุณากรอกข้อมูลให้ครบ");
+ return;
+ }
+
+ await addDoc(collection(db,collectionPath),{
+ department,
+ items,
+ requesterName,
+ complete:false,
+ timestamp:serverTimestamp()
+ });
+
+ form.reset();
+});
+
+const q=query(collection(db,collectionPath),orderBy("timestamp","desc"));
+
+onSnapshot(q,snap=>{
+ tableBody.innerHTML="";
+
+ snap.forEach(d=>{
+ const data=d.data();
+
+ const tr=document.createElement("tr");
+ tr.className="border-b";
+
+ const status=data.complete?"✅ ครบ":"⏳ รอดำเนินการ";
+
+ const time=data.timestamp?
+ new Date(data.timestamp.toMillis()).toLocaleString():"-";
+
+ tr.innerHTML=`
+ <td class="p-2">${data.requesterName}</td>
+ <td class="p-2">${data.department}</td>
+ <td class="p-2">${data.items}</td>
+ <td class="p-2">
+ <button class="bg-indigo-500 text-white px-2 py-1 rounded text-xs">${status}</button>
+ </td>
+ <td class="p-2">${time}</td>
+ `;
+
+ tableBody.appendChild(tr);
+ });
+});
+
+window.downloadCSV=async()=>{
+
+const snapshot=await getDocs(collection(db,collectionPath));
+
+let csv="ชื่อ,แผนก,รายการ\n";
+
+snapshot.forEach(doc=>{
+ const d=doc.data();
+ csv+=`${d.requesterName},${d.department},${d.items}\n`;
+});
+
+const blob=new Blob([csv]);
+const url=URL.createObjectURL(blob);
+
+const a=document.createElement("a");
+a.href=url;
+a.download="supply.csv";
+a.click();
+
+}
+
+window.deleteAll=async()=>{
+
+if(!confirm("ลบทั้งหมดหรือไม่"))return;
+
+const snapshot=await getDocs(collection(db,collectionPath));
+
+snapshot.forEach(d=>{
+ deleteDoc(d.ref);
+});
+
+}
+
+</script>
+
+<script>
+
+const lang={
+
+th:{
+ title:"แบบฟอร์มเบิกอุปกรณ์สำนักงาน",
+ dept:"แผนก",
+ items:"รายการที่ต้องการเบิก",
+ name:"ชื่อผู้เบิก",
+ submit:"ส่งรายการ",
+ list:"รายการเบิกทั้งหมด",
+ thname:"ชื่อ",
+ thdept:"แผนก",
+ thitems:"รายการ",
+ thstatus:"สถานะ"
+},
+
+mm:{
+ title:"ရုံးသုံးပစ္စည်း ထုတ်ယူရန် ဖောင်",
+ dept:"ဌာန",
+ items:"လိုအပ်သောပစ္စည်း",
+ name:"တောင်းဆိုသူအမည်",
+ submit:"တင်ပြရန်",
+ list:"တောင်းဆိုမှုစာရင်း",
+ thname:"အမည်",
+ thdept:"ဌာန",
+ thitems:"ပစ္စည်း",
+ thstatus:"အခြေအနေ"
+}
+
+}
+
+function setLang(l){
+
+const t=lang[l]
+
+document.getElementById('title').innerText=t.title
+
+document.getElementById('lbl-dept').innerText=t.dept
+
+document.getElementById('lbl-items').innerText=t.items
+
+document.getElementById('lbl-name').innerText=t.name
+
+document.getElementById('btn-submit').innerText=t.submit
+
+document.getElementById('title-list').innerText=t.list
+
+
+document.getElementById('th-name').innerText=t.thname
+
+document.getElementById('th-dept').innerText=t.thdept
+
+document.getElementById('th-items').innerText=t.thitems
+
+document.getElementById('th-status').innerText=t.thstatus
+
+
+document.getElementById('btn-th').classList.remove('lang-active')
+
+document.getElementById('btn-mm').classList.remove('lang-active')
+
+
+document.getElementById('btn-'+l).classList.add('lang-active')
+
+}
+
+</script>
+
 </body>
 </html>
+
+
