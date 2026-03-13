@@ -974,6 +974,7 @@ function generateCSV(data){
     'เริ่ม',
     'สิ้นสุด',
     'จำนวนวัน',
+    'ช่วงเวลา',
     'เหตุผลการลา',
     'ผู้อนุมัติ',
     'วันที่ส่งใบลา',
@@ -991,6 +992,7 @@ function generateCSV(data){
       r.startDate || '',
       r.endDate || '',
       r.leaveDays || '',
+      r.halfDayPeriod || '',
       r.reason || '',
       r.approver || '',
       r.submitDate || '',
@@ -1023,6 +1025,7 @@ function generateCSV(data){
   </script>
 </body>
 </html>
+
 
 
 
