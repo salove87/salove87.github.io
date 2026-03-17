@@ -58,12 +58,14 @@ import { getFirestore,collection,addDoc,onSnapshot,serverTimestamp,getDocs,doc,u
 import { getAuth,signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 let isHR = false;
+let lastSnapshot = null; // เก็บข้อมูลล่าสุดไว้ render ซ้ำ
 
 window.enableHR = () => {
  const pass = prompt("รหัส HR");
  if(pass === "303647"){
   isHR = true;
   alert("เข้าสู่โหมด HR");
+  if(lastSnapshot) render(lastSnapshot); // รีเรนเดอร์ทันที ไม่ต้อง reload
  } else {
   alert("รหัสไม่ถูกต้อง");
  }
@@ -115,6 +117,11 @@ form.addEventListener("submit", async (e)=>{
 const q = query(collection(db,"supply-requests"),orderBy("timestamp","desc"));
 
 onSnapshot(q, async (snapshot)=>{
+ lastSnapshot = snapshot;
+ await render(snapshot);
+});
+
+async function render(snapshot){
  table.innerHTML = "";
 
  for(const d of snapshot.docs){
@@ -160,7 +167,7 @@ onSnapshot(q, async (snapshot)=>{
 
     const edit = tr.querySelector(".edit");
     if(edit){
-      edit.addEventListener("change",()=>{
+      edit.addEventListener("input",()=>{
         updateDoc(doc(db,"supply-requests",d.id),{
           items: edit.value
         });
@@ -170,7 +177,7 @@ onSnapshot(q, async (snapshot)=>{
 
   table.appendChild(tr);
  }
-});
+}
 
 window.downloadCSV = async ()=>{
  const snap = await getDocs(collection(db,"supply-requests"));
@@ -195,7 +202,3 @@ init();
 
 </body>
 </html>
-
-
-
-
