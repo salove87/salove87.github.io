@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>แบบฟอร์มเบิกอุปกรณ์สำนักงาน</title>
+<title>ระบบเบิกอุปกรณ์สำนักงาน (HR PRO)</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai&family=Noto+Sans+Myanmar&display=swap" rel="stylesheet">
 
@@ -15,23 +15,22 @@ body{font-family:'Noto Sans Thai','Noto Sans Myanmar',sans-serif;background:#f1f
 
 <body class="p-6">
 
-<div class="max-w-5xl mx-auto">
+<div class="max-w-6xl mx-auto">
 
-<h1 class="text-2xl font-semibold mb-4">แบบฟอร์มเบิกอุปกรณ์สำนักงาน</h1>
+<h1 class="text-2xl font-semibold mb-4">📦 ระบบเบิกอุปกรณ์ (อนุมัติ / ตรวจสอบ / รายงาน)</h1>
 
 <div class="card p-6 mb-6">
 <form id="form" class="space-y-3">
 <input id="requesterName" placeholder="ชื่อ" class="w-full border p-2 rounded" required>
 <input id="dept" placeholder="แผนก" class="w-full border p-2 rounded" required>
 <textarea id="items" placeholder="รายการ" class="w-full border p-2 rounded" required></textarea>
-<button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded">ส่ง</button>
+<button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded">ส่งคำขอ</button>
 </form>
 </div>
 
 <div class="flex gap-2 mb-3">
-<button onclick="enableAdmin()" class="bg-purple-600 text-white px-3 py-1 rounded">🔐 Admin</button>
-<button onclick="downloadCSV()" class="bg-green-600 text-white px-3 py-1 rounded">ดาวน์โหลด</button>
-<button onclick="deleteAll()" class="bg-red-600 text-white px-3 py-1 rounded">ลบทั้งหมด</button>
+<button onclick="enableHR()" class="bg-purple-600 text-white px-3 py-1 rounded">🔐 HR</button>
+<button onclick="downloadCSV()" class="bg-green-600 text-white px-3 py-1 rounded">ดาวน์โหลดรายงาน</button>
 </div>
 
 <div class="card p-6">
@@ -43,6 +42,7 @@ body{font-family:'Noto Sans Thai','Noto Sans Myanmar',sans-serif;background:#f1f
 <th>รายการ</th>
 <th>แปล</th>
 <th>สถานะ</th>
+<th>อนุมัติ</th>
 </tr>
 </thead>
 <tbody id="table"></tbody>
@@ -54,51 +54,45 @@ body{font-family:'Noto Sans Thai','Noto Sans Myanmar',sans-serif;background:#f1f
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getFirestore,collection,addDoc,onSnapshot,serverTimestamp,deleteDoc,getDocs,doc,updateDoc,query,orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore,collection,addDoc,onSnapshot,serverTimestamp,getDocs,doc,updateDoc,query,orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getAuth,signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-let isAdmin=false;
-let isHR=false;
-window.enableAdmin=()=>{
- if(prompt("รหัส") === "1234"){
-  isAdmin=true;
-  alert("เข้า admin แล้ว");
- }
-};
+let isHR = false;
 
-// HR unlock for status editing
-window.enableHR=()=>{
- const pass = prompt("กรอกรหัส HR เพื่อแก้ไขสถานะ");
+window.enableHR = () => {
+ const pass = prompt("รหัส HR");
  if(pass === "303647"){
   isHR = true;
-  alert("เข้าสู่โหมดแก้ไขสถานะ (HR)");
- }else{
+  alert("เข้าสู่โหมด HR");
+ } else {
   alert("รหัสไม่ถูกต้อง");
  }
 };
 
 async function translate(text){
  try{
-  const res=await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=th&dt=t&q=${encodeURIComponent(text)}`);
-  const d=await res.json();
-  return d[0].map(x=>x[0]).join('');
- }catch{return "-"}
+  const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=th&dt=t&q=${encodeURIComponent(text)}`);
+  const data = await res.json();
+  return data[0].map(x=>x[0]).join('');
+ }catch{
+  return "-";
+ }
 }
 
 async function init(){
 
-const app=initializeApp({
+const app = initializeApp({
  apiKey:"AIzaSyASVRfcI29rcxgzQuOC6R-CMT7X7vBWg_g",
  authDomain:"onlinetoolbox-d7c04.firebaseapp.com",
  projectId:"onlinetoolbox-d7c04"
 });
 
-const db=getFirestore(app);
-const auth=getAuth(app);
+const db = getFirestore(app);
+const auth = getAuth(app);
 await signInAnonymously(auth);
 
-const form=document.getElementById("form");
-const table=document.getElementById("table");
+const form = document.getElementById("form");
+const table = document.getElementById("table");
 
 form.addEventListener("submit", async (e)=>{
  e.preventDefault();
@@ -111,84 +105,86 @@ form.addEventListener("submit", async (e)=>{
   name: nameVal,
   dept: deptVal,
   items: itemsVal,
-  complete:false,
-  timestamp:serverTimestamp()
+  status: "pending",
+  timestamp: serverTimestamp()
  });
 
  form.reset();
 });
 
-const q=query(collection(db,"supply-requests"),orderBy("timestamp","desc"));
+const q = query(collection(db,"supply-requests"),orderBy("timestamp","desc"));
 
-onSnapshot(q,async snap=>{
- table.innerHTML="";
+onSnapshot(q, async (snapshot)=>{
+ table.innerHTML = "";
 
- for(const d of snap.docs){
-  const data=d.data();
-  const tr=document.createElement("tr");
+ for(const d of snapshot.docs){
+  const data = d.data();
+  const tr = document.createElement("tr");
 
-  const translated=await translate(data.items);
+  const translated = await translate(data.items || "");
 
-  tr.innerHTML=`
-  <td>${data.name || data.requesterName || '-'}</td>
-  <td>${data.dept || data.department || '-'}</td>
-  <td>${data.items}</td>
-  <td class="text-green-600">${translated}</td>
-  <td>
-   <button>${data.complete?"✅":"⏳"}</button>
-   <button class="unlock">🔒 แก้ไข</button>
-   ${isHR?'<button class="ok">✔</button><button class="no">↺</button>':''}
-  </td>
+  let itemCell = data.items || "-";
+  if(isHR){
+    itemCell = `<textarea class="edit border w-full">${data.items || ""}</textarea>`;
+  }
+
+  const statusMap = {
+    pending: "⏳ รอดำเนินการ",
+    approved: "✅ อนุมัติแล้ว",
+    rejected: "❌ ไม่อนุมัติ",
+    undefined: "⏳ รอดำเนินการ"
+  };
+
+  tr.innerHTML = `
+    <td>${data.name || data.requesterName || '-'}</td>
+    <td>${data.dept || data.department || '-'}</td>
+    <td>${itemCell}</td>
+    <td class="text-green-600">${translated}</td>
+    <td>${statusMap[data.status] || statusMap['undefined']}</td>
+    <td>
+      ${isHR ? `
+        <button class="approve bg-green-600 text-white px-2">✔</button>
+        <button class="reject bg-red-600 text-white px-2">✖</button>
+      ` : "-"}
+    </td>
   `;
 
-  // Unlock HR per row
-  tr.querySelector('.unlock')?.addEventListener('click',()=>{
-    window.enableHR();
-  });
-
   if(isHR){
-   tr.querySelector('.ok')?.addEventListener('click',()=>{
-    updateDoc(doc(db,"supply-requests",d.id),{complete:true});
-   });
-   tr.querySelector('.no')?.addEventListener('click',()=>{
-    updateDoc(doc(db,"supply-requests",d.id),{complete:false});
-   });
+    tr.querySelector(".approve")?.addEventListener("click",()=>{
+      updateDoc(doc(db,"supply-requests",d.id),{status:"approved"});
+    });
+
+    tr.querySelector(".reject")?.addEventListener("click",()=>{
+      updateDoc(doc(db,"supply-requests",d.id),{status:"rejected"});
+    });
+
+    const edit = tr.querySelector(".edit");
+    if(edit){
+      edit.addEventListener("change",()=>{
+        updateDoc(doc(db,"supply-requests",d.id),{
+          items: edit.value
+        });
+      });
+    }
   }
 
   table.appendChild(tr);
  }
 });
 
-window.downloadCSV=async()=>{
- const snap=await getDocs(collection(db,"supply-requests"));
- let csv="ชื่อ,แผนก,รายการ\n";
- snap.forEach(d=>{
-  const x=d.data();
-  csv+=`${x.name},${x.dept},${x.items}\n`;
+window.downloadCSV = async ()=>{
+ const snap = await getDocs(collection(db,"supply-requests"));
+ let csv = "ชื่อ,แผนก,รายการ,สถานะ\n";
+ snap.forEach(docItem=>{
+  const x = docItem.data();
+  csv += `${x.name || ''},${x.dept || ''},${x.items || ''},${x.status || ''}\n`;
  });
- const blob=new Blob([csv]);
- const a=document.createElement("a");
- a.href=URL.createObjectURL(blob);
- a.download="data.csv";
+
+ const blob = new Blob([csv]);
+ const a = document.createElement("a");
+ a.href = URL.createObjectURL(blob);
+ a.download = "report.csv";
  a.click();
-};
-
-window.deleteAll=async()=>{
-
- const pass = prompt("กรอกรหัสเพื่อลบข้อมูล");
-
- if(pass !== "303647"){
-  alert("รหัสไม่ถูกต้อง");
-  return;
- }
-
- if(!confirm("ยืนยันการลบทั้งหมด?")) return;
-
- const snap=await getDocs(collection(db,"supply-requests"));
- snap.forEach(d=>deleteDoc(d.ref));
-
- alert("ลบข้อมูลเรียบร้อยแล้ว");
-
 };
 
 }
@@ -199,6 +195,7 @@ init();
 
 </body>
 </html>
+
 
 
 
