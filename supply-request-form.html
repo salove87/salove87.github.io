@@ -3,76 +3,50 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>แบบฟอร์มเบิกอุปกรณ์สำนักงาน | Office Supply Request</title>
+<title>แบบฟอร์มเบิกอุปกรณ์สำนักงาน</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;600&family=Noto+Sans+Myanmar:wght@300;400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai&family=Noto+Sans+Myanmar&display=swap" rel="stylesheet">
 
 <style>
 body{font-family:'Noto Sans Thai','Noto Sans Myanmar',sans-serif;background:#f1f5f9}
 .card{background:white;border-radius:14px;box-shadow:0 10px 25px rgba(0,0,0,0.08)}
-.lang-btn{padding:6px 14px;border-radius:8px;border:1px solid #ddd;font-size:14px}
-.lang-active{background:#4f46e5;color:white;border-color:#4f46e5}
 </style>
-
 </head>
 
 <body class="p-6">
 
 <div class="max-w-5xl mx-auto">
 
-<div class="flex justify-between items-center mb-6">
-<h1 id="title" class="text-2xl font-semibold">แบบฟอร์มเบิกอุปกรณ์สำนักงาน</h1>
-<div class="flex gap-2">
-<button onclick="setLang('th')" id="btn-th" class="lang-btn lang-active">ไทย</button>
-<button onclick="setLang('mm')" id="btn-mm" class="lang-btn">မြန်မာ</button>
-</div>
-</div>
+<h1 class="text-2xl font-semibold mb-4">แบบฟอร์มเบิกอุปกรณ์สำนักงาน</h1>
 
 <div class="card p-6 mb-6">
-<form id="request-form" class="space-y-4">
-
-<div>
-<label id="lbl-dept" class="text-sm font-medium">แผนก</label>
-<input id="department" class="mt-1 w-full border rounded-lg p-2" placeholder="เช่น บัญชี" required>
-</div>
-
-<div>
-<label id="lbl-items" class="text-sm font-medium">รายการที่ต้องการเบิก</label>
-<textarea id="items" class="mt-1 w-full border rounded-lg p-2" rows="4" placeholder="เช่น กระดาษ A4 2 รีม" required></textarea>
-</div>
-
-<div>
-<label id="lbl-name" class="text-sm font-medium">ชื่อผู้เบิก</label>
-<input id="requesterName" class="mt-1 w-full border rounded-lg p-2" required>
-</div>
-
-<button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700" id="btn-submit">ส่งรายการ</button>
-
+<form id="form" class="space-y-3">
+<input id="requesterName" placeholder="ชื่อ" class="w-full border p-2 rounded" required>
+<input id="dept" placeholder="แผนก" class="w-full border p-2 rounded" required>
+<textarea id="items" placeholder="รายการ" class="w-full border p-2 rounded" required></textarea>
+<button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded">ส่ง</button>
 </form>
 </div>
 
-<div class="flex justify-end gap-2 mb-4">
-<button onclick="downloadCSV()" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm">ดาวน์โหลด</button>
-<button onclick="deleteAll()" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm">ลบทั้งหมด</button>
+<div class="flex gap-2 mb-3">
+<button onclick="enableAdmin()" class="bg-purple-600 text-white px-3 py-1 rounded">🔐 Admin</button>
+<button onclick="downloadCSV()" class="bg-green-600 text-white px-3 py-1 rounded">ดาวน์โหลด</button>
+<button onclick="deleteAll()" class="bg-red-600 text-white px-3 py-1 rounded">ลบทั้งหมด</button>
 </div>
 
 <div class="card p-6">
-<h2 id="title-list" class="text-lg font-semibold mb-4">รายการเบิกทั้งหมด</h2>
-
-<div class="overflow-x-auto">
 <table class="w-full text-sm">
-<thead class="border-b bg-gray-50">
+<thead>
 <tr>
-<th class="p-2 text-left" id="th-name">ชื่อ</th>
-<th class="p-2 text-left" id="th-dept">แผนก</th>
-<th class="p-2 text-left" id="th-items">รายการ</th>
-<th class="p-2 text-left" id="th-status">สถานะ</th>
-<th class="p-2 text-left">เวลา</th>
+<th>ชื่อ</th>
+<th>แผนก</th>
+<th>รายการ</th>
+<th>แปล</th>
+<th>สถานะ</th>
 </tr>
 </thead>
-<tbody id="tableBody"></tbody>
+<tbody id="table"></tbody>
 </table>
-</div>
 </div>
 
 </div>
@@ -83,198 +57,143 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebas
 import { getFirestore,collection,addDoc,onSnapshot,serverTimestamp,deleteDoc,getDocs,doc,updateDoc,query,orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getAuth,signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-const firebaseConfig={
- apiKey:"AIzaSyASVRfcI29rcxgzQuOC6R-CMT7X7vBWg_g",
- authDomain:"onlinetoolbox-d7c04.firebaseapp.com",
- projectId:"onlinetoolbox-d7c04",
- storageBucket:"onlinetoolbox-d7c04.appspot.com",
- messagingSenderId:"873410566683",
- appId:"1:873410566683:web:6c7e3058085b09acb036be"
+let isAdmin=false;
+let isHR=false;
+window.enableAdmin=()=>{
+ if(prompt("รหัส") === "1234"){
+  isAdmin=true;
+  alert("เข้า admin แล้ว");
+ }
 };
 
-const app=initializeApp(firebaseConfig);
+// HR unlock for status editing
+window.enableHR=()=>{
+ const pass = prompt("กรอกรหัส HR เพื่อแก้ไขสถานะ");
+ if(pass === "303647"){
+  isHR = true;
+  alert("เข้าสู่โหมดแก้ไขสถานะ (HR)");
+ }else{
+  alert("รหัสไม่ถูกต้อง");
+ }
+};
+
+async function translate(text){
+ try{
+  const res=await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=th&dt=t&q=${encodeURIComponent(text)}`);
+  const d=await res.json();
+  return d[0].map(x=>x[0]).join('');
+ }catch{return "-"}
+}
+
+async function init(){
+
+const app=initializeApp({
+ apiKey:"AIzaSyASVRfcI29rcxgzQuOC6R-CMT7X7vBWg_g",
+ authDomain:"onlinetoolbox-d7c04.firebaseapp.com",
+ projectId:"onlinetoolbox-d7c04"
+});
+
 const db=getFirestore(app);
 const auth=getAuth(app);
-
 await signInAnonymously(auth);
 
-const collectionPath="supply-requests";
+const form=document.getElementById("form");
+const table=document.getElementById("table");
 
-const form=document.getElementById("request-form");
-const tableBody=document.getElementById("tableBody");
-
-form.addEventListener("submit",async e=>{
+form.addEventListener("submit", async (e)=>{
  e.preventDefault();
 
- const department=document.getElementById("department").value.trim();
- const items=document.getElementById("items").value.trim();
- const requesterName=document.getElementById("requesterName").value.trim();
+ const nameVal = document.getElementById("requesterName").value;
+ const deptVal = document.getElementById("dept").value;
+ const itemsVal = document.getElementById("items").value;
 
- if(!department||!items||!requesterName){
- alert("กรุณากรอกข้อมูลให้ครบ");
- return;
- }
-
- await addDoc(collection(db,collectionPath),{
- department,
- items,
- requesterName,
- complete:false,
- timestamp:serverTimestamp()
+ await addDoc(collection(db,"supply-requests"),{
+  name: nameVal,
+  dept: deptVal,
+  items: itemsVal,
+  complete:false,
+  timestamp:serverTimestamp()
  });
 
  form.reset();
 });
 
-const q=query(collection(db,collectionPath),orderBy("timestamp","desc"));
+const q=query(collection(db,"supply-requests"),orderBy("timestamp","desc"));
 
-onSnapshot(q,snap=>{
- tableBody.innerHTML="";
+onSnapshot(q,async snap=>{
+ table.innerHTML="";
 
- snap.forEach(d=>{
- const data=d.data();
+ for(const d of snap.docs){
+  const data=d.data();
+  const tr=document.createElement("tr");
 
- const tr=document.createElement("tr");
- tr.className="border-b";
+  const translated=await translate(data.items);
 
- const statusText=data.complete?"✅ ครบ":"⏳ รอดำเนินการ";
- const statusColor=data.complete?"bg-green-600":"bg-yellow-500";
+  tr.innerHTML=`
+  <td>${data.name || data.requesterName || '-'}</td>
+  <td>${data.dept || data.department || '-'}</td>
+  <td>${data.items}</td>
+  <td class="text-green-600">${translated}</td>
+  <td>
+   <button>${data.complete?"✅":"⏳"}</button>
+   <button class="unlock">🔒 แก้ไข</button>
+   ${isHR?'<button class="ok">✔</button><button class="no">↺</button>':''}
+  </td>
+  `;
 
- const time=data.timestamp?
- new Date(data.timestamp.toMillis()).toLocaleString():"-";
+  // Unlock HR per row
+  tr.querySelector('.unlock')?.addEventListener('click',()=>{
+    window.enableHR();
+  });
 
- tr.innerHTML=`
- <td class="p-2">${data.requesterName}</td>
- <td class="p-2">${data.department}</td>
- <td class="p-2">${data.items}</td>
- <td class="p-2 flex gap-2">
- <button class="${statusColor} text-white px-2 py-1 rounded text-xs">${statusText}</button>
- <button class="bg-blue-600 text-white px-2 py-1 rounded text-xs action-complete">✔</button>
- <button class="bg-gray-500 text-white px-2 py-1 rounded text-xs action-pending">↺</button>
- </td>
- <td class="p-2">${time}</td>
- `;
+  if(isHR){
+   tr.querySelector('.ok')?.addEventListener('click',()=>{
+    updateDoc(doc(db,"supply-requests",d.id),{complete:true});
+   });
+   tr.querySelector('.no')?.addEventListener('click',()=>{
+    updateDoc(doc(db,"supply-requests",d.id),{complete:false});
+   });
+  }
 
- const completeBtn=tr.querySelector(".action-complete");
- const pendingBtn=tr.querySelector(".action-pending");
-
- completeBtn.onclick=()=>{
- updateDoc(doc(db,collectionPath,d.id),{
- complete:true
- });
- };
-
- pendingBtn.onclick=()=>{
- updateDoc(doc(db,collectionPath,d.id),{
- complete:false
- });
- };
-
- tableBody.appendChild(tr);
- });
+  table.appendChild(tr);
+ }
 });
 
 window.downloadCSV=async()=>{
-
-const snapshot=await getDocs(collection(db,collectionPath));
-
-let csv="ชื่อ,แผนก,รายการ\n";
-
-snapshot.forEach(doc=>{
- const d=doc.data();
- csv+=`${d.requesterName},${d.department},${d.items}\n`;
-});
-
-const blob=new Blob([csv]);
-const url=URL.createObjectURL(blob);
-
-const a=document.createElement("a");
-a.href=url;
-a.download="supply.csv";
-a.click();
-
-}
+ const snap=await getDocs(collection(db,"supply-requests"));
+ let csv="ชื่อ,แผนก,รายการ\n";
+ snap.forEach(d=>{
+  const x=d.data();
+  csv+=`${x.name},${x.dept},${x.items}\n`;
+ });
+ const blob=new Blob([csv]);
+ const a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);
+ a.download="data.csv";
+ a.click();
+};
 
 window.deleteAll=async()=>{
 
-if(!confirm("ลบทั้งหมดหรือไม่"))return;
+ const pass = prompt("กรอกรหัสเพื่อลบข้อมูล");
 
-const snapshot=await getDocs(collection(db,collectionPath));
+ if(pass !== "303647"){
+  alert("รหัสไม่ถูกต้อง");
+  return;
+ }
 
-snapshot.forEach(d=>{
- deleteDoc(d.ref);
-});
+ if(!confirm("ยืนยันการลบทั้งหมด?")) return;
 
-}
+ const snap=await getDocs(collection(db,"supply-requests"));
+ snap.forEach(d=>deleteDoc(d.ref));
 
-</script>
+ alert("ลบข้อมูลเรียบร้อยแล้ว");
 
-<script>
-
-const lang={
-
-th:{
- title:"แบบฟอร์มเบิกอุปกรณ์สำนักงาน",
- dept:"แผนก",
- items:"รายการที่ต้องการเบิก",
- name:"ชื่อผู้เบิก",
- submit:"ส่งรายการ",
- list:"รายการเบิกทั้งหมด",
- thname:"ชื่อ",
- thdept:"แผนก",
- thitems:"รายการ",
- thstatus:"สถานะ"
-},
-
-mm:{
- title:"ရုံးသုံးပစ္စည်း ထုတ်ယူရန် ဖောင်",
- dept:"ဌာန",
- items:"လိုအပ်သောပစ္စည်း",
- name:"တောင်းဆိုသူအမည်",
- submit:"တင်ပြရန်",
- list:"တောင်းဆိုမှုစာရင်း",
- thname:"အမည်",
- thdept:"ဌာန",
- thitems:"ပစ္စည်း",
- thstatus:"အခြေအနေ"
-}
+};
 
 }
 
-function setLang(l){
-
-const t=lang[l]
-
-document.getElementById('title').innerText=t.title
-
-document.getElementById('lbl-dept').innerText=t.dept
-
-document.getElementById('lbl-items').innerText=t.items
-
-document.getElementById('lbl-name').innerText=t.name
-
-document.getElementById('btn-submit').innerText=t.submit
-
-document.getElementById('title-list').innerText=t.list
-
-
-document.getElementById('th-name').innerText=t.thname
-
-document.getElementById('th-dept').innerText=t.thdept
-
-document.getElementById('th-items').innerText=t.thitems
-
-document.getElementById('th-status').innerText=t.thstatus
-
-
-document.getElementById('btn-th').classList.remove('lang-active')
-
-document.getElementById('btn-mm').classList.remove('lang-active')
-
-
-document.getElementById('btn-'+l).classList.add('lang-active')
-
-}
+init();
 
 </script>
 
