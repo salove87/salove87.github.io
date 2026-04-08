@@ -682,7 +682,12 @@ autofillNameFromEmpId(savedId);
           warnings.push('ส่งลาพักร้อนย้อนหลัง/วันเดียวกัน ระบบแปลงเป็น "ลากิจ"');
         }
       }
-
+const restrictedDates = ['2026-04-10', '2026-04-20'];
+    if (restrictedDates.includes(v.startDate)) {
+      v.leaveType = 'ลากิจ';
+      warnings.push(`วันที่ ${fmtDateDMY(v.startDate)} เป็นช่วงหยุดต่อเนื่อง ระบบแปลงเป็น "ลากิจ" ตามระเบียบ`);
+    }
+}
 const daysNum = parseFloat(String(v.leaveDays).replace(' วัน',''));
 if(isNaN(daysNum) || daysNum < 0.5) {
     errors.push('จำนวนวันขั้นต่ำ 0.5 วัน');
