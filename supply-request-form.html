@@ -229,6 +229,24 @@ window.cancelEdit=()=>{
  document.getElementById("btn-submit").innerText=currentLangText().submit;
 };
 
+window.startDelete=async(id)=>{
+ const code=prompt(currentLangText().passcodePrompt);
+ if(code===null)return;
+
+ if(code!==EDIT_PASSCODE){
+ alert(currentLangText().passcodeWrong);
+ return;
+ }
+
+ if(!confirm(currentLangText().confirmDeleteOne))return;
+
+ await deleteDoc(doc(db,collectionPath,id));
+
+ if(editingId===id){
+ cancelEdit();
+ }
+};
+
 // ---------- realtime list ----------
 
 const q=query(collection(db,collectionPath),orderBy("timestamp","desc"));
@@ -266,6 +284,7 @@ onSnapshot(q,snap=>{
  <button class="bg-blue-600 text-white px-2 py-1 rounded text-xs action-complete">✔</button>
  <button class="bg-gray-500 text-white px-2 py-1 rounded text-xs action-pending">↺</button>
  <button class="bg-amber-500 text-white px-2 py-1 rounded text-xs action-edit">🔒✎</button>
+ <button class="bg-red-600 text-white px-2 py-1 rounded text-xs action-delete">🔒🗑</button>
  </td>
  `;
 
@@ -279,6 +298,10 @@ onSnapshot(q,snap=>{
 
  tr.querySelector(".action-edit").onclick=()=>{
  startEdit(d.id);
+ };
+
+ tr.querySelector(".action-delete").onclick=()=>{
+ startDelete(d.id);
  };
 
  tableBody.appendChild(tr);
@@ -356,7 +379,8 @@ th:{
  passcodeWrong:"รหัสไม่ถูกต้อง",
  fillItemAlert:"กรุณากรอกชื่อรายการและจำนวน",
  fillFormAlert:"กรุณากรอกข้อมูลให้ครบและเพิ่มอย่างน้อย 1 รายการ",
- confirmDeleteAll:"ลบทั้งหมดหรือไม่"
+ confirmDeleteAll:"ลบทั้งหมดหรือไม่",
+ confirmDeleteOne:"ต้องการลบรายการนี้หรือไม่"
 },
 
 mm:{
@@ -382,7 +406,8 @@ mm:{
  passcodeWrong:"ကုဒ်မှားနေသည်",
  fillItemAlert:"ပစ္စည်းအမည်နှင့်အရေအတွက်ကို ဖြည့်ပါ",
  fillFormAlert:"အချက်အလက်အားလုံးဖြည့်ပြီး ပစ္စည်းအနည်းဆုံး ၁ ခု ထည့်ပါ",
- confirmDeleteAll:"အားလုံးဖျက်မည်လား"
+ confirmDeleteAll:"အားလုံးဖျက်မည်လား",
+ confirmDeleteOne:"ဤစာရင်းကို ဖျက်မည်လား"
 }
 
 }
