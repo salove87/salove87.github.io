@@ -200,7 +200,7 @@ readonly>
 
   <!-- LIST + CSV -->
   <div class="bg-white shadow-lg rounded-2xl w-full max-w-6xl p-6 mt-2">
-    <div class="flex justify-between items-center mb-4">
+    <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
       <div class="flex items-center gap-2">
            <button id="downloadCSV" class="btn bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm shadow">
              📥 ดาวน์โหลดประวัติทั้งหมด (CSV)
@@ -208,6 +208,34 @@ readonly>
            <span id="csvLoading" class="text-xs text-gray-500 hidden">กำลังดึงข้อมูล...</span>
       </div>
       <h2 class="text-xl font-bold text-blue-800">📋 รายการล่าสุด (50 รายการ)</h2>
+    </div>
+
+    <!-- PAY-PERIOD (26-25) DOWNLOAD PANEL -->
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+      <p class="font-semibold text-amber-900 mb-2">🗓️ ดาวน์โหลดข้อมูลตามรอบตัดงวด (26 - 25) แยกแผนกได้</p>
+      <p class="text-xs text-gray-500 mb-3">ตัวอย่าง: รอบ "มกราคม 2026" = 26 ธ.ค. 2025 - 25 ม.ค. 2026</p>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div>
+          <label class="block text-gray-700 text-sm mb-1">เดือนของรอบ</label>
+          <select id="periodMonth" class="w-full p-2 border rounded-lg text-sm"></select>
+        </div>
+        <div>
+          <label class="block text-gray-700 text-sm mb-1">ปี (ค.ศ.)</label>
+          <select id="periodYear" class="w-full p-2 border rounded-lg text-sm"></select>
+        </div>
+        <div>
+          <label class="block text-gray-700 text-sm mb-1">แผนก</label>
+          <select id="periodDept" class="w-full p-2 border rounded-lg text-sm">
+            <option value="">ทุกแผนก</option>
+          </select>
+        </div>
+        <div class="flex items-end">
+          <button id="downloadPeriodCSV" class="btn bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm shadow w-full justify-center">
+            📥 ดาวน์โหลดรอบนี้
+          </button>
+        </div>
+      </div>
+      <p id="periodRangeLabel" class="text-xs text-gray-600 mt-2"></p>
     </div>
     <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
       <table class="w-full text-sm text-left text-gray-700">
@@ -1126,32 +1154,135 @@ function generateCSV(data){
           downloadCSVBtn.disabled = false;
       }
     });
+
+    // ===================== PAY-PERIOD (26 - 25) DOWNLOAD, FILTERABLE BY DEPARTMENT =====================
+    const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+    const THAI_MONTHS_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+    const periodMonthSel = document.getElementById('periodMonth');
+    const periodYearSel = document.getElementById('periodYear');
+    const periodDeptSel = document.getElementById('periodDept');
+    const periodRangeLabel = document.getElementById('periodRangeLabel');
+    const downloadPeriodCSVBtn = document.getElementById('downloadPeriodCSV');
+
+    // เติมตัวเลือกเดือน
+    THAI_MONTHS.forEach((name, i)=>{
+      const opt = document.createElement('option');
+      opt.value = String(i+1);
+      opt.textContent = name;
+      periodMonthSel.appendChild(opt);
+    });
+
+    // เติมตัวเลือกปี (ย้อนหลัง 2 ปี ถึงล่วงหน้า 2 ปี จากปีปัจจุบัน)
+    const nowForPeriod = new Date();
+    const currentGregYear = nowForPeriod.getFullYear();
+    for(let y = currentGregYear - 2; y <= currentGregYear + 2; y++){
+      const opt = document.createElement('option');
+      opt.value = String(y);
+      opt.textContent = String(y);
+      periodYearSel.appendChild(opt);
+    }
+
+    // เติมตัวเลือกแผนก (ดึงจากรายชื่อพนักงานทั้งหมด ไม่ซ้ำ เรียงตามตัวอักษร)
+    const allDepts = Array.from(new Set(Object.values(EMP_MAP).map(x=>x.dept).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'th'));
+    allDepts.forEach(dept=>{
+      const opt = document.createElement('option');
+      opt.value = dept;
+      opt.textContent = dept;
+      periodDeptSel.appendChild(opt);
+    });
+
+    // ตั้งค่าเริ่มต้นให้ตรงกับรอบปัจจุบัน (วันนี้อยู่รอบเดือนไหน)
+    function getCurrentPayPeriodMonthYear(d = new Date()){
+      // ถ้าวันที่ <= 25 อยู่ในรอบของเดือนนี้ (เช่น 5 ม.ค. อยู่ในรอบ "มกราคม")
+      // ถ้าวันที่ >= 26 อยู่ในรอบของเดือนถัดไป (เช่น 27 ธ.ค. อยู่ในรอบ "มกราคม" ปีถัดไป)
+      let month = d.getMonth() + 1;
+      let year = d.getFullYear();
+      if(d.getDate() >= 26){
+        month += 1;
+        if(month > 12){ month = 1; year += 1; }
+      }
+      return { month, year };
+    }
+    const initPeriod = getCurrentPayPeriodMonthYear();
+    periodMonthSel.value = String(initPeriod.month);
+    periodYearSel.value = String(initPeriod.year);
+
+    // คำนวณช่วงวันที่ของรอบ (26 เดือนก่อนหน้า - 25 เดือนที่เลือก)
+    function pad2(n){ return String(n).padStart(2,'0'); }
+    function getPayPeriodRange(month, year){
+      month = parseInt(month); year = parseInt(year);
+      let startMonth = month - 1;
+      let startYear = year;
+      if(startMonth < 1){ startMonth = 12; startYear -= 1; }
+      const startISO = `${startYear}-${pad2(startMonth)}-26`;
+      const endISO = `${year}-${pad2(month)}-25`;
+      return { startISO, endISO, startMonth, startYear, endMonth: month, endYear: year };
+    }
+
+    function updatePeriodRangeLabel(){
+      const r = getPayPeriodRange(periodMonthSel.value, periodYearSel.value);
+      const label = `รอบ: ${THAI_MONTHS[r.endMonth-1]} ${r.endYear}  ➜  26 ${THAI_MONTHS_SHORT[r.startMonth-1]} ${r.startYear} - 25 ${THAI_MONTHS_SHORT[r.endMonth-1]} ${r.endYear}`;
+      periodRangeLabel.textContent = label;
+      return r;
+    }
+    updatePeriodRangeLabel();
+    periodMonthSel.addEventListener('change', updatePeriodRangeLabel);
+    periodYearSel.addEventListener('change', updatePeriodRangeLabel);
+
+    // เช็คว่าใบลา (startDate - endDate) มีวันใดวันหนึ่งซ้อนทับกับรอบที่เลือกหรือไม่
+    function rowOverlapsPeriod(row, periodStartISO, periodEndISO){
+      const rs = row.startDate || row.endDate;
+      const re = row.endDate || row.startDate;
+      if(!rs || !re) return false;
+      return rs <= periodEndISO && re >= periodStartISO;
+    }
+
+    downloadPeriodCSVBtn.addEventListener('click', async ()=>{
+      try{
+        downloadPeriodCSVBtn.disabled = true;
+        downloadPeriodCSVBtn.textContent = '⏳ กำลังดึงข้อมูล...';
+
+        const r = updatePeriodRangeLabel();
+        const dept = periodDeptSel.value;
+
+        const allData = await driver.getAll();
+        let filtered = allData.filter(row => rowOverlapsPeriod(row, r.startISO, r.endISO));
+        if(dept){
+          filtered = filtered.filter(row => (row.department || '').trim() === dept);
+        }
+
+        // เรียงตามรหัสพนักงาน แล้ววันที่เริ่มลา ให้พร้อมใช้งานง่ายขึ้น
+        filtered.sort((a,b)=>{
+          const ka = (a.empId||'') + (a.startDate||'');
+          const kb = (b.empId||'') + (b.startDate||'');
+          return ka.localeCompare(kb);
+        });
+
+        if(filtered.length === 0){
+          showToast('⚠️ ไม่พบข้อมูลในรอบ/แผนกที่เลือก', 'warning');
+          return;
+        }
+
+        const csv = generateCSV(filtered);
+        const blob = new Blob(["\ufeff"+csv], {type:'text/csv;charset=utf-8;'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const monthName = THAI_MONTHS[parseInt(periodMonthSel.value)-1];
+        const deptPart = dept ? `-${dept}` : '-ทุกแผนก';
+        a.href = url;
+        a.download = `ใบลา-รอบ-${monthName}${periodYearSel.value}${deptPart}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast(`✅ ดาวน์โหลดสำเร็จ (${filtered.length} รายการ)`, 'success');
+      } catch(e){
+        console.error(e);
+        showToast('ดาวน์โหลด CSV ตามรอบไม่สำเร็จ', 'error');
+      } finally {
+        downloadPeriodCSVBtn.disabled = false;
+        downloadPeriodCSVBtn.textContent = '📥 ดาวน์โหลดรอบนี้';
+      }
+    });
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
