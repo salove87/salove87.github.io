@@ -172,7 +172,7 @@ function renderChips(){
  formItems.forEach((it,idx)=>{
  const chip=document.createElement("span");
  chip.className="chip";
- chip.innerHTML=`${it.name} × ${it.qty} <button type="button" data-idx="${idx}">×</button>`;
+ chip.innerHTML=`${it.name} (${it.qty}) <button type="button" data-idx="${idx}">×</button>`;
  chip.querySelector("button").onclick=()=>{
  formItems.splice(idx,1);
  renderChips();
@@ -302,7 +302,7 @@ function startListening(){
  new Date(data.timestamp.toMillis()).toLocaleString():"-";
 
  const itemsDisplay=Array.isArray(data.itemsList)
- ?data.itemsList.map(it=>`${it.name} × ${it.qty}`).join(", ")
+ ?data.itemsList.map(it=>`${it.name} (${it.qty})`).join(", ")
  :(data.items||"-");
 
  tr.innerHTML=`
@@ -356,7 +356,7 @@ async function downloadCSV(){
  snapshot.forEach(docSnap=>{
  const d=docSnap.data();
  const itemsDisplay=Array.isArray(d.itemsList)
- ?d.itemsList.map(it=>`${it.name} x${it.qty}`).join(" / ")
+ ?d.itemsList.map(it=>`${it.name} (${it.qty})`).join(" / ")
  :(d.items||"");
  csv+=`${d.requesterName},${d.department},"${itemsDisplay}"\n`;
  });
