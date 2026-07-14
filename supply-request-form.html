@@ -12,6 +12,8 @@ body{font-family:'Noto Sans Thai','Noto Sans Myanmar',sans-serif;background:#f1f
 .card{background:white;border-radius:14px;box-shadow:0 10px 25px rgba(0,0,0,0.08)}
 .lang-btn{padding:6px 14px;border-radius:8px;border:1px solid #ddd;font-size:14px}
 .lang-active{background:#4f46e5;color:white;border-color:#4f46e5}
+.chip{display:inline-flex;align-items:center;gap:6px;background:#eef2ff;color:#3730a3;border-radius:999px;padding:4px 10px;font-size:13px;margin:3px}
+.chip button{color:#dc2626;font-weight:700;line-height:1}
 </style>
 
 </head>
@@ -19,6 +21,8 @@ body{font-family:'Noto Sans Thai','Noto Sans Myanmar',sans-serif;background:#f1f
 <body class="p-6">
 
 <div class="max-w-5xl mx-auto">
+
+<div id="errorBanner" class="hidden mb-4 text-sm bg-red-50 border border-red-300 text-red-800 rounded-lg p-3"></div>
 
 <div class="flex justify-between items-center mb-6">
 <h1 id="title" class="text-2xl font-semibold">แบบฟอร์มเบิกอุปกรณ์สำนักงาน</h1>
@@ -29,6 +33,11 @@ body{font-family:'Noto Sans Thai','Noto Sans Myanmar',sans-serif;background:#f1f
 </div>
 
 <div class="card p-6 mb-6">
+<div id="editingBanner" class="hidden mb-4 text-sm bg-amber-50 border border-amber-300 text-amber-800 rounded-lg p-3 flex justify-between items-center">
+<span id="editingBannerText">กำลังแก้ไขรายการ</span>
+<button type="button" onclick="cancelEdit()" id="btn-cancel-edit" class="text-amber-800 underline">ยกเลิก</button>
+</div>
+
 <form id="request-form" class="space-y-4">
 
 <div>
@@ -38,7 +47,12 @@ body{font-family:'Noto Sans Thai','Noto Sans Myanmar',sans-serif;background:#f1f
 
 <div>
 <label id="lbl-items" class="text-sm font-medium">รายการที่ต้องการเบิก</label>
-<textarea id="items" class="mt-1 w-full border rounded-lg p-2" rows="4" placeholder="เช่น กระดาษ A4 2 รีม" required></textarea>
+<div class="mt-1 flex gap-2">
+<input id="itemNameInput" class="flex-1 border rounded-lg p-2" placeholder="ชื่อรายการ เช่น กระดาษ A4">
+<input id="itemQtyInput" type="number" min="1" class="w-24 border rounded-lg p-2" placeholder="จำนวน">
+<button type="button" onclick="addItem()" id="btn-add-item" class="bg-indigo-100 text-indigo-700 px-3 rounded-lg whitespace-nowrap">+ เพิ่ม</button>
+</div>
+<div id="itemsChips" class="mt-2"></div>
 </div>
 
 <div>
@@ -52,8 +66,8 @@ body{font-family:'Noto Sans Thai','Noto Sans Myanmar',sans-serif;background:#f1f
 </div>
 
 <div class="flex justify-end gap-2 mb-4">
-<button onclick="downloadCSV()" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm">ดาวน์โหลด</button>
-<button onclick="deleteAll()" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm">ลบทั้งหมด</button>
+<button onclick="downloadCSV()" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm" id="btn-download">ดาวน์โหลด</button>
+<button onclick="deleteAll()" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm" id="btn-deleteall">ลบทั้งหมด</button>
 </div>
 
 <div class="card p-6">
@@ -67,7 +81,8 @@ body{font-family:'Noto Sans Thai','Noto Sans Myanmar',sans-serif;background:#f1f
 <th class="p-2 text-left" id="th-dept">แผนก</th>
 <th class="p-2 text-left" id="th-items">รายการ</th>
 <th class="p-2 text-left" id="th-status">สถานะ</th>
-<th class="p-2 text-left">เวลา</th>
+<th class="p-2 text-left" id="th-time">เวลา</th>
+<th class="p-2 text-left" id="th-action">การดำเนินการ</th>
 </tr>
 </thead>
 <tbody id="tableBody"></tbody>
@@ -96,43 +111,167 @@ const app=initializeApp(firebaseConfig);
 const db=getFirestore(app);
 const auth=getAuth(app);
 
-await signInAnonymously(auth);
+function showError(msg){
+ const el=document.getElementById("errorBanner");
+ el.innerText="เชื่อมต่อระบบไม่สำเร็จ: "+msg;
+ el.classList.remove("hidden");
+ console.error(msg);
+}
+
+try{
+ await signInAnonymously(auth);
+}catch(err){
+ showError(err.code?`${err.code} - ${err.message}`:err.message);
+ throw err;
+}
 
 const collectionPath="supply-requests";
+const EDIT_PASSCODE="303647";
 
 const form=document.getElementById("request-form");
 const tableBody=document.getElementById("tableBody");
+
+let formItems=[]; // {name, qty}
+let editingId=null;
+let latestDocs={}; // cache of docId -> data, for editing lookups
+
+// ---------- item chips ----------
+
+window.addItem=()=>{
+ const nameEl=document.getElementById("itemNameInput");
+ const qtyEl=document.getElementById("itemQtyInput");
+
+ const name=nameEl.value.trim();
+ const qty=qtyEl.value.trim();
+
+ if(!name||!qty||Number(qty)<=0){
+ alert(currentLangText().fillItemAlert);
+ return;
+ }
+
+ formItems.push({name,qty});
+ nameEl.value="";
+ qtyEl.value="";
+ nameEl.focus();
+ renderChips();
+};
+
+function renderChips(){
+ const box=document.getElementById("itemsChips");
+ box.innerHTML="";
+
+ formItems.forEach((it,idx)=>{
+ const chip=document.createElement("span");
+ chip.className="chip";
+ chip.innerHTML=`${it.name} × ${it.qty} <button type="button" data-idx="${idx}">×</button>`;
+ chip.querySelector("button").onclick=()=>{
+ formItems.splice(idx,1);
+ renderChips();
+ };
+ box.appendChild(chip);
+ });
+}
+
+// ---------- form submit (add or save edit) ----------
 
 form.addEventListener("submit",async e=>{
  e.preventDefault();
 
  const department=document.getElementById("department").value.trim();
- const items=document.getElementById("items").value.trim();
  const requesterName=document.getElementById("requesterName").value.trim();
 
- if(!department||!items||!requesterName){
- alert("กรุณากรอกข้อมูลให้ครบ");
+ if(!department||!requesterName||formItems.length===0){
+ alert(currentLangText().fillFormAlert);
  return;
  }
 
+ if(editingId){
+ await updateDoc(doc(db,collectionPath,editingId),{
+ department,
+ requesterName,
+ itemsList:formItems
+ });
+ cancelEdit();
+ }else{
  await addDoc(collection(db,collectionPath),{
  department,
- items,
  requesterName,
+ itemsList:formItems,
  complete:false,
  timestamp:serverTimestamp()
  });
+ }
 
  form.reset();
+ formItems=[];
+ renderChips();
 });
+
+// ---------- editing flow with passcode ----------
+
+window.startEdit=(id)=>{
+ const code=prompt(currentLangText().passcodePrompt);
+ if(code===null)return;
+
+ if(code!==EDIT_PASSCODE){
+ alert(currentLangText().passcodeWrong);
+ return;
+ }
+
+ const data=latestDocs[id];
+ if(!data)return;
+
+ document.getElementById("department").value=data.department||"";
+ document.getElementById("requesterName").value=data.requesterName||"";
+ formItems=Array.isArray(data.itemsList)?[...data.itemsList]:[];
+ renderChips();
+
+ editingId=id;
+
+ document.getElementById("editingBanner").classList.remove("hidden");
+ document.getElementById("btn-submit").innerText=currentLangText().saveEdit;
+
+ window.scrollTo({top:0,behavior:"smooth"});
+};
+
+window.cancelEdit=()=>{
+ editingId=null;
+ formItems=[];
+ renderChips();
+ form.reset();
+ document.getElementById("editingBanner").classList.add("hidden");
+ document.getElementById("btn-submit").innerText=currentLangText().submit;
+};
+
+window.startDelete=async(id)=>{
+ const code=prompt(currentLangText().passcodePrompt);
+ if(code===null)return;
+
+ if(code!==EDIT_PASSCODE){
+ alert(currentLangText().passcodeWrong);
+ return;
+ }
+
+ if(!confirm(currentLangText().confirmDeleteOne))return;
+
+ await deleteDoc(doc(db,collectionPath,id));
+
+ if(editingId===id){
+ cancelEdit();
+ }
+};
+
+// ---------- realtime list ----------
 
 const q=query(collection(db,collectionPath),orderBy("timestamp","desc"));
 
 onSnapshot(q,snap=>{
  tableBody.innerHTML="";
+ latestDocs={};
 
  snap.forEach(d=>{
  const data=d.data();
+ latestDocs[d.id]=data;
 
  const tr=document.createElement("tr");
  tr.className="border-b";
@@ -143,36 +282,49 @@ onSnapshot(q,snap=>{
  const time=data.timestamp?
  new Date(data.timestamp.toMillis()).toLocaleString():"-";
 
+ const itemsDisplay=Array.isArray(data.itemsList)
+ ?data.itemsList.map(it=>`${it.name} × ${it.qty}`).join(", ")
+ :(data.items||"-");
+
  tr.innerHTML=`
  <td class="p-2">${data.requesterName}</td>
  <td class="p-2">${data.department}</td>
- <td class="p-2">${data.items}</td>
- <td class="p-2 flex gap-2">
+ <td class="p-2">${itemsDisplay}</td>
+ <td class="p-2">
  <button class="${statusColor} text-white px-2 py-1 rounded text-xs">${statusText}</button>
- <button class="bg-blue-600 text-white px-2 py-1 rounded text-xs action-complete">✔</button>
- <button class="bg-gray-500 text-white px-2 py-1 rounded text-xs action-pending">↺</button>
  </td>
  <td class="p-2">${time}</td>
+ <td class="p-2 flex gap-2">
+ <button class="bg-blue-600 text-white px-2 py-1 rounded text-xs action-complete">✔</button>
+ <button class="bg-gray-500 text-white px-2 py-1 rounded text-xs action-pending">↺</button>
+ <button class="bg-amber-500 text-white px-2 py-1 rounded text-xs action-edit">🔒✎</button>
+ <button class="bg-red-600 text-white px-2 py-1 rounded text-xs action-delete">🔒🗑</button>
+ </td>
  `;
 
- const completeBtn=tr.querySelector(".action-complete");
- const pendingBtn=tr.querySelector(".action-pending");
-
- completeBtn.onclick=()=>{
- updateDoc(doc(db,collectionPath,d.id),{
- complete:true
- });
+ tr.querySelector(".action-complete").onclick=()=>{
+ updateDoc(doc(db,collectionPath,d.id),{complete:true});
  };
 
- pendingBtn.onclick=()=>{
- updateDoc(doc(db,collectionPath,d.id),{
- complete:false
- });
+ tr.querySelector(".action-pending").onclick=()=>{
+ updateDoc(doc(db,collectionPath,d.id),{complete:false});
+ };
+
+ tr.querySelector(".action-edit").onclick=()=>{
+ startEdit(d.id);
+ };
+
+ tr.querySelector(".action-delete").onclick=()=>{
+ startDelete(d.id);
  };
 
  tableBody.appendChild(tr);
  });
+},err=>{
+ showError(err.code?`${err.code} - ${err.message}`:err.message);
 });
+
+// ---------- csv / delete all ----------
 
 window.downloadCSV=async()=>{
 
@@ -180,9 +332,12 @@ const snapshot=await getDocs(collection(db,collectionPath));
 
 let csv="ชื่อ,แผนก,รายการ\n";
 
-snapshot.forEach(doc=>{
- const d=doc.data();
- csv+=`${d.requesterName},${d.department},${d.items}\n`;
+snapshot.forEach(docSnap=>{
+ const d=docSnap.data();
+ const itemsDisplay=Array.isArray(d.itemsList)
+ ?d.itemsList.map(it=>`${it.name} x${it.qty}`).join(" / ")
+ :(d.items||"");
+ csv+=`${d.requesterName},${d.department},"${itemsDisplay}"\n`;
 });
 
 const blob=new Blob([csv]);
@@ -197,7 +352,7 @@ a.click();
 
 window.deleteAll=async()=>{
 
-if(!confirm("ลบทั้งหมดหรือไม่"))return;
+if(!confirm(currentLangText().confirmDeleteAll))return;
 
 const snapshot=await getDocs(collection(db,collectionPath));
 
@@ -207,9 +362,13 @@ snapshot.forEach(d=>{
 
 }
 
+window.currentLangText=()=>lang[currentLang];
+
 </script>
 
 <script>
+
+let currentLang="th";
 
 const lang={
 
@@ -219,11 +378,25 @@ th:{
  items:"รายการที่ต้องการเบิก",
  name:"ชื่อผู้เบิก",
  submit:"ส่งรายการ",
+ saveEdit:"บันทึกการแก้ไข",
  list:"รายการเบิกทั้งหมด",
  thname:"ชื่อ",
  thdept:"แผนก",
  thitems:"รายการ",
- thstatus:"สถานะ"
+ thstatus:"สถานะ",
+ thtime:"เวลา",
+ thaction:"การดำเนินการ",
+ addItem:"+ เพิ่ม",
+ download:"ดาวน์โหลด",
+ deleteAll:"ลบทั้งหมด",
+ editingBanner:"กำลังแก้ไขรายการนี้อยู่",
+ cancelEdit:"ยกเลิก",
+ passcodePrompt:"กรุณาใส่รหัสเพื่อแก้ไขรายการ",
+ passcodeWrong:"รหัสไม่ถูกต้อง",
+ fillItemAlert:"กรุณากรอกชื่อรายการและจำนวน",
+ fillFormAlert:"กรุณากรอกข้อมูลให้ครบและเพิ่มอย่างน้อย 1 รายการ",
+ confirmDeleteAll:"ลบทั้งหมดหรือไม่",
+ confirmDeleteOne:"ต้องการลบรายการนี้หรือไม่"
 },
 
 mm:{
@@ -232,45 +405,56 @@ mm:{
  items:"လိုအပ်သောပစ္စည်း",
  name:"တောင်းဆိုသူအမည်",
  submit:"တင်ပြရန်",
+ saveEdit:"ပြင်ဆင်ချက်ကို သိမ်းရန်",
  list:"တောင်းဆိုမှုစာရင်း",
  thname:"အမည်",
  thdept:"ဌာန",
  thitems:"ပစ္စည်း",
- thstatus:"အခြေအနေ"
+ thstatus:"အခြေအနေ",
+ thtime:"အချိန်",
+ thaction:"လုပ်ဆောင်ချက်",
+ addItem:"+ ထည့်ရန်",
+ download:"ဒေါင်းလုဒ်",
+ deleteAll:"အားလုံးဖျက်ရန်",
+ editingBanner:"ဤစာရင်းကို ပြင်ဆင်နေသည်",
+ cancelEdit:"ပယ်ဖျက်ရန်",
+ passcodePrompt:"ပြင်ဆင်ရန် လျှို့ဝှက်ကုဒ်ထည့်ပါ",
+ passcodeWrong:"ကုဒ်မှားနေသည်",
+ fillItemAlert:"ပစ္စည်းအမည်နှင့်အရေအတွက်ကို ဖြည့်ပါ",
+ fillFormAlert:"အချက်အလက်အားလုံးဖြည့်ပြီး ပစ္စည်းအနည်းဆုံး ၁ ခု ထည့်ပါ",
+ confirmDeleteAll:"အားလုံးဖျက်မည်လား",
+ confirmDeleteOne:"ဤစာရင်းကို ဖျက်မည်လား"
 }
 
 }
 
 function setLang(l){
 
+currentLang=l;
 const t=lang[l]
 
 document.getElementById('title').innerText=t.title
-
 document.getElementById('lbl-dept').innerText=t.dept
-
 document.getElementById('lbl-items').innerText=t.items
-
 document.getElementById('lbl-name').innerText=t.name
-
-document.getElementById('btn-submit').innerText=t.submit
-
+document.getElementById('btn-submit').innerText = document.getElementById('editingBanner').classList.contains('hidden') ? t.submit : t.saveEdit
 document.getElementById('title-list').innerText=t.list
 
-
 document.getElementById('th-name').innerText=t.thname
-
 document.getElementById('th-dept').innerText=t.thdept
-
 document.getElementById('th-items').innerText=t.thitems
-
 document.getElementById('th-status').innerText=t.thstatus
+document.getElementById('th-time').innerText=t.thtime
+document.getElementById('th-action').innerText=t.thaction
 
+document.getElementById('btn-add-item').innerText=t.addItem
+document.getElementById('btn-download').innerText=t.download
+document.getElementById('btn-deleteall').innerText=t.deleteAll
+document.getElementById('editingBannerText').innerText=t.editingBanner
+document.getElementById('btn-cancel-edit').innerText=t.cancelEdit
 
 document.getElementById('btn-th').classList.remove('lang-active')
-
 document.getElementById('btn-mm').classList.remove('lang-active')
-
 
 document.getElementById('btn-'+l).classList.add('lang-active')
 
