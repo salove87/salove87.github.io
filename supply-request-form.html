@@ -92,11 +92,14 @@ body{font-family:'Noto Sans Thai','Noto Sans Myanmar',sans-serif;background:#f1f
 
 </div>
 
-<script type="module">
+<!-- Firebase COMPAT SDK: regular scripts, not ES modules.
+     This is what lets the page run when opened directly as a local file (file://),
+     unlike the modular v9 SDK (type="module" + import) which browsers block for local files. -->
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getFirestore,collection,addDoc,onSnapshot,serverTimestamp,deleteDoc,getDocs,doc,updateDoc,query,orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { getAuth,signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+<script>
 
 const firebaseConfig={
  apiKey:"AIzaSyASVRfcI29rcxgzQuOC6R-CMT7X7vBWg_g",
@@ -107,23 +110,9 @@ const firebaseConfig={
  appId:"1:873410566683:web:6c7e3058085b09acb036be"
 };
 
-const app=initializeApp(firebaseConfig);
-const db=getFirestore(app);
-const auth=getAuth(app);
-
-function showError(msg){
- const el=document.getElementById("errorBanner");
- el.innerText="เชื่อมต่อระบบไม่สำเร็จ: "+msg;
- el.classList.remove("hidden");
- console.error(msg);
-}
-
-try{
- await signInAnonymously(auth);
-}catch(err){
- showError(err.code?`${err.code} - ${err.message}`:err.message);
- throw err;
-}
+firebase.initializeApp(firebaseConfig);
+const db=firebase.firestore();
+const auth=firebase.auth();
 
 const collectionPath="supply-requests";
 const EDIT_PASSCODE="303647";
@@ -134,10 +123,30 @@ const tableBody=document.getElementById("tableBody");
 let formItems=[]; // {name, qty}
 let editingId=null;
 let latestDocs={}; // cache of docId -> data, for editing lookups
+let currentLang="th";
+
+function showError(msg){
+ const el=document.getElementById("errorBanner");
+ el.innerText="เชื่อมต่อระบบไม่สำเร็จ: "+msg;
+ el.classList.remove("hidden");
+ console.error(msg);
+}
+
+function currentLangText(){
+ return lang[currentLang];
+}
+
+// ---------- auth then start listening ----------
+
+auth.signInAnonymously().then(()=>{
+ startListening();
+}).catch(err=>{
+ showError(err.code?`${err.code} - ${err.message}`:err.message);
+});
 
 // ---------- item chips ----------
 
-window.addItem=()=>{
+function addItem(){
  const nameEl=document.getElementById("itemNameInput");
  const qtyEl=document.getElementById("itemQtyInput");
 
@@ -154,7 +163,7 @@ window.addItem=()=>{
  qtyEl.value="";
  nameEl.focus();
  renderChips();
-};
+}
 
 function renderChips(){
  const box=document.getElementById("itemsChips");
@@ -185,21 +194,26 @@ form.addEventListener("submit",async e=>{
  return;
  }
 
+ try{
  if(editingId){
- await updateDoc(doc(db,collectionPath,editingId),{
+ await db.collection(collectionPath).doc(editingId).update({
  department,
  requesterName,
  itemsList:formItems
  });
  cancelEdit();
  }else{
- await addDoc(collection(db,collectionPath),{
+ await db.collection(collectionPath).add({
  department,
  requesterName,
  itemsList:formItems,
  complete:false,
- timestamp:serverTimestamp()
+ timestamp:firebase.firestore.FieldValue.serverTimestamp()
  });
+ }
+ }catch(err){
+ showError(err.code?`${err.code} - ${err.message}`:err.message);
+ return;
  }
 
  form.reset();
@@ -209,7 +223,7 @@ form.addEventListener("submit",async e=>{
 
 // ---------- editing flow with passcode ----------
 
-window.startEdit=(id)=>{
+function startEdit(id){
  const code=prompt(currentLangText().passcodePrompt);
  if(code===null)return;
 
@@ -232,18 +246,18 @@ window.startEdit=(id)=>{
  document.getElementById("btn-submit").innerText=currentLangText().saveEdit;
 
  window.scrollTo({top:0,behavior:"smooth"});
-};
+}
 
-window.cancelEdit=()=>{
+function cancelEdit(){
  editingId=null;
  formItems=[];
  renderChips();
  form.reset();
  document.getElementById("editingBanner").classList.add("hidden");
  document.getElementById("btn-submit").innerText=currentLangText().submit;
-};
+}
 
-window.startDelete=async(id)=>{
+async function startDelete(id){
  const code=prompt(currentLangText().passcodePrompt);
  if(code===null)return;
 
@@ -254,18 +268,23 @@ window.startDelete=async(id)=>{
 
  if(!confirm(currentLangText().confirmDeleteOne))return;
 
- await deleteDoc(doc(db,collectionPath,id));
+ try{
+ await db.collection(collectionPath).doc(id).delete();
+ }catch(err){
+ showError(err.code?`${err.code} - ${err.message}`:err.message);
+ return;
+ }
 
  if(editingId===id){
  cancelEdit();
  }
-};
+}
 
 // ---------- realtime list ----------
 
-const q=query(collection(db,collectionPath),orderBy("timestamp","desc"));
+function startListening(){
 
-onSnapshot(q,snap=>{
+ db.collection(collectionPath).orderBy("timestamp","desc").onSnapshot(snap=>{
  tableBody.innerHTML="";
  latestDocs={};
 
@@ -303,11 +322,11 @@ onSnapshot(q,snap=>{
  `;
 
  tr.querySelector(".action-complete").onclick=()=>{
- updateDoc(doc(db,collectionPath,d.id),{complete:true});
+ db.collection(collectionPath).doc(d.id).update({complete:true});
  };
 
  tr.querySelector(".action-pending").onclick=()=>{
- updateDoc(doc(db,collectionPath,d.id),{complete:false});
+ db.collection(collectionPath).doc(d.id).update({complete:false});
  };
 
  tr.querySelector(".action-edit").onclick=()=>{
@@ -320,55 +339,53 @@ onSnapshot(q,snap=>{
 
  tableBody.appendChild(tr);
  });
-},err=>{
+ },err=>{
  showError(err.code?`${err.code} - ${err.message}`:err.message);
-});
+ });
+
+}
 
 // ---------- csv / delete all ----------
 
-window.downloadCSV=async()=>{
+async function downloadCSV(){
 
-const snapshot=await getDocs(collection(db,collectionPath));
+ const snapshot=await db.collection(collectionPath).get();
 
-let csv="ชื่อ,แผนก,รายการ\n";
+ let csv="ชื่อ,แผนก,รายการ\n";
 
-snapshot.forEach(docSnap=>{
+ snapshot.forEach(docSnap=>{
  const d=docSnap.data();
  const itemsDisplay=Array.isArray(d.itemsList)
  ?d.itemsList.map(it=>`${it.name} x${it.qty}`).join(" / ")
  :(d.items||"");
  csv+=`${d.requesterName},${d.department},"${itemsDisplay}"\n`;
-});
+ });
 
-const blob=new Blob([csv]);
-const url=URL.createObjectURL(blob);
+ const blob=new Blob([csv]);
+ const url=URL.createObjectURL(blob);
 
-const a=document.createElement("a");
-a.href=url;
-a.download="supply.csv";
-a.click();
-
-}
-
-window.deleteAll=async()=>{
-
-if(!confirm(currentLangText().confirmDeleteAll))return;
-
-const snapshot=await getDocs(collection(db,collectionPath));
-
-snapshot.forEach(d=>{
- deleteDoc(d.ref);
-});
+ const a=document.createElement("a");
+ a.href=url;
+ a.download="supply.csv";
+ a.click();
 
 }
 
-window.currentLangText=()=>lang[currentLang];
+async function deleteAll(){
+
+ if(!confirm(currentLangText().confirmDeleteAll))return;
+
+ const snapshot=await db.collection(collectionPath).get();
+
+ snapshot.forEach(d=>{
+ d.ref.delete();
+ });
+
+}
 
 </script>
 
 <script>
-
-let currentLang="th";
 
 const lang={
 
