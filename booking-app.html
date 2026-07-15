@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-app-compat.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-firestore-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-storage-compat.min.js"></script>
 <style>
   :root{
     --bg:#0e1210;
@@ -97,6 +98,15 @@
     color:var(--emerald); padding:10px; resize:vertical;
   }
   .setup .row{ display:flex; gap:8px; margin-top:10px; }
+  .pin-settings{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:10px 12px; margin-bottom:16px; font-size:12.5px; color:var(--ink-dim);
+  }
+  .pin-settings input{
+    width:140px; padding:6px 9px; font-size:13px;
+    background:var(--panel-2); border:1px solid var(--line); border-radius:6px; color:var(--ink);
+  }
 
   /* modal */
   .overlay{
@@ -161,6 +171,12 @@
   .entry-purpose{ font-size:14.5px; font-weight:600; margin:4px 0 3px; }
   .entry-meta{ font-size:12.5px; color:var(--ink-dim); }
   .entry-note{ font-size:12px; color:#6f776f; font-style:italic; margin-top:4px; }
+  .attach-link{
+    display:inline-flex; align-items:center; gap:4px; margin-top:6px;
+    font-size:12px; color:var(--violet); text-decoration:none; background:rgba(138,124,240,.1);
+    padding:3px 9px; border-radius:20px;
+  }
+  .attach-link:hover{ text-decoration:underline; }
   .entry-room-tag{ font-size:10.5px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.04em; }
   .del{ background:none; border:none; color:#5a615a; cursor:pointer; font-size:16px; flex-shrink:0; padding:2px 4px; }
   .del:hover{ color:var(--coral); }
@@ -196,6 +212,7 @@
 
   <div id="app" style="display:none;">
     <div class="status-row" id="statusRow"></div>
+
 
     <button class="primary-btn" id="openModalBtn">+ บันทึกการใช้ห้อง</button>
 
@@ -237,6 +254,11 @@
       <div class="field"><label>ชื่อผู้บันทึก / แผนก</label><input type="text" id="fBy" placeholder="คุณสมชาย / ฝ่ายขาย" required></div>
       <div class="field"><label>วัตถุประสงค์</label><input type="text" id="fPurpose" placeholder="ประชุมทีมประจำสัปดาห์" required></div>
       <div class="field"><label>หมายเหตุ</label><textarea class="note" id="fNotes" placeholder="เช่น ต้องใช้โปรเจกเตอร์"></textarea></div>
+      <div class="field">
+        <label>แนบไฟล์บันทึกประชุม (ถ้ามี)</label>
+        <input type="file" id="fAttachment">
+        <div id="attachStatus" style="font-size:11.5px;color:var(--ink-dim);margin-top:5px;"></div>
+      </div>
       <button type="submit" class="primary-btn" id="submitBtn">บันทึกข้อมูล</button>
     </form>
   </div>
@@ -246,9 +268,11 @@
 const ROOMS = ["ห้องประชุมใหญ่","ห้องประชุมเล็ก","ห้องประชุมหน้าบันได"];
 const roomClass = { "ห้องประชุมใหญ่":"room-1", "ห้องประชุมเล็ก":"room-2", "ห้องประชุมหน้าบันได":"room-3" };
 let db = null;
+let storageRef = null;
 let entries = [];
 let currentFilter = 'all';
 let pickedRoom = null;
+const DELETE_PIN = '303647'; // ผู้ดูแลเท่านั้นที่รู้รหัสนี้
 
 // live clock
 function tick(){
@@ -293,6 +317,7 @@ function initFirebase(cfg){
       firebase.initializeApp(cfg);
     }
     db = firebase.firestore();
+    try{ storageRef = firebase.storage(); }catch(e){ storageRef = null; }
     document.getElementById('setupPanel').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     document.getElementById('connDot').style.background = '#3ecf8e';
@@ -356,6 +381,7 @@ function renderEntries(){
             <div class="entry-purpose">${escapeHtml(e.purpose)}</div>
             <div class="entry-meta">${escapeHtml(e.bookedBy)}${e.participants ? ' · '+e.participants+' คน' : ''}</div>
             ${e.notes ? `<div class="entry-note">${escapeHtml(e.notes)}</div>` : ''}
+            ${e.attachmentUrl ? `<a href="${e.attachmentUrl}" target="_blank" rel="noopener" class="attach-link">📎 ${escapeHtml(e.attachmentName || 'ไฟล์แนบ')}</a>` : ''}
           </div>
           <button class="del" onclick="deleteEntry('${e.id}')">✕</button>
         </div>
@@ -374,7 +400,9 @@ function formatDate(d){
 function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str||''; return d.innerHTML; }
 
 async function deleteEntry(id){
-  if(!confirm('ลบรายการนี้หรือไม่?')) return;
+  const entered = prompt('กรุณาใส่รหัสเพื่อยืนยันการลบรายการนี้');
+  if(entered === null) return;
+  if(entered !== DELETE_PIN){ alert('รหัสไม่ถูกต้อง'); return; }
   try{ await db.collection('bookings').doc(id).delete(); }
   catch(e){ alert('ลบไม่สำเร็จ: ' + e.message); }
 }
@@ -424,7 +452,21 @@ document.getElementById('bookingForm').addEventListener('submit', async (ev) => 
   const btn = document.getElementById('submitBtn');
   btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
   try{
-    await db.collection('bookings').add({ room: pickedRoom, date, startTime, endTime, bookedBy, purpose, participants, notes, createdAt: Date.now() });
+    const fileInput = document.getElementById('fAttachment');
+    const file = fileInput.files[0];
+    let attachmentUrl = null, attachmentName = null;
+    if(file){
+      if(!storageRef){ throw new Error('ยังไม่ได้ตั้งค่า Firebase Storage'); }
+      const attachStatus = document.getElementById('attachStatus');
+      attachStatus.textContent = 'กำลังอัปโหลดไฟล์...';
+      const path = 'attachments/' + Date.now() + '_' + file.name;
+      const ref = storageRef.ref().child(path);
+      await ref.put(file);
+      attachmentUrl = await ref.getDownloadURL();
+      attachmentName = file.name;
+      attachStatus.textContent = '';
+    }
+    await db.collection('bookings').add({ room: pickedRoom, date, startTime, endTime, bookedBy, purpose, participants, notes, attachmentUrl, attachmentName, createdAt: Date.now() });
     document.getElementById('bookingForm').reset();
     document.querySelectorAll('.room-opt').forEach(o => o.classList.remove('sel'));
     pickedRoom = null;
