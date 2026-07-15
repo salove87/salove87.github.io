@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ห้องประชุมส่วนกลาง</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-firestore-compat.min.js"></script>
+<style>
+  :root{
+    --bg:#0e1210;
+    --panel:#161b18;
+    --panel-2:#1c2320;
+    --line:#293029;
+    --ink:#eef1ee;
+    --ink-dim:#8f978f;
+    --mono:'Space Grotesk',sans-serif;
+    --emerald:#3ecf8e;
+    --amber:#e8a23d;
+    --coral:#e0684f;
+    --violet:#8a7cf0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse 900px 500px at 20% -10%, rgba(62,207,142,.07), transparent),
+      radial-gradient(ellipse 700px 500px at 90% 10%, rgba(138,124,240,.06), transparent),
+      var(--bg);
+    color:var(--ink);
+    font-family:'Sarabun',sans-serif;
+    min-height:100vh;
+  }
+  .wrap{ max-width:960px; margin:0 auto; padding:22px 16px 70px; }
+
+  /* header */
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:22px; gap:12px; flex-wrap:wrap;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .dot{ width:9px; height:9px; border-radius:50%; background:var(--emerald); box-shadow:0 0 10px var(--emerald); }
+  .brand h1{ font-size:17px; margin:0; font-weight:700; letter-spacing:.01em; }
+  .clock{
+    font-family:var(--mono); font-size:13px; color:var(--ink-dim);
+    background:var(--panel); border:1px solid var(--line); border-radius:20px;
+    padding:6px 14px; letter-spacing:.03em;
+  }
+
+  /* status cards */
+  .status-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:22px; }
+  @media (max-width:640px){ .status-row{ grid-template-columns:1fr; } }
+  .room-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:16px; position:relative; overflow:hidden;
+  }
+  .room-card::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  }
+  .room-card.free::before{ background:var(--emerald); }
+  .room-card.busy::before{ background:var(--coral); }
+  .room-name{ font-size:14px; font-weight:600; margin:0 0 10px; }
+  .badge{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:11.5px; font-weight:600; padding:4px 10px; border-radius:20px;
+  }
+  .badge.free{ color:var(--emerald); background:rgba(62,207,142,.12); }
+  .badge.busy{ color:var(--coral); background:rgba(224,104,79,.12); }
+  .badge .bdot{ width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .room-next{ font-size:12px; color:var(--ink-dim); margin-top:10px; line-height:1.5; }
+  .room-next span{ color:var(--ink); font-family:var(--mono); }
+
+  /* buttons */
+  .primary-btn{
+    background:var(--emerald); color:#0c1310; border:none; font-weight:700;
+    font-family:'Sarabun',sans-serif; font-size:14.5px; padding:12px 20px;
+    border-radius:10px; cursor:pointer; width:100%;
+  }
+  .primary-btn:active{ transform:scale(.99); }
+  .ghost-btn{
+    background:transparent; border:1px solid var(--line); color:var(--ink-dim);
+    font-size:12.5px; padding:6px 12px; border-radius:20px; cursor:pointer; font-family:'Sarabun',sans-serif;
+  }
+  .ghost-btn.active{ background:var(--panel-2); color:var(--ink); border-color:#3a423b; }
+
+  /* setup panel */
+  .setup{
+    background:var(--panel); border:1px dashed #3a423b; border-radius:12px;
+    padding:18px; margin-bottom:22px;
+  }
+  .setup h3{ margin:0 0 6px; font-size:14.5px; }
+  .setup p{ margin:0 0 12px; font-size:12.5px; color:var(--ink-dim); line-height:1.6; }
+  .setup textarea{
+    width:100%; min-height:100px; font-family:var(--mono); font-size:12px;
+    background:#0d100e; border:1px solid var(--line); border-radius:8px;
+    color:var(--emerald); padding:10px; resize:vertical;
+  }
+  .setup .row{ display:flex; gap:8px; margin-top:10px; }
+
+  /* modal */
+  .overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.55); backdrop-filter:blur(3px);
+    display:none; align-items:flex-end; justify-content:center; z-index:50;
+  }
+  .overlay.open{ display:flex; }
+  .modal{
+    background:var(--panel); border:1px solid var(--line); border-radius:18px 18px 0 0;
+    width:100%; max-width:520px; max-height:88vh; overflow-y:auto; padding:22px 20px 26px;
+    animation:slideUp .22s ease-out;
+  }
+  @media (min-width:640px){
+    .overlay{ align-items:center; }
+    .modal{ border-radius:16px; }
+  }
+  @keyframes slideUp{ from{ transform:translateY(30px); opacity:0;} to{ transform:translateY(0); opacity:1;} }
+  .modal-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .modal-head h2{ font-size:16px; margin:0; }
+  .close-x{ background:none; border:none; color:var(--ink-dim); font-size:20px; cursor:pointer; line-height:1; }
+
+  .room-pick{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px; }
+  .room-opt{
+    border:1.5px solid var(--line); background:var(--panel-2); border-radius:9px;
+    padding:10px 6px; text-align:center; font-size:12.5px; font-weight:600; cursor:pointer; color:var(--ink-dim);
+  }
+  .room-opt.sel{ border-color:var(--emerald); color:var(--emerald); background:rgba(62,207,142,.08); }
+
+  .field{ margin-bottom:13px; }
+  .field label{ display:block; font-size:12px; font-weight:600; color:var(--ink-dim); margin-bottom:5px; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  input, textarea.note{
+    width:100%; font-family:'Sarabun',sans-serif; font-size:14.5px;
+    background:var(--panel-2); border:1px solid var(--line); border-radius:8px;
+    padding:10px 11px; color:var(--ink);
+  }
+  input:focus, textarea.note:focus{ outline:none; border-color:var(--emerald); }
+  textarea.note{ min-height:56px; resize:vertical; }
+  .modal-msg{ font-size:12.5px; padding:8px 10px; border-radius:7px; margin-bottom:10px; display:none; }
+  .modal-msg.err{ display:block; background:rgba(224,104,79,.14); color:var(--coral); }
+
+  /* list */
+  .list-head{ display:flex; justify-content:space-between; align-items:center; margin:26px 0 12px; flex-wrap:wrap; gap:8px; }
+  .list-head h2{ font-size:15px; margin:0; }
+  .chips{ display:flex; gap:6px; flex-wrap:wrap; }
+
+  .day-group{ margin-bottom:18px; }
+  .day-label{
+    font-family:var(--mono); font-size:12px; color:var(--ink-dim);
+    text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px;
+  }
+  .entry{
+    background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--violet);
+    border-radius:10px; padding:13px 14px; margin-bottom:8px;
+    display:flex; justify-content:space-between; gap:10px; align-items:flex-start;
+  }
+  .entry.room-1{ border-left-color:var(--emerald); }
+  .entry.room-2{ border-left-color:var(--violet); }
+  .entry.room-3{ border-left-color:var(--amber); }
+  .entry-l{ flex:1; min-width:0; }
+  .entry-time{ font-family:var(--mono); font-size:13px; color:var(--ink-dim); }
+  .entry-purpose{ font-size:14.5px; font-weight:600; margin:4px 0 3px; }
+  .entry-meta{ font-size:12.5px; color:var(--ink-dim); }
+  .entry-note{ font-size:12px; color:#6f776f; font-style:italic; margin-top:4px; }
+  .entry-room-tag{ font-size:10.5px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.04em; }
+  .del{ background:none; border:none; color:#5a615a; cursor:pointer; font-size:16px; flex-shrink:0; padding:2px 4px; }
+  .del:hover{ color:var(--coral); }
+  .empty{ text-align:center; padding:36px 10px; color:var(--ink-dim); font-size:13.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand"><span class="dot" id="connDot"></span><h1>ห้องประชุมส่วนกลาง</h1></div>
+    <div class="clock" id="clock">--:--:--</div>
+  </header>
+
+  <div class="setup" id="setupPanel">
+    <h3>เชื่อมต่อ Firestore</h3>
+    <p>วาง Firebase config ของโปรเจกต์ (จาก Firebase Console → Project settings → SDK setup) แล้วกดบันทึก ระบบจะจำค่านี้ไว้ให้ทุกคนที่เปิดหน้านี้<br>
+    อย่าลืมตั้ง Firestore rules ให้ collection <code>bookings</code> อ่าน/เขียนได้ตามสิทธิ์ที่ต้องการ</p>
+    <textarea id="configInput">{
+  "apiKey": "AIzaSyCgMBZX9I-naSvgo6XYPd4z8Po0xE7dVRk",
+  "authDomain": "meeting-room-1ecbc.firebaseapp.com",
+  "projectId": "meeting-room-1ecbc",
+  "storageBucket": "meeting-room-1ecbc.firebasestorage.app",
+  "messagingSenderId": "233594104965",
+  "appId": "1:233594104965:web:80d06e71a3e1929967cdec",
+  "measurementId": "G-3KKEGY2SRK"
+}</textarea>
+    <div class="row">
+      <button class="primary-btn" id="saveConfigBtn" style="width:auto;padding:10px 18px;">บันทึกการเชื่อมต่อ</button>
+    </div>
+    <p id="setupMsg" style="margin-top:8px;"></p>
+  </div>
+
+  <div id="app" style="display:none;">
+    <div class="status-row" id="statusRow"></div>
+
+    <button class="primary-btn" id="openModalBtn">+ บันทึกการใช้ห้อง</button>
+
+    <div class="list-head">
+      <h2>ประวัติการใช้งาน</h2>
+      <div class="chips" id="filterChips">
+        <span class="ghost-btn active" data-room="all">ทั้งหมด</span>
+        <span class="ghost-btn" data-room="ห้องประชุมใหญ่">ห้องใหญ่</span>
+        <span class="ghost-btn" data-room="ห้องประชุมเล็ก">ห้องเล็ก</span>
+        <span class="ghost-btn" data-room="ห้องประชุมหน้าบันได">หน้าบันได</span>
+      </div>
+    </div>
+    <div id="entryList"></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>บันทึกการใช้ห้องประชุม</h2>
+      <button class="close-x" id="closeModalBtn">✕</button>
+    </div>
+    <div class="modal-msg" id="modalMsg"></div>
+    <form id="bookingForm">
+      <div class="field">
+        <label>เลือกห้อง</label>
+        <div class="room-pick">
+          <div class="room-opt" data-room="ห้องประชุมใหญ่">ห้องใหญ่</div>
+          <div class="room-opt" data-room="ห้องประชุมเล็ก">ห้องเล็ก</div>
+          <div class="room-opt" data-room="ห้องประชุมหน้าบันได">หน้าบันได</div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>วันที่</label><input type="date" id="fDate" required></div>
+        <div class="field"><label>จำนวนผู้เข้าร่วม</label><input type="number" id="fParticipants" min="1" placeholder="8"></div>
+        <div class="field"><label>เวลาเริ่ม</label><input type="time" id="fStart" required></div>
+        <div class="field"><label>เวลาสิ้นสุด</label><input type="time" id="fEnd" required></div>
+      </div>
+      <div class="field"><label>ชื่อผู้บันทึก / แผนก</label><input type="text" id="fBy" placeholder="คุณสมชาย / ฝ่ายขาย" required></div>
+      <div class="field"><label>วัตถุประสงค์</label><input type="text" id="fPurpose" placeholder="ประชุมทีมประจำสัปดาห์" required></div>
+      <div class="field"><label>หมายเหตุ</label><textarea class="note" id="fNotes" placeholder="เช่น ต้องใช้โปรเจกเตอร์"></textarea></div>
+      <button type="submit" class="primary-btn" id="submitBtn">บันทึกข้อมูล</button>
+    </form>
+  </div>
+</div>
+
+<script>
+const ROOMS = ["ห้องประชุมใหญ่","ห้องประชุมเล็ก","ห้องประชุมหน้าบันได"];
+const roomClass = { "ห้องประชุมใหญ่":"room-1", "ห้องประชุมเล็ก":"room-2", "ห้องประชุมหน้าบันได":"room-3" };
+let db = null;
+let entries = [];
+let currentFilter = 'all';
+let pickedRoom = null;
+
+// live clock
+function tick(){
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('th-TH', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+tick(); setInterval(tick, 1000);
+
+// ---------- Firebase config bootstrap (config itself is stored via app storage, shared) ----------
+async function tryLoadSavedConfig(){
+  try{
+    const r = await window.storage.get('firebase-config', true);
+    if(r && r.value){
+      document.getElementById('configInput').value = r.value;
+      initFirebase(JSON.parse(r.value));
+      return;
+    }
+  }catch(e){ /* no config saved yet */ }
+  // fall back to the prefilled config already in the textarea and connect right away
+  try{
+    const raw = document.getElementById('configInput').value.trim();
+    const cfg = JSON.parse(raw);
+    await window.storage.set('firebase-config', JSON.stringify(cfg), true);
+    initFirebase(cfg);
+  }catch(e){ /* leave setup panel open for manual entry */ }
+}
+
+document.getElementById('saveConfigBtn').addEventListener('click', async () => {
+  const raw = document.getElementById('configInput').value.trim();
+  const msg = document.getElementById('setupMsg');
+  let cfg;
+  try{ cfg = JSON.parse(raw); }
+  catch(e){ msg.textContent = 'รูปแบบ config ไม่ถูกต้อง กรุณาวางเป็น JSON ที่คัดลอกจาก Firebase Console'; msg.style.color = '#e0684f'; return; }
+  try{
+    await window.storage.set('firebase-config', JSON.stringify(cfg), true);
+  }catch(e){ /* ignore storage failure, still try to init */ }
+  initFirebase(cfg);
+});
+
+function initFirebase(cfg){
+  try{
+    if(!firebase.apps || firebase.apps.length === 0){
+      firebase.initializeApp(cfg);
+    }
+    db = firebase.firestore();
+    document.getElementById('setupPanel').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('connDot').style.background = '#3ecf8e';
+    listenBookings();
+  }catch(e){
+    document.getElementById('setupMsg').textContent = 'เชื่อมต่อไม่สำเร็จ: ' + e.message;
+    document.getElementById('setupMsg').style.color = '#e0684f';
+  }
+}
+
+function listenBookings(){
+  db.collection('bookings').orderBy('date','desc').orderBy('startTime','desc')
+    .onSnapshot(snap => {
+      entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderStatus();
+      renderEntries();
+    }, err => {
+      document.getElementById('entryList').innerHTML = '<div class="empty">โหลดข้อมูลไม่สำเร็จ: ตรวจสอบ Firestore rules<br>' + err.message + '</div>';
+    });
+}
+
+// ---------- status cards ----------
+function renderStatus(){
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const nowTime = now.toTimeString().slice(0,5);
+  const row = document.getElementById('statusRow');
+  row.innerHTML = ROOMS.map(room => {
+    const todays = entries.filter(e => e.room === room && e.date === todayStr).sort((a,b)=>a.startTime.localeCompare(b.startTime));
+    const current = todays.find(e => e.startTime <= nowTime && e.endTime > nowTime);
+    const next = todays.find(e => e.startTime > nowTime);
+    const isFree = !current;
+    return `
+      <div class="room-card ${isFree ? 'free':'busy'}">
+        <p class="room-name">${room}</p>
+        <span class="badge ${isFree?'free':'busy'}"><span class="bdot"></span>${isFree?'ว่าง':'กำลังใช้งาน'}</span>
+        <div class="room-next">
+          ${current ? `กำลังใช้: <span>${current.startTime}-${current.endTime}</span> ${escapeHtml(current.bookedBy)}` :
+            next ? `ถัดไป: <span>${next.startTime}</span> ${escapeHtml(next.purpose)}` : 'ไม่มีการใช้งานวันนี้'}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ---------- entries list ----------
+function renderEntries(){
+  const list = document.getElementById('entryList');
+  const filtered = currentFilter === 'all' ? entries : entries.filter(e => e.room === currentFilter);
+  if(filtered.length === 0){ list.innerHTML = '<div class="empty">ยังไม่มีรายการบันทึก</div>'; return; }
+  const groups = {};
+  filtered.forEach(e => { (groups[e.date] = groups[e.date] || []).push(e); });
+  const dates = Object.keys(groups).sort().reverse();
+  list.innerHTML = dates.map(date => `
+    <div class="day-group">
+      <div class="day-label">${formatDate(date)}</div>
+      ${groups[date].sort((a,b)=>b.startTime.localeCompare(a.startTime)).map(e => `
+        <div class="entry ${roomClass[e.room]}">
+          <div class="entry-l">
+            <span class="entry-room-tag">${escapeHtml(e.room)}</span>
+            <div class="entry-time">${e.startTime} – ${e.endTime}</div>
+            <div class="entry-purpose">${escapeHtml(e.purpose)}</div>
+            <div class="entry-meta">${escapeHtml(e.bookedBy)}${e.participants ? ' · '+e.participants+' คน' : ''}</div>
+            ${e.notes ? `<div class="entry-note">${escapeHtml(e.notes)}</div>` : ''}
+          </div>
+          <button class="del" onclick="deleteEntry('${e.id}')">✕</button>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function formatDate(d){
+  const parts = d.split('-');
+  if(parts.length !== 3) return d;
+  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const y = parseInt(parts[0]) + 543 - 2000;
+  return `${parseInt(parts[2])} ${months[parseInt(parts[1])-1]} ${y}`;
+}
+function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str||''; return d.innerHTML; }
+
+async function deleteEntry(id){
+  if(!confirm('ลบรายการนี้หรือไม่?')) return;
+  try{ await db.collection('bookings').doc(id).delete(); }
+  catch(e){ alert('ลบไม่สำเร็จ: ' + e.message); }
+}
+window.deleteEntry = deleteEntry;
+
+document.querySelectorAll('#filterChips .ghost-btn').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('#filterChips .ghost-btn').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    currentFilter = chip.dataset.room;
+    renderEntries();
+  });
+});
+
+// ---------- modal ----------
+const overlay = document.getElementById('overlay');
+document.getElementById('openModalBtn').addEventListener('click', () => {
+  overlay.classList.add('open');
+  document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
+});
+document.getElementById('closeModalBtn').addEventListener('click', () => overlay.classList.remove('open'));
+overlay.addEventListener('click', (e) => { if(e.target === overlay) overlay.classList.remove('open'); });
+
+document.querySelectorAll('.room-opt').forEach(opt => {
+  opt.addEventListener('click', () => {
+    document.querySelectorAll('.room-opt').forEach(o => o.classList.remove('sel'));
+    opt.classList.add('sel');
+    pickedRoom = opt.dataset.room;
+  });
+});
+
+document.getElementById('bookingForm').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const msg = document.getElementById('modalMsg');
+  msg.className = 'modal-msg';
+  if(!pickedRoom){ msg.textContent = 'กรุณาเลือกห้องประชุม'; msg.className = 'modal-msg err'; return; }
+  const date = document.getElementById('fDate').value;
+  const startTime = document.getElementById('fStart').value;
+  const endTime = document.getElementById('fEnd').value;
+  const bookedBy = document.getElementById('fBy').value.trim();
+  const purpose = document.getElementById('fPurpose').value.trim();
+  const participants = document.getElementById('fParticipants').value;
+  const notes = document.getElementById('fNotes').value.trim();
+  if(!date || !startTime || !endTime || !bookedBy || !purpose){ msg.textContent = 'กรุณากรอกข้อมูลให้ครบถ้วน'; msg.className = 'modal-msg err'; return; }
+  if(endTime <= startTime){ msg.textContent = 'เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่ม'; msg.className = 'modal-msg err'; return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+  try{
+    await db.collection('bookings').add({ room: pickedRoom, date, startTime, endTime, bookedBy, purpose, participants, notes, createdAt: Date.now() });
+    document.getElementById('bookingForm').reset();
+    document.querySelectorAll('.room-opt').forEach(o => o.classList.remove('sel'));
+    pickedRoom = null;
+    overlay.classList.remove('open');
+  }catch(e){
+    msg.textContent = 'บันทึกไม่สำเร็จ: ' + e.message; msg.className = 'modal-msg err';
+  }finally{
+    btn.disabled = false; btn.textContent = 'บันทึกข้อมูล';
+  }
+});
+
+tryLoadSavedConfig();
+</script>
+</body>
+</html>
