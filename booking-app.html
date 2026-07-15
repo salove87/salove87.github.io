@@ -280,34 +280,30 @@ function tick(){
 }
 tick(); setInterval(tick, 1000);
 
-// ---------- Firebase config bootstrap (config itself is stored via app storage, shared) ----------
-async function tryLoadSavedConfig(){
+// ---------- Firebase config bootstrap (persisted via localStorage in this browser) ----------
+function tryLoadSavedConfig(){
+  let raw = null;
+  try{ raw = localStorage.getItem('firebase-config'); }catch(e){ /* storage blocked */ }
+  if(!raw){
+    // fall back to the prefilled config already in the textarea
+    raw = document.getElementById('configInput').value.trim();
+  }else{
+    document.getElementById('configInput').value = raw;
+  }
   try{
-    const r = await window.storage.get('firebase-config', true);
-    if(r && r.value){
-      document.getElementById('configInput').value = r.value;
-      initFirebase(JSON.parse(r.value));
-      return;
-    }
-  }catch(e){ /* no config saved yet */ }
-  // fall back to the prefilled config already in the textarea and connect right away
-  try{
-    const raw = document.getElementById('configInput').value.trim();
     const cfg = JSON.parse(raw);
-    await window.storage.set('firebase-config', JSON.stringify(cfg), true);
+    try{ localStorage.setItem('firebase-config', raw); }catch(e){ /* ignore */ }
     initFirebase(cfg);
   }catch(e){ /* leave setup panel open for manual entry */ }
 }
 
-document.getElementById('saveConfigBtn').addEventListener('click', async () => {
+document.getElementById('saveConfigBtn').addEventListener('click', () => {
   const raw = document.getElementById('configInput').value.trim();
   const msg = document.getElementById('setupMsg');
   let cfg;
   try{ cfg = JSON.parse(raw); }
   catch(e){ msg.textContent = 'รูปแบบ config ไม่ถูกต้อง กรุณาวางเป็น JSON ที่คัดลอกจาก Firebase Console'; msg.style.color = '#e0684f'; return; }
-  try{
-    await window.storage.set('firebase-config', JSON.stringify(cfg), true);
-  }catch(e){ /* ignore storage failure, still try to init */ }
+  try{ localStorage.setItem('firebase-config', raw); }catch(e){ /* ignore storage failure, still try to init */ }
   initFirebase(cfg);
 });
 
