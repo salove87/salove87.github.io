@@ -65,7 +65,32 @@ body{font-family:'Kanit','Noto Sans Myanmar',sans-serif;background:#eef3f7;color
 <div class="col-12"><label class="form-label" id="lbReason">เหตุผล*</label><textarea id="f_reason" class="form-control req thai-only" rows="3" data-label-th="เหตุผลที่ลืมสแกนลายนิ้วมือ" data-label-mm="မေ့ရသည့်အကြောင်းရင်း" required></textarea><div class="thai-only-hint" id="hintReason">⚠ ช่องนี้บังคับกรอกภาษาไทยเท่านั้น</div></div>
 </div></div>
 
-<div class="form-card"><div class="section-header"><span class="badge-num">2</span> <span id="sec2">หลักฐาน</span></div><div class="section-body"><div class="upload-zone" id="uploadZone"><span id="txtUpload">📎 คลิกเลือกไฟล์</span><input type="file" id="fileInput" class="req" data-label-th="ไฟล์หลักฐานประกอบ" data-label-mm="အထောက်အထားဖိုင်" accept="image/*" multiple required style="display:none;"></div><div class="upload-preview d-flex flex-wrap gap-2 mt-2" id="uploadPreview"></div></div></div>
+<div class="form-card"><div class="section-header"><span class="badge-num">2</span> <span id="sec2">หลักฐาน</span></div><div class="section-body">
+<div class="mb-3">
+  <label class="form-label" id="lbEvidenceChoice" style="font-weight:600;">คุณมีหลักฐานหรือไม่?*</label>
+  <div class="d-flex gap-3 mt-1">
+    <div class="form-check" style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:8px 14px 8px 34px;">
+      <input class="form-check-input" type="radio" name="hasEvidence" id="hasEvidenceYes" value="มีหลักฐาน" checked>
+      <label class="form-check-label fw-bold" for="hasEvidenceYes" id="lbHasYes" style="color:#2e7d32;">✅ มีหลักฐาน</label>
+    </div>
+    <div class="form-check" style="background:#fbe9e7;border:1px solid #ffab91;border-radius:8px;padding:8px 14px 8px 34px;">
+      <input class="form-check-input" type="radio" name="hasEvidence" id="hasEvidenceNo" value="ไม่มีหลักฐาน">
+      <label class="form-check-label fw-bold" for="hasEvidenceNo" id="lbHasNo" style="color:#bf360c;">❌ ไม่มีหลักฐาน</label>
+    </div>
+  </div>
+  <input type="hidden" id="evidenceChoiceValue" class="req" data-label-th="การมีหลักฐาน" data-label-mm="အထောက်အထားရှိမရှိ" value="มีหลักฐาน">
+  <div id="noEvidenceReasonBox" style="display:none;margin-top:12px;">
+    <label class="form-label" id="lbNoReason">เหตุผลที่ไม่มีหลักฐาน* (บังคับภาษาไทย)</label>
+    <textarea id="noEvidenceReason" class="form-control thai-only" rows="2" placeholder="เช่น เครื่องสแกนเสียและไม่ได้ถ่ายรูปไว้"></textarea>
+    <div class="thai-only-hint" id="hintNoReason">⚠ ช่องนี้บังคับกรอกภาษาไทยเท่านั้น</div>
+  </div>
+</div>
+<div id="evidenceUploadArea">
+  <div class="upload-zone" id="uploadZone"><span id="txtUpload">📎 คลิกเลือกไฟล์</span><input type="file" id="fileInput" data-label-th="ไฟล์หลักฐานประกอบ" data-label-mm="အထောက်အထားဖိုင်" accept="image/*" multiple style="display:none;"></div>
+  <div class="upload-preview d-flex flex-wrap gap-2 mt-2" id="uploadPreview"></div>
+  <div style="font-size:.78rem;color:#7a8a99;margin-top:6px;" id="txtUploadHint">รองรับรูปภาพ JPG/PNG ระบบจะบีบขนาดอัตโนมัติ</div>
+</div>
+</div></div>
 
 <div class="form-card"><div class="section-header"><span class="badge-num">3</span> <span id="sec3">พยาน 2 คน</span></div><div class="section-body" id="witnessContainer"></div></div>
 
@@ -95,6 +120,7 @@ firebase.initializeApp(firebaseConfig);const db=firebase.firestore();const stora
 const translations = {
 th: {
 title:"📋 แบบฟอร์มแจ้งลืมสแกนลายนิ้วมือ", subtitle:"พนักงานกรอก 4 หัวข้อ / HR อนุมัติที่หน้ารายการ", btnGoList:"📋 ดูรายการ (HR)",
+lbEvidenceChoice:"คุณมีหลักฐานหรือไม่?*", lbHasYes:"✅ มีหลักฐาน", lbHasNo:"❌ ไม่มีหลักฐาน", lbNoReason:"เหตุผลที่ไม่มีหลักฐาน* (บังคับภาษาไทย)", txtUploadHint:"รองรับรูปภาพ JPG/PNG ระบบจะบีบขนาดอัตโนมัติ",
 note:"⚠ พนักงานกรอก <b>ข้อมูลส่วนตัว + หลักฐาน + พยาน 2 คน + หัวหน้า 2 คน</b> เท่านั้น<br>ส่วน <b>ฝ่ายบุคคลจะไปติ๊กอนุมัติที่หน้ารายการด้านล่าง</b>",
 scannerTitle:"ℹ️ กรณีเครื่องสแกนมีปัญหา",
 scannerDesc:"กรณีเครื่องสแกนนิ้วมีปัญหา กรุณาถ่ายรูปไว้เพื่อเป็นหลักฐาน แล้วแจ้งฝ่ายบุคคลได้โดยตรง",
@@ -110,6 +136,7 @@ errThaiOnly:"ต้องพิมพ์ภาษาไทยเท่านั�
 },
 mm: {
 title:"📋 လက်ဗွေမနှိပ်မိခြင်းမှတ်တမ်း", subtitle:"ဝန်ထမ်းမှ ၄ ခန်းဖြည့်ရန် / HR မှစာရင်းအောက်တွင်အတည်ပြုမည်", btnGoList:"📋 စာရင်း (HR)",
+lbEvidenceChoice:"အထောက်အထားရှိပါသလား?*", lbHasYes:"✅ ရှိသည်", lbHasNo:"❌ မရှိပါ", lbNoReason:"အထောက်အထားမရှိသည့်အကြောင်းရင်း* (ထိုင်းဘာသာဖြင့်သာ)", txtUploadHint:"JPG/PNG ပုံများကိုလက်ခံသည်၊ အလိုအလျောက်ချုံ့မည်",
 note:"⚠ ဝန်ထမ်းမှ <b>ကိုယ်ရေးအချက် + အထောက်အထား + သက်သေ ၂ ဦး + မန်နေဂျာ ၂ ဦး</b> သာဖြည့်ရန်<br><b>HR မှအောက်ပါစာရင်းတွင်အတည်ပြုမည်</b>",
 scannerTitle:"ℹ️ စက်ပျက်ယွင်းမှုရှိပါက",
 scannerDesc:"လက်ဗွေစက်တွင် ပြဿနာရှိပါက ကျေးဇူးပြု၍ ဓာတ်ပုံရိုက်ပြီး အထောက်အထားအဖြစ် သိမ်းထားပါ၊ ပြီးနောက် လူ့စွမ်းအားအရင်းအမြစ်ဌာနသို့ တိုက်ရိုက်အကြောင်းကြားပါ",
@@ -144,6 +171,8 @@ document.getElementById('sec1').innerText=t.sec1;document.getElementById('sec2')
 document.getElementById('lbName').innerText=t.lbName;document.getElementById('lbEmpId').innerText=t.lbEmpId;document.getElementById('lbDept').innerText=t.lbDept;document.getElementById('lbPhone').innerText=t.lbPhone;document.getElementById('lbDate').innerText=t.lbDate;document.getElementById('lbTime').innerText=t.lbTime;document.getElementById('lbReason').innerText=t.lbReason;
 document.getElementById('txtUpload').innerText=t.txtUpload;
 document.getElementById('chk1').innerText=t.chk1;document.getElementById('chk2').innerText=t.chk2;document.getElementById('chk3').innerText=t.chk3;
+if(t.lbEvidenceChoice){document.getElementById('lbEvidenceChoice').innerText=t.lbEvidenceChoice;document.getElementById('lbHasYes').innerText=t.lbHasYes;document.getElementById('lbHasNo').innerText=t.lbHasNo;document.getElementById('lbNoReason').innerText=t.lbNoReason;document.getElementById('txtUploadHint').innerText=t.txtUploadHint;}
+
 document.getElementById('submitBtn').innerText=t.submit;
 document.getElementById('sumHead').innerText=t.sumHead;document.getElementById('sumLabelNo').innerText=t.sumLabelNo;
 document.getElementById('btnPrint').innerText=t.btnPrint;document.getElementById('btnGoApprove').innerText=t.btnGoApprove;
@@ -210,11 +239,87 @@ document.addEventListener('input', (e)=>{
 if(e.target.classList.contains('thai-only')){validateThaiOnlyField(e.target);}
 });
 
-// ===== Rest of logic (upload, progress, submit) =====
-const uploadZone=document.getElementById('uploadZone'),fileInput=document.getElementById('fileInput'),uploadPreview=document.getElementById('uploadPreview');let localPreviewURLs=[];
+// ===== Image compress + fast preview =====
+const uploadZone=document.getElementById('uploadZone'),fileInput=document.getElementById('fileInput'),uploadPreview=document.getElementById('uploadPreview');
+let localPreviewURLs=[]; // base64 compressed for fallback
+let compressedFilesForUpload=[]; // File objects compressed
+
+function compressImageFile(file, maxWidth=1024, quality=0.6){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let w = img.width, h = img.height;
+        if(w>maxWidth || h>maxWidth){
+          if(w>h){ h = Math.round(h*maxWidth/w); w = maxWidth; }
+          else { w = Math.round(w*maxWidth/h); h = maxWidth; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width=w; canvas.height=h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img,0,0,w,h);
+        canvas.toBlob((blob)=>{
+          if(!blob){ reject(new Error('บีบรูปไม่สำเร็จ')); return; }
+          const newFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {type:'image/jpeg'});
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve({file:newFile, dataUrl, originalSize:file.size, compressedSize:blob.size});
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = ()=>reject(new Error('โหลดรูปไม่สำเร็จ'));
+      img.src = e.target.result;
+    };
+    reader.onerror = ()=>reject(new Error('อ่านไฟล์ไม่สำเร็จ'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleFileSelect(fileList){
+  uploadPreview.innerHTML=''; localPreviewURLs=[]; compressedFilesForUpload=[];
+  const files = Array.from(fileList).filter(f=>f.type.startsWith('image/'));
+  if(files.length===0){ updateProgress(); return; }
+  // Show compressing indicator
+  uploadPreview.innerHTML = `<div style="padding:12px;font-size:.85rem;color:#7a8a99;">⏳ ${translations[currentLang].loadingUpload} ${files.length} รูป... (บีบขนาดอัตโนมัติ)</div>`;
+  for(let i=0;i<files.length;i++){
+    try{
+      const result = await compressImageFile(files[i], 1024, 0.6);
+      compressedFilesForUpload.push(result.file);
+      localPreviewURLs.push(result.dataUrl);
+    }catch(err){
+      console.warn(err);
+      // fallback original
+      compressedFilesForUpload.push(files[i]);
+      const r = await new Promise(res=>{ const fr=new FileReader(); fr.onload=e=>res(e.target.result); fr.readAsDataURL(files[i]); });
+      localPreviewURLs.push(r);
+    }
+  }
+  // render previews
+  uploadPreview.innerHTML='';
+  localPreviewURLs.forEach((url, idx)=>{
+    const f = compressedFilesForUpload[idx];
+    const kb = Math.round(f.size/1024);
+    const div = document.createElement('div');
+    div.style.position='relative'; div.style.display='inline-block';
+    div.innerHTML = `<img src="${url}" style="width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid var(--border);"><div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);color:#fff;font-size:.65rem;text-align:center;border-radius:0 0 8px 8px;">${kb}KB</div>`;
+    uploadPreview.appendChild(div);
+  });
+  // update fileInput with compressed files via DataTransfer
+  const dt = new DataTransfer();
+  compressedFilesForUpload.forEach(f=>dt.items.add(f));
+  fileInput.files = dt.files;
+  updateProgress();
+}
+
 uploadZone.addEventListener('click',()=>fileInput.click());
-fileInput.addEventListener('change',()=>{uploadPreview.innerHTML='';localPreviewURLs=[];if(!fileInput.files.length){updateProgress();return;}Array.from(fileInput.files).forEach(f=>{const r=new FileReader();r.onload=e=>{localPreviewURLs.push(e.target.result);const img=document.createElement('img');img.src=e.target.result;uploadPreview.appendChild(img);};r.readAsDataURL(f);});updateProgress();});
-function getAllRequiredFields(){return Array.from(document.querySelectorAll('.req'));}function isFieldFilled(el){if(el.type==='checkbox')return el.checked;if(el.id==='fileInput')return el.files&&el.files.length>0;return el.value&&el.value.trim()!=='';}
+fileInput.addEventListener('change',()=>{ handleFileSelect(fileInput.files); });
+
+// Drag & drop
+uploadZone.addEventListener('dragover', e=>{ e.preventDefault(); uploadZone.style.background='#e8f4ff'; });
+uploadZone.addEventListener('dragleave', e=>{ uploadZone.style.background=''; });
+uploadZone.addEventListener('drop', e=>{ e.preventDefault(); uploadZone.style.background=''; if(e.dataTransfer.files.length){ handleFileSelect(e.dataTransfer.files); } });
+
+function getAllRequiredFields(){return Array.from(document.querySelectorAll('.req')).filter(el=>{ if(el.id==='fileInput'){ return document.getElementById('hasEvidenceYes').checked; } if(el.id==='noEvidenceReason'){ return document.getElementById('hasEvidenceNo').checked; } return true; });}
+function isFieldFilled(el){if(el.type==='checkbox')return el.checked;if(el.id==='fileInput')return document.getElementById('hasEvidenceYes').checked ? (el.files&&el.files.length>0) : true; if(el.id==='noEvidenceReason'){ return document.getElementById('hasEvidenceNo').checked ? (el.value&&el.value.trim()!=='') : true; }return el.value&&el.value.trim()!=='';}
 function updateProgress(){const f=getAllRequiredFields();const c=f.filter(isFieldFilled).length;document.getElementById('progressCount').textContent=c;document.getElementById('progressTotal').textContent=f.length;document.getElementById('progressPct').textContent=Math.round(c/f.length*100)+'%';}
 document.addEventListener('input',updateProgress);document.addEventListener('change',updateProgress);
 const form=document.getElementById('mainForm'),floatAlert=document.getElementById('floatAlert'),missingList=document.getElementById('missingList'),overlay=document.getElementById('overlay'),overlayContent=document.getElementById('overlayContent');
@@ -233,17 +338,85 @@ else el.classList.remove('is-invalid');
 const reason=document.getElementById('f_reason');if(reason.value.trim().length>0&&reason.value.trim().length<20){missing.push(currentLang==='th'?'เหตุผลต้องมีอย่างน้อย 20 ตัวอักษร':'အကြောင်းရင်းတွင် စာလုံး ၂၀ အနည်းဆုံးရှိရမည်');reason.classList.add('is-invalid');}
 if(missing.length>0){missingList.innerHTML=missing.map(l=>`<li>${l}</li>`).join('');floatAlert.classList.add('show');setTimeout(()=>floatAlert.classList.remove('show'),7000);document.querySelector('.is-invalid')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
 const t=translations[currentLang];
-overlayContent.innerHTML=`<div class="spinner-ring"></div><div style="font-weight:600;" id="loadingText">${t.loadingUpload}</div>`;overlay.classList.add('show');document.getElementById('submitBtn').disabled=true;submitToFirebase().catch(err=>{overlayContent.innerHTML=`<div style="color:red;">${err.message}</div><div class="d-flex gap-2 justify-content-center mt-3"><button class="btn btn-light" onclick="overlay.classList.remove('show');document.getElementById('submitBtn').disabled=false;">ปิด</button><button class="btn btn-primary" onclick="submitToFirebase()">ลองใหม่</button></div>`;});
+overlayContent.innerHTML=`<div class="spinner-ring"></div><div style="font-weight:600;" id="loadingText">${t.loadingUpload}</div><div style="font-size:.8rem;color:#7a8a99;margin-top:8px;">บีบรูปแล้ว เหลือไฟล์เล็ก อัปโหลดไวขึ้น<br>ถ้าค้างเกิน 12 วิ ระบบจะบันทึกแบบไม่ใช้ Storage อัตโนมัติ</div><button class="btn btn-sm btn-light mt-3" onclick="document.getElementById('overlay').classList.remove('show');document.getElementById('submitBtn').disabled=false;" style="border:1px solid #ddd;">❌ ยกเลิก</button>`;overlay.classList.add('show');document.getElementById('submitBtn').disabled=true;submitToFirebase().catch(err=>{overlayContent.innerHTML=`<div style="color:red;font-size:.9rem;">เกิดข้อผิดพลาด: ${err.message}</div><div style="font-size:.8rem;color:#666;margin-top:6px;">ระบบจะลองบันทึกแบบ base64 แทน</div><div class="d-flex gap-2 justify-content-center mt-3"><button class="btn btn-light" onclick="overlay.classList.remove('show');document.getElementById('submitBtn').disabled=false;">ปิด</button><button class="btn btn-primary" onclick="submitToFirebase()">ลองใหม่</button></div>`;});
 });
 function collectFormData(){const data={};document.querySelectorAll('.req').forEach(el=>{if(el.id==='fileInput')return;const label=el.getAttribute('data-label')||el.dataset.label||el.id;if(el.type==='checkbox')data[label]=el.checked;else data[label]=el.value.trim();});return data;}
-async function uploadEvidenceFiles(id){const urls=[];for(const file of fileInput.files){const ref=storageRef.ref().child(`evidence/${id}/${Date.now()}_${file.name}`);await ref.put(file);urls.push(await ref.getDownloadURL());}return urls;}
-async function submitToFirebase(){
-const submissionId='F'+Date.now();
-let evidenceUrls=[];try{evidenceUrls=await uploadEvidenceFiles(submissionId);}catch(e){if(!confirm(e.message+'\n\n'+(currentLang==='th'?'จะบันทึกแบบไม่มีรูปไปก่อนไหม?':'ပုံမပါဘဲသိမ်းမလား?'))) throw e;}
-const loadingText=document.getElementById('loadingText');if(loadingText) loadingText.textContent=translations[currentLang].loadingSave;
-const formData=collectFormData();formData.รหัสการแจ้ง=submissionId;formData.ไฟล์หลักฐาน=evidenceUrls;formData.สถานะโดยรวม='รอดำเนินการ';formData.HR_ชื่อ='';formData.HR_รหัส='';formData.HR_ความเห็น='';formData.HR_สถานะ='รอดำเนินการ';formData.HR_วันที่='';formData.วันเวลาที่ส่งฟอร์ม=firebase.firestore.FieldValue.serverTimestamp();
-await db.collection(COLLECTION_NAME).doc(submissionId).set(formData);overlay.classList.remove('show');showSummary(submissionId,evidenceUrls);
+
+function uploadWithTimeout(ref, file, timeoutMs=12000){
+  return new Promise((resolve, reject)=>{
+    let timedOut=false;
+    const timer=setTimeout(()=>{ timedOut=true; reject(new Error('อัปโหลดช้าเกิน 12 วินาที - จะบันทึกแบบไม่ใช้ Storage')); }, timeoutMs);
+    const task = ref.put(file);
+    task.on('state_changed', (snap)=>{
+      const pct = Math.round((snap.bytesTransferred/snap.totalBytes)*100);
+      const lt=document.getElementById('loadingText');
+      if(lt) lt.textContent = `${translations[currentLang].loadingUpload} ${pct}%`;
+    });
+    task.then(async ()=>{
+      clearTimeout(timer);
+      if(timedOut) return;
+      try{
+        const url = await ref.getDownloadURL();
+        resolve(url);
+      }catch(e){ reject(e); }
+    }).catch(err=>{
+      clearTimeout(timer);
+      reject(err);
+    });
+  });
 }
+
+async function uploadEvidenceFiles(id){
+  const urls=[];
+  const files = compressedFilesForUpload.length ? compressedFilesForUpload : Array.from(fileInput.files);
+  if(files.length===0) return urls;
+  for(let i=0;i<files.length;i++){
+    const file = files[i];
+    const ref = storageRef.ref().child(`evidence/${id}/${Date.now()}_${i}_${file.name}`);
+    try{
+      document.getElementById('loadingText').textContent = `${translations[currentLang].loadingUpload} ${i+1}/${files.length}`;
+      const url = await uploadWithTimeout(ref, file, 12000);
+      urls.push(url);
+    }catch(err){
+      console.warn('Upload failed for', file.name, err);
+      // fallback: don't throw, continue to next file, will use base64 fallback
+      // throw to trigger fallback save
+      throw err;
+    }
+  }
+  return urls;
+}
+
+async function submitToFirebase(){
+  const submissionId='F'+Date.now();
+  let evidenceUrls=[];
+  let useBase64Fallback=false;
+  try{
+    evidenceUrls = await uploadEvidenceFiles(submissionId);
+  }catch(e){
+    console.error('Storage upload failed, using base64 fallback', e);
+    useBase64Fallback = true;
+    evidenceUrls = []; // will save base64 in another field
+  }
+  const loadingText=document.getElementById('loadingText');
+  if(loadingText) loadingText.textContent=translations[currentLang].loadingSave;
+  const formData=collectFormData();
+  formData.รหัสการแจ้ง=submissionId;
+  formData.ไฟล์หลักฐาน=evidenceUrls;
+  // ถ้า Storage ล้มเหลว ให้บันทึก base64 ที่บีบแล้วลง Firestore เลย (ไม่ค้าง)
+  if(useBase64Fallback && localPreviewURLs.length>0){
+    // limit to first 3 images to avoid 1MB doc limit
+    formData.ไฟล์หลักฐาน_base64 = localPreviewURLs.slice(0,3);
+    formData.หมายเหตุ_อัปโหลด = 'Storage ล้มเหลว - บันทึกเป็น base64 แทน';
+  }
+  formData.สถานะโดยรวม='รอดำเนินการ';
+  formData.HR_ชื่อ='';formData.HR_รหัส='';formData.HR_ความเห็น='';formData.HR_สถานะ='รอดำเนินการ';formData.HR_วันที่='';
+  formData.วันเวลาที่ส่งฟอร์ม=firebase.firestore.FieldValue.serverTimestamp();
+  await db.collection(COLLECTION_NAME).doc(submissionId).set(formData);
+  overlay.classList.remove('show');
+  showSummary(submissionId, evidenceUrls.length?evidenceUrls:localPreviewURLs);
+}
+
 function showSummary(id,urls){
 document.getElementById('formWrapper').style.display='none';document.getElementById('summaryPage').style.display='block';
 document.getElementById('sumRef').textContent=id;document.getElementById('sumDateTime').textContent=new Date().toLocaleString(currentLang==='th'?'th-TH':'my-MM');
