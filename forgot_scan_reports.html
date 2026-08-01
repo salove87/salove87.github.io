@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ฟอร์มแจ้งลืมสแกน V-FINAL</title>
+<title>ฟอร์มลืมสแกน V-FINAL-LOCK</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&family=Noto+Sans+Myanmar:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -30,7 +30,7 @@ body{font-family:'Kanit','Noto Sans Myanmar',sans-serif;background:#eef3f7;color
 .lang-btn{border:none;background:transparent;color:#fff;padding:4px 14px;border-radius:14px;font-size:.85rem;font-weight:600;cursor:pointer;}
 .lang-btn.active{background:#fff;color:var(--primary-dark);}
 .thai-only-hint{font-size:.78rem;color:#8a6d00;background:#fff3cd;padding:4px 8px;border-radius:6px;margin-top:6px;display:inline-block;}
-#summaryPage{display:none;} .print-paper{background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden;}
+#summaryPage{display:none;}
 </style>
 </head>
 <body>
@@ -105,7 +105,8 @@ body{font-family:'Kanit','Noto Sans Myanmar',sans-serif;background:#eef3f7;color
 <div class="text-center"><button type="submit" id="submitBtn" class="btn btn-submit">ส่งแบบฟอร์ม</button></div>
 </form>
 </div>
-<div id="summaryPage"><div style="background:#fff;border-radius:14px;padding:20px;text-align:center;"><h4 id="sumHead">📄 ส่งสำเร็จ</h4><p><span id="sumLabelNo">เลขที่:</span> <b id="sumRef"></b> • <span id="sumDateTime"></span></p><div id="printBody"></div><button onclick="location.href='records-hr-final.html'" class="btn btn-warning btn-sm fw-bold" id="btnGoApprove">ไปให้ HR อนุมัติ</button></div></div>
+
+<div id="summaryPage"><div style="background:#fff;border-radius:14px;padding:20px;text-align:center;"><h4 id="sumHead">📄 ส่งสำเร็จ</h4><p><span id="sumLabelNo">เลขที่:</span> <b id="sumRef"></b> • <span id="sumDateTime"></span></p><div id="printBody"></div><button onclick="location.href='records-hr-final.html'" class="btn btn-warning btn-sm fw-bold mt-3" id="btnGoApprove">ไปให้ HR อนุมัติ</button></div></div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -117,10 +118,9 @@ const firebaseConfig={apiKey:"AIzaSyBlgZzQ4J21Iq_Y1TrlWkg9Y2nZYCa6CuM",authDomai
 firebase.initializeApp(firebaseConfig);const db=firebase.firestore();const storageRef=firebase.storage();
 try{firebase.auth().signInAnonymously().catch(()=>{});}catch(e){}
 const COLLECTION_NAME="forgot_scan_reports";
-
 const translations={
-th:{title:"📋 แบบฟอร์มแจ้งลืมสแกนลายนิ้วมือ",subtitle:"พนักงานกรอก 4 หัวข้อ / HR อนุมัติที่หน้ารายการ",btnGoList:"📋 ดูรายการ (HR)",scannerTitle:"📸 กรณีเครื่องสแกนมีปัญหา",scannerDesc:"กรณีเครื่องสแกนนิ้วมีปัญหา กรุณาถ่ายรูปไว้เพื่อเป็นหลักฐาน แล้วแจ้งฝ่ายบุคคลได้โดยตรง",scannerDescFull:"หากเครื่องขัดข้อง / สแกนไม่ติด / จอค้าง ให้ถ่ายรูปหน้าจอเครื่องไว้ แล้วแนบมาในช่องหลักฐาน และแจ้ง HR ทันที",note:"⚠ พนักงานกรอก ข้อมูลส่วนตัว + หลักฐาน + พยาน 1 คน + หัวหน้า 2 คน เท่านั้น",progressLabel:"กรอกแล้ว",sec1:"ข้อมูลพนักงาน",sec2:"หลักฐาน",sec3:"พยาน 1 คน",sec4:"หัวหน้างาน 2 คน",sec5:"ยืนยัน",lbName:"ชื่อ-นามสกุล*",lbEmpId:"รหัสพนักงาน*",lbDept:"แผนก/ฝ่าย*",lbPhone:"เบอร์โทร*",lbDate:"วันที่ลืมสแกน*",lbTime:"ช่วงเวลา*",lbReason:"เหตุผล* (บังคับภาษาไทย)",txtUpload:"📎 คลิกเลือกไฟล์",txtUploadHint:"รองรับรูปภาพ JPG/PNG ระบบจะบีบขนาดอัตโนมัติ",lbEvidenceChoice:"คุณมีหลักฐานหรือไม่?*",lbHasYes:"✅ มีหลักฐาน",lbHasNo:"❌ ไม่มีหลักฐาน",lbNoReason:"เหตุผลที่ไม่มีหลักฐาน* (บังคับภาษาไทย)",chk1:"ข้อมูลถูกต้องตามจริง*",chk2:"ยินยอมให้ตรวจสอบ*",chk3:"รับทราบเงื่อนไขเบี้ยขยัน*",submit:"ส่งแบบฟอร์ม",sumHead:"📄 ส่งสำเร็จ",sumLabelNo:"เลขที่:",btnPrint:"พิมพ์",btnGoApprove:"ไปให้ HR อนุมัติ",hintReason:"⚠ ช่องนี้บังคับกรอกภาษาไทยเท่านั้น",hintComment:"⚠ ช่องความเห็นบังคับภาษาไทยเท่านั้น",hintNoReason:"⚠ ช่องนี้บังคับกรอกภาษาไทยเท่านั้น",alertTitle:"กรอกไม่ครบ!",loadingUpload:"กำลังอัปโหลด...",loadingSave:"กำลังบันทึก...",timeOptions:["-- เลือก --","เข้างาน (เช้า)","ออกงาน (เย็น)","ทั้งเข้าและออก"],errThaiOnly:"ต้องพิมพ์ภาษาไทยเท่านั้น"},
-mm:{title:"📋 လက်ဗွေမနှိပ်မိခြင်းမှတ်တမ်း",subtitle:"ဝန်ထမ်းမှ ၄ ခန်းဖြည့်ရန် / HR မှစာရင်းတွင်အတည်ပြုမည်",btnGoList:"📋 စာရင်း (HR)",scannerTitle:"📸 စက်တွင် ပြဿနာရှိပါက",scannerDesc:"လက်ဗွေစက်တွင် ပြဿနာရှိပါက ဓာတ်ပုံရိုက်ပြီး အထောက်အထားအဖြစ် သိမ်းထားပါ",scannerDescFull:"စက်ပျက် / စကင်န်မမိ / ဖန်သားပြင်ခန်းနေပါက ဓာတ်ပုံရိုက်ပြီး တွဲပါ",note:"⚠ ဝန်ထမ်းမှ ကိုယ်ရေးအချက် + အထောက်အထား + သက်သေ ၁ ဦး + မန်နေဂျာ ၂ ဦး သာဖြည့်ရန်",progressLabel:"ဖြည့်ပြီး",sec1:"ဝန်ထမ်းအချက်အလက်",sec2:"အထောက်အထား",sec3:"သက်သေ ၁ ဦး",sec4:"မန်နေဂျာ ၂ ဦး",sec5:"အတည်ပြုချက်",lbName:"အမည်*",lbEmpId:"ဝန်ထမ်းကုဒ်*",lbDept:"ဌာန*",lbPhone:"ဖုန်း*",lbDate:"မေ့သည့်နေ့*",lbTime:"အချိန်*",lbReason:"အကြောင်းရင်း* (ထိုင်းဘာသာဖြင့်သာ)",txtUpload:"📎 ဖိုင်ရွေးပါ",txtUploadHint:"JPG/PNG ပုံများကိုလက်ခံသည်",lbEvidenceChoice:"အထောက်အထားရှိပါသလား?*",lbHasYes:"✅ ရှိသည်",lbHasNo:"❌ မရှိပါ",lbNoReason:"အထောက်အထားမရှိသည့်အကြောင်းရင်း* (ထိုင်းဘာသာဖြင့်သာ)",chk1:"အချက်အလက်မှန်ကန်သည်*",chk2:"စစ်ဆေးခွင့်ပြုသည်*",chk3:"စည်းကမ်းများကိုနားလည်သည်*",submit:"တင်ပြမည်",sumHead:"📄 အောင်မြင်ပါသည်",sumLabelNo:"အမှတ်:",btnPrint:"ပရင့်",btnGoApprove:"HR ထံသွားမည်",hintReason:"⚠ ဤနေရာတွင်ထိုင်းဘာသာဖြင့်သာရေးရမည်",hintComment:"⚠ မှတ်ချက်နေရာတွင်ထိုင်းဘာသာဖြင့်သာရေးရမည်",hintNoReason:"⚠ ဤနေရာတွင်ထိုင်းဘာသာဖြင့်သာရေးရမည်",alertTitle:"မပြည့်စုံသေးပါ!",loadingUpload:"တင်နေသည်...",loadingSave:"သိမ်းနေသည်...",timeOptions:["-- ရွေးပါ --","အဝင်ချိန် (မနက်)","အထွက်ချိန် (ညနေ)","အဝင်အထွက်နှစ်ခုလုံး"],errThaiOnly:"ထိုင်းဘာသာဖြင့်သာရေးရမည်"}
+th:{title:"📋 แบบฟอร์มแจ้งลืมสแกนลายนิ้วมือ",subtitle:"พนักงานกรอก 4 หัวข้อ / HR อนุมัติที่หน้ารายการ",btnGoList:"📋 ดูรายการ (HR)",scannerTitle:"📸 กรณีเครื่องสแกนมีปัญหา",scannerDesc:"กรณีเครื่องสแกนนิ้วมีปัญหา กรุณาถ่ายรูปไว้เพื่อเป็นหลักฐาน แล้วแจ้งฝ่ายบุคคลได้โดยตรง",scannerDescFull:"หากเครื่องขัดข้อง / สแกนไม่ติด / จอค้าง ให้ถ่ายรูปหน้าจอเครื่องไว้ แล้วแนบมาในช่องหลักฐาน และแจ้ง HR ทันที",note:"⚠ พนักงานกรอก ข้อมูลส่วนตัว + หลักฐาน + พยาน 1 คน + หัวหน้า 2 คน เท่านั้น",progressLabel:"กรอกแล้ว",sec1:"ข้อมูลพนักงาน",sec2:"หลักฐาน",sec3:"พยาน 1 คน",sec4:"หัวหน้างาน 2 คน",sec5:"ยืนยัน",lbName:"ชื่อ-นามสกุล*",lbEmpId:"รหัสพนักงาน*",lbDept:"แผนก/ฝ่าย*",lbPhone:"เบอร์โทร*",lbDate:"วันที่ลืมสแกน*",lbTime:"ช่วงเวลา*",lbReason:"เหตุผล* (บังคับภาษาไทย)",txtUpload:"📎 คลิกเลือกไฟล์",txtUploadHint:"รองรับรูปภาพ JPG/PNG ระบบจะบีบขนาดอัตโนมัติ",lbEvidenceChoice:"คุณมีหลักฐานหรือไม่?*",lbHasYes:"✅ มีหลักฐาน",lbHasNo:"❌ ไม่มีหลักฐาน",lbNoReason:"เหตุผลที่ไม่มีหลักฐาน* (บังคับภาษาไทย)",chk1:"ข้อมูลถูกต้องตามจริง*",chk2:"ยินยอมให้ตรวจสอบ*",chk3:"รับทราบเงื่อนไขเบี้ยขยัน*",submit:"ส่งแบบฟอร์ม",sumHead:"📄 ส่งสำเร็จ",sumLabelNo:"เลขที่:",btnGoApprove:"ไปให้ HR อนุมัติ",hintReason:"⚠ ช่องนี้บังคับกรอกภาษาไทยเท่านั้น",hintNoReason:"⚠ ช่องนี้บังคับกรอกภาษาไทยเท่านั้น",alertTitle:"กรอกไม่ครบ!",loadingUpload:"กำลังอัปโหลด...",loadingSave:"กำลังบันทึก...",timeOptions:["-- เลือก --","เข้างาน (เช้า)","ออกงาน (เย็น)","ทั้งเข้าและออก"],errThaiOnly:"ต้องพิมพ์ภาษาไทยเท่านั้น"},
+mm:{title:"📋 လက်ဗွေမနှိပ်မိခြင်းမှတ်တမ်း",subtitle:"ဝန်ထမ်းမှ ၄ ခန်းဖြည့်ရန် / HR မှစာရင်းတွင်အတည်ပြုမည်",btnGoList:"📋 စာရင်း (HR)",scannerTitle:"📸 စက်တွင် ပြဿနာရှိပါက",scannerDesc:"လက်ဗွေစက်တွင် ပြဿနာရှိပါက ဓာတ်ပုံရိုက်ပြီး အထောက်အထားအဖြစ် သိမ်းထားပါ",scannerDescFull:"စက်ပျက် / စကင်န်မမိ / ဖန်သားပြင်ခန်းနေပါက ဓာတ်ပုံရိုက်ပြီး တွဲပါ",note:"⚠ ဝန်ထမ်းမှ ကိုယ်ရေးအချက် + အထောက်အထား + သက်သေ ၁ ဦး + မန်နေဂျာ ၂ ဦး သာဖြည့်ရန်",progressLabel:"ဖြည့်ပြီး",sec1:"ဝန်ထမ်းအချက်အလက်",sec2:"အထောက်အထား",sec3:"သက်သေ ၁ ဦး",sec4:"မန်နေဂျာ ၂ ဦး",sec5:"အတည်ပြုချက်",lbName:"အမည်*",lbEmpId:"ဝန်ထမ်းကုဒ်*",lbDept:"ဌာန*",lbPhone:"ဖုန်း*",lbDate:"မေ့သည့်နေ့*",lbTime:"အချိန်*",lbReason:"အကြောင်းရင်း* (ထိုင်းဘာသာဖြင့်သာ)",txtUpload:"📎 ဖိုင်ရွေးပါ",txtUploadHint:"JPG/PNG ပုံများကိုလက်ခံသည်",lbEvidenceChoice:"အထောက်အထားရှိပါသလား?*",lbHasYes:"✅ ရှိသည်",lbHasNo:"❌ မရှိပါ",lbNoReason:"အထောက်အထားမရှိသည့်အကြောင်းရင်း* (ထိုင်းဘာသာဖြင့်သာ)",chk1:"အချက်အလက်မှန်ကန်သည်*",chk2:"စစ်ဆေးခွင့်ပြုသည်*",chk3:"စည်းကမ်းများကိုနားလည်သည်*",submit:"တင်ပြမည်",sumHead:"📄 အောင်မြင်ပါသည်",sumLabelNo:"အမှတ်:",btnGoApprove:"HR ထံသွားမည်",hintReason:"⚠ ဤနေရာတွင်ထိုင်းဘာသာဖြင့်သာရေးရမည်",hintNoReason:"⚠ ဤနေရာတွင်ထိုင်းဘာသာဖြင့်သာရေးရမည်",alertTitle:"မပြည့်စုံသေးပါ!",loadingUpload:"တင်နေသည်...",loadingSave:"သိမ်းနေသည်...",timeOptions:["-- ရွေးပါ --","အဝင်ချိန် (မနက်)","အထွက်ချိန် (ညနေ)","အဝင်အထွက်နှစ်ခုလုံး"],errThaiOnly:"ထိုင်းဘာသာဖြင့်သာရေးရမည်"}
 };
 let currentLang=localStorage.getItem('appLang')||'th';
 function setLang(lang){currentLang=lang;localStorage.setItem('appLang',lang);document.getElementById('btnTH').classList.toggle('active',lang==='th');document.getElementById('btnMM').classList.toggle('active',lang==='mm');applyLang();}
@@ -161,15 +161,14 @@ updateProgress();
 }
 function containsMyanmar(s){return /[\u1000-\u109F]/.test(s);}
 function containsThai(s){return /[ก-๙]/.test(s);}
-function isThaiOnlyValid(s){if(!s.trim()) return true; if(containsMyanmar(s)) return false; if(!containsThai(s)) return false; return true;}
 const uploadZone=document.getElementById('uploadZone'),fileInput=document.getElementById('fileInput'),uploadPreview=document.getElementById('uploadPreview');
 let localPreviewURLs=[]; let compressedFilesForUpload=[];
 function compressImage(file){
- return new Promise((res,rej)=>{
+ return new Promise((res)=>{
   const r=new FileReader(); r.onload=e=>{
    const img=new Image(); img.onload=()=>{
     const c=document.createElement('canvas'); const max=1024; let w=img.width,h=img.height;
-    if(w>max||h>max){ if(w>h){h=Math.round(h*max/max); w=max;}else{w=Math.round(w*max/h); h=max;}}
+    if(w>max||h>max){ if(w>h){h=Math.round(h*max/w); w=max;}else{w=Math.round(w*max/h); h=max;}}
     c.width=w;c.height=h; c.getContext('2d').drawImage(img,0,0,w,h);
     c.toBlob(b=>{
      const nf=new File([b],file.name.replace(/\.[^.]+$/,'.jpg'),{type:'image/jpeg'});
@@ -182,11 +181,14 @@ function compressImage(file){
 async function handleFiles(list){
  uploadPreview.innerHTML=''; localPreviewURLs=[]; compressedFilesForUpload=[];
  for(const f of Array.from(list)){ const {file,dataUrl}=await compressImage(f); compressedFilesForUpload.push(file); localPreviewURLs.push(dataUrl); }
- uploadPreview.innerHTML=localPreviewURLs.map((u,i)=>`<img src="${u}" style="width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid #ddd;margin:2px;">`).join('');
+ uploadPreview.innerHTML=localPreviewURLs.map(u=>`<img src="${u}" style="width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid #ddd;margin:2px;">`).join('');
  const dt=new DataTransfer(); compressedFilesForUpload.forEach(f=>dt.items.add(f)); fileInput.files=dt.files; updateProgress();
 }
 uploadZone.addEventListener('click',()=>fileInput.click());
 fileInput.addEventListener('change',()=>handleFiles(fileInput.files));
+fileInput.addEventListener('dragover',e=>{e.preventDefault(); uploadZone.style.background='#e8f4ff';});
+fileInput.addEventListener('dragleave',()=>uploadZone.style.background='');
+fileInput.addEventListener('drop',e=>{e.preventDefault(); uploadZone.style.background=''; if(e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);});
 function updateEvidenceUI(){
  const hasYes=document.getElementById('hasEvidenceYes').checked;
  document.getElementById('evidenceUploadArea').style.display=hasYes?'block':'none';
@@ -197,8 +199,8 @@ function updateEvidenceUI(){
  updateProgress();
 }
 document.addEventListener('change',e=>{ if(e.target.name==='hasEvidence') updateEvidenceUI(); });
-function getAllRequiredFields(){ return Array.from(document.querySelectorAll('.req')).filter(el=>{ if(el.id==='fileInput') return document.getElementById('hasEvidenceYes').checked; if(el.id==='noEvidenceReason') return document.getElementById('hasEvidenceNo').checked; return true; }); }
-function isFieldFilled(el){ if(el.type==='checkbox') return el.checked; if(el.id==='fileInput') return document.getElementById('hasEvidenceYes').checked?compressedFilesForUpload.length>0:true; if(el.id==='noEvidenceReason') return document.getElementById('hasEvidenceNo').checked?(el.value.trim()!==''):true; return el.value&&el.value.trim()!==''; }
+function getAllRequiredFields(){ return Array.from(document.querySelectorAll('.req')).filter(el=>{ if(el.id==='noEvidenceReason') return document.getElementById('hasEvidenceNo').checked; return true; }); }
+function isFieldFilled(el){ if(el.type==='checkbox') return el.checked; if(el.id==='noEvidenceReason') return document.getElementById('hasEvidenceNo').checked?(el.value.trim()!==''):true; return el.value&&el.value.trim()!==''; }
 function updateProgress(){ const f=getAllRequiredFields(); const c=f.filter(isFieldFilled).length; document.getElementById('progressCount').textContent=c; document.getElementById('progressTotal').textContent=f.length; document.getElementById('progressPct').textContent=Math.round(c/f.length*100)+'%'; }
 document.addEventListener('input',updateProgress); document.addEventListener('change',updateProgress);
 const form=document.getElementById('mainForm'),floatAlert=document.getElementById('floatAlert'),missingList=document.getElementById('missingList'),overlay=document.getElementById('overlay'),overlayContent=document.getElementById('overlayContent');
@@ -206,7 +208,11 @@ form.addEventListener('submit',async e=>{
  e.preventDefault();
  const fields=getAllRequiredFields(); let missing=[];
  fields.forEach(el=>{ if(!isFieldFilled(el)){ missing.push(el.getAttribute('data-label')||'required'); el.classList.add('is-invalid'); }else el.classList.remove('is-invalid'); });
- if(missing.length>0){ missingList.innerHTML=missing.map(l=>`<li>${l}</li>`).join(''); floatAlert.classList.add('show'); setTimeout(()=>floatAlert.classList.remove('show'),5000); return; }
+ if(document.getElementById('hasEvidenceYes').checked && compressedFilesForUpload.length===0){
+   missing.push(currentLang==='th'?'ไฟล์หลักฐาน (ต้องแนบรูปอย่างน้อย 1 รูป)':'အထောက်အထားဖိုင် (အနည်းဆုံး ၁ ပုံ)');
+   document.getElementById('uploadZone').classList.add('is-invalid');
+ } else { document.getElementById('uploadZone').classList.remove('is-invalid'); }
+ if(missing.length>0){ missingList.innerHTML=missing.map(l=>`<li>${l}</li>`).join(''); floatAlert.classList.add('show'); setTimeout(()=>floatAlert.classList.remove('show'),7000); document.querySelector('.is-invalid')?.scrollIntoView({behavior:'smooth',block:'center'}); return; }
  overlayContent.innerHTML=`<div class="spinner-ring"></div><div id="loadingText">${translations[currentLang].loadingUpload}</div><button class="btn btn-sm btn-light mt-3" onclick="document.getElementById('overlay').classList.remove('show')">❌ ยกเลิก</button>`;
  overlay.classList.add('show'); document.getElementById('submitBtn').disabled=true;
  try{ await submitToFirebase(); }catch(err){
@@ -238,7 +244,6 @@ async function submitToFirebase(){
   try{ evidenceUrls=await uploadEvidenceFiles(submissionId); }catch(e){ evidenceUrls=[]; }
  }
  const formData=collectFormData();
- // FIX: ใช้ string ธรรมดา ไม่ใช้ Timestamp object ที่ทำให้เกิด error te/Lc
  formData['รหัสการแจ้ง']=submissionId;
  formData['ไฟล์หลักฐาน']=evidenceUrls;
  formData['มีหลักฐานหรือไม่']=document.getElementById('evidenceChoiceValue').value;
@@ -247,136 +252,24 @@ async function submitToFirebase(){
  formData['สถานะโดยรวม']='รอดำเนินการ';
  formData['HR_ชื่อ']=''; formData['HR_รหัส']=''; formData['HR_ความเห็น']=''; formData['HR_สถานะ']='รอดำเนินการ'; formData['HR_วันที่']='';
  formData['ภาษาที่ใช้']=currentLang;
- // ใช้ ISO string แทน Timestamp object - แก้บั๊ก te object / Lc object
+ // FIX te/Lc: ใช้ string + number ไม่ใช้ Timestamp object
  formData['วันเวลาที่ส่งฟอร์ม']=new Date().toISOString();
  formData['วันเวลาที่ส่งฟอร์ม_timestamp']=Date.now();
- // Clean empty keys
  const clean={}; for(const [k,v] of Object.entries(formData)){ if(k&&k.trim()!=='') clean[k.trim()]=v; }
  await db.collection(COLLECTION_NAME).doc(submissionId).set(clean);
  overlay.classList.remove('show');
  document.getElementById('formWrapper').style.display='none'; document.getElementById('summaryPage').style.display='block';
  document.getElementById('sumRef').textContent=submissionId; document.getElementById('sumDateTime').textContent=new Date().toLocaleString();
- document.getElementById('printBody').innerHTML=`<p>ไฟล์หลักฐาน: ${evidenceUrls.length} ไฟล์</p><div>${evidenceUrls.map(u=>`<img src="${u}" style="width:100px;height:100px;object-fit:cover;">`).join('')}</div>`;
+ const allUrls = evidenceUrls.length>0 ? evidenceUrls : localPreviewURLs;
+ document.getElementById('printBody').innerHTML=`
+   <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;padding:12px;margin-bottom:12px;">
+     <b>✅ ${currentLang==='th'?'ส่งสำเร็จ':'အောင်မြင်ပါသည်'}</b><br>
+     <span style="font-size:.85rem;">${currentLang==='th'?'ไฟล์หลักฐาน':'အထောက်အထား'}: ${allUrls.length} ${currentLang==='th'?'ไฟล์':'ဖိုင်'}</span>
+   </div>
+   <div style="display:flex;flex-wrap:wrap;gap:8px;">${allUrls.map(u=>`<img src="${u}" style="width:120px;height:120px;object-fit:cover;border-radius:8px;border:1px solid #ddd;">`).join('') || (currentLang==='th'?'<span style="color:#7a8a99;">ไม่มีหลักฐาน</span>':'<span style="color:#7a8a99;">အထောက်အထားမရှိပါ</span>')}</div>
+ `;
 }
 window.addEventListener('DOMContentLoaded',()=>{setLang('th');});
-</script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="th">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>รายการ HR - พยาน 1 คน</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&family=Noto+Sans+Myanmar:wght@400;600&display=swap" rel="stylesheet">
-<style>
-body{font-family:'Kanit','Noto Sans Myanmar',sans-serif;background:#eef3f7;color:#2b3a48;min-height:100vh;}
-.topbar{background:linear-gradient(90deg,#1e4664,#2c5f8a);color:#fff;padding:16px 0;}
-.card-list{background:#fff;border-radius:14px;border:1px solid #d9e2ea;box-shadow:0 6px 24px rgba(30,70,100,.08);overflow:hidden;}
-.table th{background:#f7fafc;color:#1e4664;font-size:.82rem;white-space:nowrap;font-weight:600;} .table td{font-size:.85rem;vertical-align:middle;}
-.badge-status{font-size:.72rem;padding:4px 10px;border-radius:20px;font-weight:500;}
-.status-รอดำเนินการ{background:#fff3cd;color:#8a6d00;} .status-อนุมัติ{background:#d1e7dd;color:#0f5132;} .status-ไม่อนุมัติ{background:#f8d7da;color:#842029;}
-.thumb{width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid #ddd;cursor:pointer;}
-.overlay{position:fixed;inset:0;background:rgba(20,35,50,.55);display:none;align-items:center;justify-content:center;z-index:3000;padding:16px;}
-.overlay.show{display:flex;} .overlay-card{background:#fff;border-radius:16px;padding:20px;min-width:320px;max-width:92vw;max-height:90vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.3);}
-.code-input{letter-spacing:6px;font-weight:700;font-size:1.3rem;text-align:center;}
-.lang-switch{display:flex;gap:6px;background:rgba(255,255,255,.2);padding:4px;border-radius:20px;}
-.lang-btn{border:none;background:transparent;color:#fff;padding:4px 14px;border-radius:14px;font-size:.85rem;font-weight:600;cursor:pointer;}
-.lang-btn.active{background:#fff;color:#1e4664;}
-</style>
-</head>
-<body>
-<div class="topbar"><div class="container d-flex justify-content-between align-items-center flex-wrap gap-2"><div><h1 style="font-size:1.2rem;font-weight:600;margin:0;" id="txtTitle">📋 รายการบันทึกลืมสแกนนิ้ว</h1><small style="opacity:.9;" id="txtSubtitle">HR อนุมัติที่นี่ • พยาน 1 คน • ลบต้องใส่รหัส 303647</small></div><div class="d-flex gap-2 align-items-center"><div class="lang-switch"><button class="lang-btn active" id="btnTH" onclick="setLang('th')">ไทย</button><button class="lang-btn" id="btnMM" onclick="setLang('mm')">မြန်မာ</button></div><a href="form-fixed.html" class="btn btn-warning btn-sm fw-bold" id="btnBack">📝 กลับหน้าฟอร์ม</a><button id="btnReload" class="btn btn-light btn-sm fw-bold">รีโหลด</button></div></div></div>
-
-<div class="container py-3" style="max-width:1150px;">
-<div class="card-list p-3 mb-3"><div class="row g-2 align-items-center"><div class="col-md-5"><input id="searchInput" class="form-control" placeholder="🔍 ค้นหา ชื่อ, รหัส, แผนก, เลขที่..."></div><div class="col-md-3"><select id="filterStatus" class="form-select"><option value="">สถานะทั้งหมด</option><option>รอดำเนินการ</option><option>อนุมัติ</option><option>ไม่อนุมัติ</option></select></div><div class="col-md-4 text-end"><span style="font-size:.82rem;color:#7a8a99;">ทั้งหมด <b id="totalCount">0</b> รายการ • พยาน 1 คน • มีหลักฐาน/ไม่มีหลักฐาน</span></div></div></div>
-<div class="card-list"><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>วันที่แจ้ง</th><th>เลขที่</th><th>ชื่อ-รหัส</th><th>แผนก</th><th>วันที่ลืม</th><th>พยาน 1 คน</th><th>หลักฐาน</th><th>สถานะ HR</th><th style="width:210px;">จัดการ (HR)</th></tr></thead><tbody id="tbody"><tr><td colspan="9" class="text-center py-4">กำลังโหลด...</td></tr></tbody></table></div></div>
-</div>
-
-<div class="overlay" id="detailOverlay"><div class="overlay-card" style="max-width:780px;width:100%;" id="detailCard"></div></div>
-
-<div class="overlay" id="hrOverlay"><div class="overlay-card" style="max-width:480px;width:100%;">
-<div class="d-flex justify-content-between align-items-center mb-3"><h5 class="fw-bold m-0">✅ อนุมัติโดยฝ่ายบุคคล</h5><button class="btn btn-sm btn-light" onclick="document.getElementById('hrOverlay').classList.remove('show')">✕</button></div>
-<div style="background:#eef4f9;border-radius:8px;padding:10px 12px;font-size:.82rem;margin-bottom:12px;">เลขที่: <b id="hrDocIdShow"></b><br>ชื่อ: <span id="hrEmpNameShow"></span></div>
-<div class="row g-2" style="font-size:.85rem;"><div class="col-md-6"><label>ชื่อ HR*</label><input id="hrName" class="form-control"></div><div class="col-md-6"><label>รหัส HR*</label><input id="hrCode" class="form-control"></div><div class="col-12"><label>ความเห็น HR* (บังคับภาษาไทยเท่านั้น)</label><textarea id="hrComment" class="form-control" rows="2"></textarea></div><div class="col-md-6"><label>สถานะ*</label><select id="hrStatus" class="form-select"><option value="">-- เลือก --</option><option>อนุมัติ</option><option>ไม่อนุมัติ</option><option>รอข้อมูลเพิ่มเติม</option></select></div><div class="col-md-6"><label>วันที่ตรวจสอบ*</label><input id="hrDate" type="date" class="form-control"></div><div class="col-12 mt-2"><label>รหัสยืนยัน HR (303647)*</label><input id="hrAuthCode" type="password" maxlength="6" class="form-control code-input" placeholder="••••••"><div id="hrCodeError" style="color:#d64545;font-size:.8rem;display:none;margin-top:4px;">รหัสไม่ถูกต้อง ต้องเป็น 303647</div></div></div>
-<div class="d-flex gap-2 mt-3"><button class="btn btn-light w-50" onclick="document.getElementById('hrOverlay').classList.remove('show')">ยกเลิก</button><button class="btn btn-success w-50 fw-bold" id="btnConfirmHR">✅ ยืนยันอนุมัติ</button></div><input type="hidden" id="hrDocId"></div></div>
-
-<div class="overlay" id="deleteOverlay"><div class="overlay-card" style="max-width:380px;width:100%;text-align:center;"><div style="font-size:2rem;">🔐</div><h5 class="fw-bold mt-2">ยืนยันการลบโดยฝ่ายบุคคล</h5><div style="font-size:.85rem;color:#7a8a99;margin-bottom:12px;">กรอกรหัส 6 หลัก (303647)</div><input id="deleteCodeInput" type="password" maxlength="6" class="form-control code-input mb-2" placeholder="••••••"><div id="codeError" style="color:#d64545;font-size:.8rem;display:none;">รหัสไม่ถูกต้อง</div><div class="d-flex gap-2 mt-2"><button class="btn btn-light w-50" onclick="document.getElementById('deleteOverlay').classList.remove('show')">ยกเลิก</button><button class="btn btn-danger w-50 fw-bold" id="confirmDeleteBtn">ยืนยันลบ</button></div><input type="hidden" id="deleteDocId"></div></div>
-
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script>
-const firebaseConfig={apiKey:"AIzaSyBlgZzQ4J21Iq_Y1TrlWkg9Y2nZYCa6CuM",authDomain:"forgot-to-scan.firebaseapp.com",projectId:"forgot-to-scan",storageBucket:"forgot-to-scan.firebasestorage.app",messagingSenderId:"710616614028",appId:"1:710616614028:web:1b45503b2f9c92dd4a27a9"};
-firebase.initializeApp(firebaseConfig);const db=firebase.firestore();const storage=firebase.storage();
-try{firebase.auth().signInAnonymously().catch(()=>{});}catch(e){}
-const COLLECTION_NAME="forgot_scan_reports";const HR_CODE="303647";
-
-const translations={
-th:{title:"📋 รายการบันทึกลืมสแกนนิ้ว",subtitle:"HR อนุมัติที่นี่ • พยาน 1 คน • มีหลักฐาน/ไม่มีหลักฐาน",btnBack:"📝 กลับหน้าฟอร์ม",btnReload:"รีโหลด"},
-mm:{title:"📋 လက်ဗွေမနှိပ်မိခြင်းစာရင်း",subtitle:"HR မှ ဤနေရာတွင်အတည်ပြုရန် • သက်သေ ၁ ဦး",btnBack:"📝 ဖောင်သို့ပြန်သွားရန်",btnReload:"ပြန်ဖွင့်မည်"}
-};
-let currentLang=localStorage.getItem('appLang')||'th';
-function setLang(lang){currentLang=lang;localStorage.setItem('appLang',lang);document.getElementById('btnTH').classList.toggle('active',lang==='th');document.getElementById('btnMM').classList.toggle('active',lang==='mm');document.getElementById('txtTitle').innerText=translations[lang].title;document.getElementById('txtSubtitle').innerText=translations[lang].subtitle;document.getElementById('btnBack').innerText=translations[lang].btnBack;document.getElementById('btnReload').innerText=translations[lang].btnReload;renderTable(allDocs);}
-function containsMyanmar(s){return /[\u1000-\u109F]/.test(s);}
-function containsThai(s){return /[ก-๙]/.test(s);}
-function isThaiOnlyValid(s){if(!s.trim()) return true; if(containsMyanmar(s)) return false; if(!containsThai(s)) return false; return true;}
-
-let allDocs=[];
-async function loadData(){
-document.getElementById('tbody').innerHTML=`<tr><td colspan="9" class="text-center py-4">กำลังโหลด...</td></tr>`;
-try{
-// FIX: ใช้ timestamp ที่เป็น number เรียงได้ ไม่ใช้ orderBy ที่เป็น Timestamp object ที่เคย error
-let snap;
-try{ snap=await db.collection(COLLECTION_NAME).orderBy('วันเวลาที่ส่งฟอร์ม_timestamp','desc').get(); }
-catch(e){ snap=await db.collection(COLLECTION_NAME).get(); }
-allDocs=snap.docs.map(d=>({id:d.id,...d.data()}));
-// เรียงเองถ้า orderBy ล้มเหลว
-allDocs.sort((a,b)=>(b['วันเวลาที่ส่งฟอร์ม_timestamp']||0)-(a['วันเวลาที่ส่งฟอร์ม_timestamp']||0));
-renderTable(allDocs);
-}catch(e){
-document.getElementById('tbody').innerHTML=`<tr><td colspan="9" class="text-center text-danger py-4">${e.message}<br><small style="font-size:.8rem;">ไปที่ Firebase Console > Firestore Rules ตั้ง allow read, write: if request.auth != null; และเปิด Anonymous Auth</small></td></tr>`;
-}
-}
-function renderTable(docs){
-document.getElementById('totalCount').textContent=docs.length;
-const tbody=document.getElementById('tbody');
-if(docs.length===0){tbody.innerHTML=`<tr><td colspan="9" class="text-center py-4 text-muted">ไม่มีข้อมูล</td></tr>`;return;}
-tbody.innerHTML=docs.map(doc=>{
-const name=doc['ชื่อ-นามสกุลพนักงาน']||'-';const empId=doc['รหัสพนักงาน']||'';const dept=doc['แผนก/ฝ่าย']||'-';const forgotDate=doc['วันที่ลืมสแกนนิ้ว']||'-';
-const hrStatus=doc['HR_สถานะ']||doc['สถานะโดยรวม']||'รอดำเนินการ';const cls=hrStatus.includes('อนุมัติ')&&!hrStatus.includes('ไม่อนุมัติ')?'status-อนุมัติ':hrStatus.includes('ไม่อนุมัติ')?'status-ไม่อนุมัติ':'status-รอดำเนินการ';
-const ev=doc['ไฟล์หลักฐาน']||doc['ไฟล์หลักฐาน_base64']||[];const w1=doc['ชื่อพยาน']||doc['ชื่อพยานคนที่ 1']||''; 
-let ds='-';
-try{
- const iso=doc['วันเวลาที่ส่งฟอร์ม']; const ts=doc['วันเวลาที่ส่งฟอร์ม_timestamp'];
- if(ts){ const d=new Date(ts); ds=d.toLocaleDateString('th-TH')+' '+d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}); }
- else if(iso){ const d=new Date(iso); if(!isNaN(d)) ds=d.toLocaleDateString('th-TH')+' '+d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}); else ds=iso; }
- else if(doc['วันเวลาที่ส่งฟอร์ม']?.toDate){ const d=doc['วันเวลาที่ส่งฟอร์ม'].toDate(); ds=d.toLocaleDateString('th-TH')+' '+d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}); }
-}catch(e){}
-const hasEvidence=doc['มีหลักฐานหรือไม่']||(ev.length?'มีหลักฐาน':'ไม่มีหลักฐาน');
-const thumbs=Array.isArray(ev)&&ev.length?ev.slice(0,2).map(u=>`<img src="${u}" class="thumb" onclick="window.open('${u}')">`).join(''):hasEvidence.includes('ไม่มี')?'<span style="font-size:.7rem;color:#bf360c;">ไม่มี</span>':'-';
-const hrName=doc['HR_ชื่อ']||'';
-return `<tr><td style="font-size:.8rem;white-space:nowrap;">${ds}</td><td><code style="font-size:.8rem;">${doc.id}</code></td><td><b>${name}</b><br><small class="text-muted">${empId}</small></td><td>${dept}</td><td>${forgotDate}</td><td style="font-size:.8rem;">${w1||'-'}</td><td>${thumbs}<br><small style="font-size:.65rem;">${hasEvidence}</small></td><td><span class="badge badge-status ${cls}">${hrStatus}</span><br>${hrName?`<small style="font-size:.7rem;color:#7a8a99;">${hrName}</small>`:''}</td><td><div class="d-flex flex-wrap gap-1"><button class="btn btn-sm btn-success fw-bold" onclick="openHR('${doc.id}')">อนุมัติ</button><button class="btn btn-sm btn-outline-primary" onclick="viewDetail('${doc.id}')">ดู</button><button class="btn btn-sm btn-danger" onclick="askDelete('${doc.id}')">ลบ</button></div></td></tr>`;
-}).join('');
-}
-function filterNow(){const q=document.getElementById('searchInput').value.toLowerCase();const st=document.getElementById('filterStatus').value;const f=allDocs.filter(d=>{const txt=JSON.stringify(d).toLowerCase();const mq=q===''||txt.includes(q);const s=d['HR_สถานะ']||d['สถานะโดยรวม']||'รอดำเนินการ';const ms=st===''||s.includes(st);return mq&&ms;});renderTable(f);}
-document.getElementById('searchInput').addEventListener('input',filterNow);document.getElementById('filterStatus').addEventListener('change',filterNow);document.getElementById('btnReload').addEventListener('click',loadData);
-
-function openHR(id){const doc=allDocs.find(d=>d.id===id);if(!doc)return;document.getElementById('hrDocId').value=id;document.getElementById('hrDocIdShow').textContent=id;document.getElementById('hrEmpNameShow').textContent=doc['ชื่อ-นามสกุลพนักงาน']||'';document.getElementById('hrName').value=doc['HR_ชื่อ']||'';document.getElementById('hrCode').value=doc['HR_รหัส']||'';document.getElementById('hrComment').value=doc['HR_ความเห็น']||'';document.getElementById('hrStatus').value=doc['HR_สถานะ']||'';document.getElementById('hrDate').value=doc['HR_วันที่']||new Date().toISOString().slice(0,10);document.getElementById('hrAuthCode').value='';document.getElementById('hrCodeError').style.display='none';document.getElementById('hrOverlay').classList.add('show');}
-document.getElementById('btnConfirmHR').addEventListener('click',async()=>{
-const id=document.getElementById('hrDocId').value;const hrName=document.getElementById('hrName').value.trim();const hrCode=document.getElementById('hrCode').value.trim();const hrComment=document.getElementById('hrComment').value.trim();const hrStatus=document.getElementById('hrStatus').value;const hrDate=document.getElementById('hrDate').value;const authCode=document.getElementById('hrAuthCode').value.trim();
-if(!hrName||!hrCode||!hrComment||!hrStatus||!hrDate){alert('กรอกข้อมูล HR ให้ครบ');return;}
-if(!isThaiOnlyValid(hrComment)){alert('ความเห็น HR ต้องพิมพ์ภาษาไทยเท่านั้น ห้ามพิมพ์ภาษาพม่า');return;}
-if(authCode!==HR_CODE){document.getElementById('hrCodeError').style.display='block';return;}
-const btn=document.getElementById('btnConfirmHR');btn.disabled=true;btn.textContent='...';
-try{await db.collection(COLLECTION_NAME).doc(id).update({'HR_ชื่อ':hrName,'HR_รหัส':hrCode,'HR_ความเห็น':hrComment,'HR_สถานะ':hrStatus,'HR_วันที่':hrDate,'สถานะโดยรวม':hrStatus});document.getElementById('hrOverlay').classList.remove('show');await loadData();alert('บันทึกสำเร็จ: '+hrStatus);}catch(e){alert(e.message);}finally{btn.disabled=false;btn.textContent='✅ ยืนยันอนุมัติ';}
-});
-function viewDetail(id){const doc=allDocs.find(d=>d.id===id);if(!doc)return;let html=`<div class="d-flex justify-content-between mb-2"><div><h5 class="fw-bold m-0">${id}</h5><small>${doc['ชื่อ-นามสกุลพนักงาน']||''}</small></div><button class="btn btn-sm btn-light" onclick="document.getElementById('detailOverlay').classList.remove('show')">✕</button></div><hr><div style="max-height:65vh;overflow:auto;">`;for(const [k,v] of Object.entries(doc)){if(k==='ไฟล์หลักฐาน'||k==='ไฟล์หลักฐาน_base64'||k==='วันเวลาที่ส่งฟอร์ม'||k==='วันเวลาที่ส่งฟอร์ม_timestamp')continue;html+=`<div class="d-flex justify-content-between py-1 border-bottom" style="font-size:.85rem;"><b style="max-width:45%">${k}</b><span style="max-width:50%;text-align:right;word-break:break-word;">${v||'-'}</span></div>`;}const ev=doc['ไฟล์หลักฐาน']||doc['ไฟล์หลักฐาน_base64']||[];html+=`<div class="mt-3"><b>หลักฐาน (${doc['มีหลักฐานหรือไม่']||''}):</b><div class="d-flex flex-wrap gap-2 mt-2">${Array.isArray(ev)&&ev.length?ev.map(u=>`<a href="${u}" target="_blank"><img src="${u}" style="width:110px;height:110px;object-fit:cover;border-radius:8px;border:1px solid #ddd;"></a>`).join(''):'ไม่มีหลักฐาน'}</div></div></div><div class="d-flex gap-2 mt-3"><button class="btn btn-secondary w-50" onclick="document.getElementById('detailOverlay').classList.remove('show')">ปิด</button><button class="btn btn-success w-50" onclick="document.getElementById('detailOverlay').classList.remove('show');openHR('${id}')">อนุมัติ</button></div>`;document.getElementById('detailCard').innerHTML=html;document.getElementById('detailOverlay').classList.add('show');}
-function askDelete(id){document.getElementById('deleteDocId').value=id;document.getElementById('deleteCodeInput').value='';document.getElementById('codeError').style.display='none';document.getElementById('deleteOverlay').classList.add('show');}
-document.getElementById('confirmDeleteBtn').addEventListener('click',async()=>{const code=document.getElementById('deleteCodeInput').value.trim();if(code!==HR_CODE){document.getElementById('codeError').style.display='block';return;}const id=document.getElementById('deleteDocId').value;const btn=document.getElementById('confirmDeleteBtn');btn.disabled=true;btn.textContent='...';try{const doc=allDocs.find(d=>d.id===id);if(doc&&Array.isArray(doc['ไฟล์หลักฐาน'])){for(const url of doc['ไฟล์หลักฐาน']){try{await storage.refFromURL(url).delete();}catch(_){}}}await db.collection(COLLECTION_NAME).doc(id).delete();document.getElementById('deleteOverlay').classList.remove('show');await loadData();alert('ลบสำเร็จ');}catch(err){alert(err.message);}finally{btn.disabled=false;btn.textContent='ยืนยันลบ';}});
-window.addEventListener('DOMContentLoaded',()=>{setLang(currentLang);loadData();});
 </script>
 </body>
 </html>
