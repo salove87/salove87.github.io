@@ -174,7 +174,6 @@
     background-color:var(--primary);
     border-color:var(--primary);
   }
-  /* Toast แจ้งเตือนกรอกไม่ครบ */
   .alert-float{
     position:fixed;
     top:20px;left:50%;
@@ -207,7 +206,6 @@
     max-height:140px;
     overflow-y:auto;
   }
-  /* Modal loading / success */
   .overlay{
     position:fixed;inset:0;
     background:rgba(20,35,50,.55);
@@ -266,9 +264,8 @@
 </head>
 <body>
 
-<!-- แจ้งเตือนกรอกไม่ครบ -->
 <div class="alert-float" id="floatAlert">
-  <div style="font-size:1.3rem;line-height:1;">⚠️</div>
+  <div style="font-size:1.3rem;line-height:1;">⚠</div>
   <div>
     <div><b>กรอกข้อมูลไม่ครบถ้วน!</b></div>
     <div style="font-size:.85rem;opacity:.95;">กรุณากรอกช่องที่มีเครื่องหมาย <span class="required-mark">*</span> ให้ครบทุกช่อง มิฉะนั้นระบบจะไม่อนุญาตให้ส่งแบบฟอร์ม และ<b>ท่านจะไม่ได้รับเบี้ยขยันในรอบการประเมินนี้</b></div>
@@ -276,7 +273,6 @@
   </div>
 </div>
 
-<!-- Overlay: Loading / Success -->
 <div class="overlay" id="overlay">
   <div class="overlay-card" id="overlayContent"></div>
 </div>
@@ -291,7 +287,7 @@
 <div class="container" style="max-width:820px;">
 
   <div class="note-box">
-    ⚠️ <b>โปรดทราบ:</b> การแจ้งลืมสแกนลายนิ้วมือทุกครั้งต้องมี <b>พยานรับรอง 5 คน</b>, <b>หัวหน้างานอนุมัติ 2 คน</b> และ <b>ฝ่ายบุคคลตรวจสอบ 1 คน</b>
+    ⚠ <b>โปรดทราบ:</b> การแจ้งลืมสแกนลายนิ้วมือทุกครั้งต้องมี <b>พยานรับรอง 2 คน</b>, <b>หัวหน้างานอนุมัติ 2 คน</b> และ <b>ฝ่ายบุคคลตรวจสอบ 1 คน</b>
     พร้อมแนบหลักฐานประกอบ หากกรอกข้อมูลไม่ครบทุกช่องที่มีเครื่องหมาย <span class="required-mark">*</span> ระบบจะ<b>ไม่อนุญาตให้ส่งแบบฟอร์ม</b>
     และจะมีผลต่อการพิจารณา<b>เบี้ยขยันประจำเดือน</b>ของท่าน
   </div>
@@ -302,7 +298,6 @@
 
   <form id="mainForm" novalidate>
 
-    <!-- 1. ข้อมูลพนักงาน -->
     <div class="form-card">
       <div class="section-header"><span class="badge-num">1</span> ข้อมูลพนักงานผู้แจ้ง</div>
       <div class="section-body row g-3">
@@ -345,7 +340,6 @@
       </div>
     </div>
 
-    <!-- 2. แนบหลักฐาน -->
     <div class="form-card">
       <div class="section-header"><span class="badge-num">2</span> แนบหลักฐานประกอบการแจ้ง</div>
       <div class="section-body">
@@ -360,19 +354,16 @@
       </div>
     </div>
 
-    <!-- 3. พยาน 5 คน -->
     <div class="form-card">
-      <div class="section-header"><span class="badge-num">3</span> พยานรับรองเหตุการณ์ (ต้องครบ 5 คน)</div>
+      <div class="section-header"><span class="badge-num">3</span> พยานรับรองเหตุการณ์ (ต้องครบ 2 คน)</div>
       <div class="section-body" id="witnessContainer"></div>
     </div>
 
-    <!-- 4. หัวหน้างานอนุมัติ 2 คน -->
     <div class="form-card">
       <div class="section-header"><span class="badge-num">4</span> หัวหน้างานผู้อนุมัติ (ต้องครบ 2 คน)</div>
       <div class="section-body" id="approverContainer"></div>
     </div>
 
-    <!-- 5. ฝ่ายบุคคล -->
     <div class="form-card">
       <div class="section-header"><span class="badge-num">5</span> ฝ่ายทรัพยากรบุคคล (ผู้ตรวจสอบ)</div>
       <div class="section-body row g-3">
@@ -404,7 +395,6 @@
       </div>
     </div>
 
-    <!-- 6. ยืนยันข้อมูล -->
     <div class="form-card">
       <div class="section-header"><span class="badge-num">6</span> ยืนยันความถูกต้องของข้อมูล</div>
       <div class="section-body">
@@ -433,12 +423,10 @@
   <footer class="page-footer">© ฝ่ายทรัพยากรบุคคล — แบบฟอร์มนี้ใช้สำหรับการแจ้งลืมสแกนลายนิ้วมือภายในองค์กรเท่านั้น</footer>
 </div>
 
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script>
-// ---------- ตั้งค่า Firebase ----------
 const firebaseConfig = {
   apiKey: "AIzaSyBlgZzQ4J21Iq_Y1TrlWkg9Y2nZYCa6CuM",
   authDomain: "forgot-to-scan.firebaseapp.com",
@@ -451,14 +439,13 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const storageRef = firebase.storage();
-
-const COLLECTION_NAME = "forgot_scan_reports"; // ชื่อ collection ใน Firestore
+const COLLECTION_NAME = "forgot_scan_reports";
 </script>
 
 <script>
-// ---------- สร้างบล็อกพยาน 5 คน ----------
+// ---------- สร้างบล็อกพยาน 2 คน (แก้ไขจาก 5 -> 2) ----------
 const witnessContainer = document.getElementById('witnessContainer');
-for(let i=1;i<=5;i++){
+for(let i=1;i<=2;i++){
   witnessContainer.insertAdjacentHTML('beforeend', `
     <div class="witness-block">
       <span class="wnum">พยานคนที่ ${i}</span>
@@ -505,7 +492,6 @@ for(let i=1;i<=5;i++){
   `);
 }
 
-// ---------- สร้างบล็อกหัวหน้างาน 2 คน ----------
 const approverContainer = document.getElementById('approverContainer');
 for(let i=1;i<=2;i++){
   approverContainer.insertAdjacentHTML('beforeend', `
@@ -541,7 +527,6 @@ for(let i=1;i<=2;i++){
   `);
 }
 
-// ---------- อัปโหลดไฟล์ ----------
 const uploadZone = document.getElementById('uploadZone');
 const fileInput = document.getElementById('fileInput');
 const uploadPreview = document.getElementById('uploadPreview');
@@ -564,17 +549,14 @@ fileInput.addEventListener('change', ()=>{
   updateProgress();
 });
 
-// ---------- Progress + Validation ----------
 function getAllRequiredFields(){
   return Array.from(document.querySelectorAll('.req'));
 }
-
 function isFieldFilled(el){
   if(el.type === 'checkbox') return el.checked;
   if(el.id === 'fileInput') return el.files && el.files.length > 0;
   return el.value !== null && el.value.trim() !== '';
 }
-
 function updateProgress(){
   const fields = getAllRequiredFields();
   const filled = fields.filter(isFieldFilled).length;
@@ -582,12 +564,10 @@ function updateProgress(){
   document.getElementById('progressTotal').textContent = fields.length;
   document.getElementById('progressPct').textContent = Math.round((filled/fields.length)*100) + '%';
 }
-
 document.addEventListener('input', updateProgress);
 document.addEventListener('change', updateProgress);
 window.addEventListener('DOMContentLoaded', updateProgress);
 
-// ---------- Submit ----------
 const form = document.getElementById('mainForm');
 const floatAlert = document.getElementById('floatAlert');
 const missingList = document.getElementById('missingList');
@@ -614,23 +594,17 @@ form.addEventListener('submit', function(e){
       el.classList.remove('is-invalid');
     }
   });
-
-  // ตรวจสอบความยาวขั้นต่ำของเหตุผล
   const reasonField = document.querySelector('textarea[data-label="เหตุผลที่ลืมสแกนลายนิ้วมือ"]');
   if(reasonField && reasonField.value.trim().length > 0 && reasonField.value.trim().length < 20){
     missing.push('เหตุผลที่ลืมสแกนลายนิ้วมือ (ต้องมีรายละเอียดอย่างน้อย 20 ตัวอักษร)');
     reasonField.classList.add('is-invalid');
   }
-
   if(missing.length > 0){
     showFloatAlert(missing);
-    // เลื่อนไปช่องแรกที่ยังไม่กรอก
     const firstInvalid = document.querySelector('.is-invalid');
     if(firstInvalid) firstInvalid.scrollIntoView({behavior:'smooth', block:'center'});
     return;
   }
-
-  // ----- ผ่านการตรวจสอบ: แสดง Loading -----
   overlayContent.innerHTML = `
     <div class="spinner-ring"></div>
     <div style="font-weight:600;" id="loadingText">กำลังอัปโหลดหลักฐาน...</div>
@@ -638,7 +612,6 @@ form.addEventListener('submit', function(e){
   `;
   overlay.classList.add('show');
   document.getElementById('submitBtn').disabled = true;
-
   submitToFirebase().catch(err=>{
     console.error(err);
     overlayContent.innerHTML = `
@@ -652,11 +625,10 @@ form.addEventListener('submit', function(e){
   });
 });
 
-// ---------- รวบรวมข้อมูลจากทุกช่อง (ยกเว้นไฟล์แนบ) ----------
 function collectFormData(){
   const data = {};
   document.querySelectorAll('.req').forEach(el=>{
-    if(el.id === 'fileInput') return; // ไฟล์แนบจัดการแยกต่างหาก
+    if(el.id === 'fileInput') return;
     const label = el.dataset.label || el.id || 'ไม่ระบุ';
     if(el.type === 'checkbox'){
       data[label] = el.checked;
@@ -666,8 +638,6 @@ function collectFormData(){
   });
   return data;
 }
-
-// ---------- อัปโหลดไฟล์หลักฐานไปยัง Firebase Storage ----------
 async function uploadEvidenceFiles(submissionId){
   const files = fileInput.files;
   const urls = [];
@@ -681,27 +651,17 @@ async function uploadEvidenceFiles(submissionId){
   }
   return urls;
 }
-
-// ---------- ส่งข้อมูลทั้งหมดไปยัง Firebase ----------
 async function submitToFirebase(){
   const submissionId = 'F' + Date.now();
   const loadingText = document.getElementById('loadingText');
-
-  // 1) อัปโหลดไฟล์หลักฐานก่อน
   const evidenceUrls = await uploadEvidenceFiles(submissionId);
-
-  // 2) เตรียมข้อมูลฟอร์ม
   if(loadingText) loadingText.textContent = 'กำลังบันทึกข้อมูล...';
   const formData = collectFormData();
   formData.รหัสการแจ้ง = submissionId;
   formData.ไฟล์หลักฐาน = evidenceUrls;
   formData.สถานะโดยรวม = 'รอดำเนินการ';
   formData.วันเวลาที่ส่งฟอร์ม = firebase.firestore.FieldValue.serverTimestamp();
-
-  // 3) บันทึกลง Firestore
   await db.collection(COLLECTION_NAME).doc(submissionId).set(formData);
-
-  // 4) แสดงผลสำเร็จ
   overlayContent.innerHTML = `
     <div class="success-icon">✓</div>
     <div style="font-weight:600;font-size:1.1rem;">ส่งแบบฟอร์มสำเร็จ!</div>
@@ -713,7 +673,6 @@ async function submitToFirebase(){
   `;
 }
 </script>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
