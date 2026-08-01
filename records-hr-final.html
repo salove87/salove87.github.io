@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>รายการ HR V-FINAL-LOCK</title>
+<title>รายการบันทึกลืมสแกนนิ้ว - HR</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&family=Noto+Sans+Myanmar:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -20,17 +20,21 @@ body{font-family:'Kanit','Noto Sans Myanmar',sans-serif;background:#eef3f7;color
 .lang-switch{display:flex;gap:6px;background:rgba(255,255,255,.2);padding:4px;border-radius:20px;}
 .lang-btn{border:none;background:transparent;color:#fff;padding:4px 14px;border-radius:14px;font-size:.85rem;font-weight:600;cursor:pointer;}
 .lang-btn.active{background:#fff;color:#1e4664;}
+.view-section{border-left:4px solid #2c5f8a;padding-left:12px;margin:18px 0 8px;font-weight:600;color:#1e4664;background:#f7fafc;padding:8px 12px;border-radius:0 8px 8px 0;}
+.view-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed #e6ecf2;font-size:.88rem;}
+@media print { .no-print{display:none!important;} body{background:#fff;} .overlay{display:none!important;} }
 </style>
 </head>
 <body>
-<div class="topbar"><div class="container d-flex justify-content-between align-items-center flex-wrap gap-2"><div><h1 style="font-size:1.2rem;font-weight:600;margin:0;">📋 รายการบันทึกลืมสแกนนิ้ว</h1><small style="opacity:.9;">HR อนุมัติที่นี่ • พยาน 1 คน • ต้องใส่รหัส HR สำหรับอนุมัติ/ลบ</small></div><div class="d-flex gap-2 align-items-center"><div class="lang-switch"><button class="lang-btn active" id="btnTH" onclick="setLang('th')">ไทย</button><button class="lang-btn" id="btnMM" onclick="setLang('mm')">မြန်မာ</button></div><a href="form-fixed.html" class="btn btn-warning btn-sm fw-bold">📝 กลับหน้าฟอร์ม</a><button id="btnReload" class="btn btn-light btn-sm fw-bold">รีโหลด</button></div></div></div>
+<div class="topbar no-print"><div class="container d-flex justify-content-between align-items-center flex-wrap gap-2"><div><h1 style="font-size:1.2rem;font-weight:600;margin:0;">📋 รายการบันทึกลืมสแกนนิ้ว</h1><small style="opacity:.9;">HR อนุมัติที่นี่ • พยาน 1 คน • ต้องใส่รหัส HR</small></div><div class="d-flex gap-2 align-items-center"><div class="lang-switch"><button class="lang-btn active" id="btnTH" onclick="setLang('th')">ไทย</button><button class="lang-btn" id="btnMM" onclick="setLang('mm')">မြန်မာ</button></div><a href="form-fixed.html" class="btn btn-warning btn-sm fw-bold">📝 กลับหน้าฟอร์ม</a><button id="btnReload" class="btn btn-light btn-sm fw-bold">รีโหลด</button></div></div></div>
 
 <div class="container py-3" style="max-width:1150px;">
-<div class="card-list p-3 mb-3"><div class="row g-2 align-items-center"><div class="col-md-5"><input id="searchInput" class="form-control" placeholder="🔍 ค้นหา ชื่อ, รหัส, แผนก, เลขที่..."></div><div class="col-md-3"><select id="filterStatus" class="form-select"><option value="">สถานะทั้งหมด</option><option>รอดำเนินการ</option><option>อนุมัติ</option><option>ไม่อนุมัติ</option></select></div><div class="col-md-4 text-end"><span style="font-size:.82rem;color:#7a8a99;">ทั้งหมด <b id="totalCount">0</b> รายการ • พยาน 1 คน</span></div></div></div>
-<div class="card-list"><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>วันที่แจ้ง</th><th>เลขที่</th><th>ชื่อ-รหัส</th><th>แผนก</th><th>วันที่ลืม</th><th>พยาน 1 คน</th><th>หลักฐาน</th><th>สถานะ HR</th><th style="width:210px;">จัดการ (HR)</th></tr></thead><tbody id="tbody"><tr><td colspan="9" class="text-center py-4">กำลังโหลด...</td></tr></tbody></table></div></div>
+<div class="card-list p-3 mb-3 no-print"><div class="row g-2 align-items-center"><div class="col-md-5"><input id="searchInput" class="form-control" placeholder="🔍 ค้นหา ชื่อ, รหัส, แผนก, เลขที่..."></div><div class="col-md-3"><select id="filterStatus" class="form-select"><option value="">สถานะทั้งหมด</option><option>รอดำเนินการ</option><option>อนุมัติ</option><option>ไม่อนุมัติ</option></select></div><div class="col-md-4 text-end"><span style="font-size:.82rem;color:#7a8a99;">ทั้งหมด <b id="totalCount">0</b> รายการ • พยาน 1 คน</span></div></div></div>
+<div class="card-list"><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>วันที่แจ้ง</th><th>เลขที่</th><th>ชื่อ-รหัส</th><th>แผนก</th><th>วันที่ลืม</th><th>พยาน 1 คน</th><th>หลักฐาน</th><th>สถานะ HR</th><th style="width:210px;" class="no-print">จัดการ (HR)</th></tr></thead><tbody id="tbody"><tr><td colspan="9" class="text-center py-4">กำลังโหลด...</td></tr></tbody></table></div></div>
 </div>
 
-<div class="overlay" id="detailOverlay"><div class="overlay-card" style="max-width:780px;width:100%;" id="detailCard"></div></div>
+<!-- VIEW MODAL - แสดงแค่ พนักงานลืม + พยาน 1 + หัวหน้า 2 + พิมพ์ได้ -->
+<div class="overlay" id="detailOverlay"><div class="overlay-card" style="max-width:850px;width:100%;" id="detailCard"></div></div>
 
 <div class="overlay" id="hrOverlay"><div class="overlay-card" style="max-width:480px;width:100%;">
 <div class="d-flex justify-content-between align-items-center mb-3"><h5 class="fw-bold m-0">✅ อนุมัติโดยฝ่ายบุคคล</h5><button class="btn btn-sm btn-light" onclick="document.getElementById('hrOverlay').classList.remove('show')">✕</button></div>
@@ -77,11 +81,12 @@ try{
 }catch(e){}
 const hasEvidence=doc['มีหลักฐานหรือไม่']||(ev.length?'มีหลักฐาน':'ไม่มีหลักฐาน');
 const thumbs=Array.isArray(ev)&&ev.length?ev.slice(0,2).map(u=>`<img src="${u}" class="thumb" onclick="window.open('${u}')">`).join(''):hasEvidence.includes('ไม่มี')?'<span style="font-size:.7rem;color:#bf360c;">ไม่มี</span>':'-';
-return `<tr><td style="font-size:.8rem;white-space:nowrap;">${ds}</td><td><code style="font-size:.8rem;">${doc.id}</code></td><td><b>${name}</b><br><small class="text-muted">${empId}</small></td><td>${dept}</td><td>${forgotDate}</td><td style="font-size:.8rem;">${w1||'-'}</td><td>${thumbs}<br><small style="font-size:.65rem;">${hasEvidence}</small></td><td><span class="badge badge-status ${cls}">${hrStatus}</span></td><td><div class="d-flex flex-wrap gap-1"><button class="btn btn-sm btn-success fw-bold" onclick="openHR('${doc.id}')">อนุมัติ</button><button class="btn btn-sm btn-outline-primary" onclick="viewDetail('${doc.id}')">ดู</button><button class="btn btn-sm btn-danger" onclick="askDelete('${doc.id}')">ลบ</button></div></td></tr>`;
+return `<tr><td style="font-size:.8rem;white-space:nowrap;">${ds}</td><td><code style="font-size:.8rem;">${doc.id}</code></td><td><b>${name}</b><br><small class="text-muted">${empId}</small></td><td>${dept}</td><td>${forgotDate}</td><td style="font-size:.8rem;">${w1||'-'}</td><td>${thumbs}<br><small style="font-size:.65rem;">${hasEvidence}</small></td><td><span class="badge badge-status ${cls}">${hrStatus}</span></td><td class="no-print"><div class="d-flex flex-wrap gap-1"><button class="btn btn-sm btn-outline-primary fw-bold" onclick="viewDetail('${doc.id}')">👁️ ดู</button><button class="btn btn-sm btn-success fw-bold" onclick="openHR('${doc.id}')">✅ อนุมัติ</button><button class="btn btn-sm btn-danger" onclick="askDelete('${doc.id}')">ลบ</button></div></td></tr>`;
 }).join('');
 }
 function filterNow(){const q=document.getElementById('searchInput').value.toLowerCase();const st=document.getElementById('filterStatus').value;const f=allDocs.filter(d=>{const txt=JSON.stringify(d).toLowerCase();const mq=q===''||txt.includes(q);const s=d['HR_สถานะ']||d['สถานะโดยรวม']||'รอดำเนินการ';const ms=st===''||s.includes(st);return mq&&ms;});renderTable(f);}
 document.getElementById('searchInput').addEventListener('input',filterNow);document.getElementById('filterStatus').addEventListener('change',filterNow);document.getElementById('btnReload').addEventListener('click',loadData);
+
 function openHR(id){const doc=allDocs.find(d=>d.id===id);if(!doc)return;document.getElementById('hrDocId').value=id;document.getElementById('hrDocIdShow').textContent=id;document.getElementById('hrEmpNameShow').textContent=doc['ชื่อ-นามสกุลพนักงาน']||'';document.getElementById('hrName').value=doc['HR_ชื่อ']||'';document.getElementById('hrCode').value=doc['HR_รหัส']||'';document.getElementById('hrComment').value=doc['HR_ความเห็น']||'';document.getElementById('hrStatus').value=doc['HR_สถานะ']||'';document.getElementById('hrDate').value=doc['HR_วันที่']||new Date().toISOString().slice(0,10);document.getElementById('hrAuthCode').value='';document.getElementById('hrCodeError').style.display='none';document.getElementById('hrOverlay').classList.add('show');}
 document.getElementById('btnConfirmHR').addEventListener('click',async()=>{
 const id=document.getElementById('hrDocId').value;const hrName=document.getElementById('hrName').value.trim();const hrCode=document.getElementById('hrCode').value.trim();const hrComment=document.getElementById('hrComment').value.trim();const hrStatus=document.getElementById('hrStatus').value;const hrDate=document.getElementById('hrDate').value;const authCode=document.getElementById('hrAuthCode').value.trim();
@@ -90,7 +95,82 @@ if(authCode!==HR_CODE){document.getElementById('hrCodeError').style.display='blo
 const btn=document.getElementById('btnConfirmHR');btn.disabled=true;
 try{await db.collection(COLLECTION_NAME).doc(id).update({'HR_ชื่อ':hrName,'HR_รหัส':hrCode,'HR_ความเห็น':hrComment,'HR_สถานะ':hrStatus,'HR_วันที่':hrDate,'สถานะโดยรวม':hrStatus});document.getElementById('hrOverlay').classList.remove('show');await loadData();alert('บันทึกสำเร็จ');}catch(e){alert(e.message);}finally{btn.disabled=false;}
 });
-function viewDetail(id){const doc=allDocs.find(d=>d.id===id);if(!doc)return;let html=`<div class="d-flex justify-content-between mb-2"><div><h5 class="fw-bold m-0">${id}</h5></div><button class="btn btn-sm btn-light" onclick="document.getElementById('detailOverlay').classList.remove('show')">✕</button></div><hr>`;for(const [k,v] of Object.entries(doc)){if(k.startsWith('ไฟล์หลักฐาน')||k.startsWith('วันเวลาที่ส่งฟอร์ม'))continue; html+=`<div class="d-flex justify-content-between py-1 border-bottom" style="font-size:.85rem;"><b>${k}</b><span>${v||'-'}</span></div>`;}const ev=doc['ไฟล์หลักฐาน']||doc['ไฟล์หลักฐาน_base64']||[];html+=`<div class="mt-3"><b>หลักฐาน:</b><div class="d-flex flex-wrap gap-2 mt-2">${Array.isArray(ev)&&ev.length?ev.map(u=>`<img src="${u}" style="width:110px;height:110px;object-fit:cover;">`).join(''):'ไม่มี'}</div></div>`;document.getElementById('detailCard').innerHTML=html;document.getElementById('detailOverlay').classList.add('show');}
+
+// ===== VIEW DETAIL - โชว์แค่ พนักงานลืม + พยาน 1 + หัวหน้า 2 + พิมพ์ได้ =====
+function viewDetail(id){
+const doc=allDocs.find(d=>d.id===id);if(!doc)return;
+const ev=doc['ไฟล์หลักฐาน']||doc['ไฟล์หลักฐาน_base64']||[];
+const hasEvidence=doc['มีหลักฐานหรือไม่']||'';
+const noReason=doc['เหตุผลที่ไม่มีหลักฐาน']||'';
+
+let html=`
+<div id="printArea">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:2px solid #1e4664;padding-bottom:10px;">
+<div><h5 style="margin:0;font-weight:700;color:#1e4664;">📄 ใบบันทึกลืมสแกนลายนิ้วมือ</h5><small style="color:#7a8a99;">เลขที่: <b>${doc.id}</b> • วันที่แจ้ง: ${doc['วันเวลาที่ส่งฟอร์ม']?new Date(doc['วันเวลาที่ส่งฟอร์ม_timestamp']||doc['วันเวลาที่ส่งฟอร์ม']).toLocaleString('th-TH'):'-'}</small></div>
+<button class="btn btn-sm btn-light no-print" onclick="document.getElementById('detailOverlay').classList.remove('show')">✕</button>
+</div>
+
+<div class="view-section">1️⃣ พนักงานที่ลืมสแกน</div>
+<div class="view-row"><b>ชื่อ-นามสกุล</b><span>${doc['ชื่อ-นามสกุลพนักงาน']||'-'}</span></div>
+<div class="view-row"><b>รหัสพนักงาน</b><span>${doc['รหัสพนักงาน']||'-'}</span></div>
+<div class="view-row"><b>แผนก/ฝ่าย</b><span>${doc['แผนก/ฝ่าย']||'-'}</span></div>
+<div class="view-row"><b>เบอร์โทร</b><span>${doc['เบอร์โทรศัพท์']||'-'}</span></div>
+<div class="view-row"><b>วันที่ลืมสแกน</b><span>${doc['วันที่ลืมสแกนนิ้ว']||'-'}</span></div>
+<div class="view-row"><b>ช่วงเวลา</b><span>${doc['ช่วงเวลาที่ลืมสแกน']||'-'}</span></div>
+<div class="view-row"><b>เหตุผล</b><span style="max-width:60%;text-align:right;">${doc['เหตุผลที่ลืมสแกนลายนิ้วมือ']||'-'}</span></div>
+
+<div class="view-section">2️⃣ หลักฐาน</div>
+<div class="view-row"><b>มีหลักฐานหรือไม่</b><span><span class="badge ${hasEvidence.includes('มี')&&!hasEvidence.includes('ไม่มี')?'bg-success':'bg-danger'}" style="font-size:.75rem;">${hasEvidence||'-'}</span></span></div>
+${hasEvidence.includes('ไม่มี')?`<div class="view-row"><b>เหตุผลที่ไม่มีหลักฐาน</b><span style="max-width:60%;text-align:right;">${noReason||'-'}</span></div>`:''}
+<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;">${Array.isArray(ev)&&ev.length?ev.map(u=>`<a href="${u}" target="_blank"><img src="${u}" style="width:130px;height:130px;object-fit:cover;border-radius:8px;border:1px solid #ddd;"></a>`).join(''):'<span style="color:#7a8a99;font-size:.85rem;">ไม่มีไฟล์หลักฐาน</span>'}</div>
+
+<div class="view-section">3️⃣ พยาน 1 คน</div>
+<div class="view-row"><b>ชื่อพยาน</b><span>${doc['ชื่อพยาน']||'-'}</span></div>
+<div class="view-row"><b>ตำแหน่ง</b><span>${doc['ตำแหน่งพยาน']||'-'}</span></div>
+<div class="view-row"><b>แผนก</b><span>${doc['แผนกพยาน']||'-'}</span></div>
+<div class="view-row"><b>รหัสพนักงาน</b><span>${doc['รหัสพนักงานพยาน']||doc['รหัสพยาน']||'-'}</span></div>
+<div class="view-row"><b>เบอร์โทร</b><span>${doc['เบอร์โทรพยาน']||doc['เบอร์โทรศัพท์พยาน']||'-'}</span></div>
+
+<div class="view-section">4️⃣ หัวหน้างาน 2 คน</div>
+<div style="background:#f8fbfe;border:1px dashed #d9e2ea;border-radius:8px;padding:10px 12px;margin-bottom:10px;">
+<div style="font-weight:600;color:#2c5f8a;margin-bottom:6px;">หัวหน้างานคนที่ 1</div>
+<div class="view-row"><b>ชื่อ</b><span>${doc['ชื่อหัวหน้างานคนที่ 1']||doc['ชื่อหัวหน้า1']||'-'}</span></div>
+<div class="view-row"><b>รหัส</b><span>${doc['รหัสพนักงานหัวหน้างานคนที่ 1']||doc['รหัสหัวหน้า1']||'-'}</span></div>
+<div class="view-row"><b>ความเห็น</b><span style="max-width:60%;text-align:right;">${doc['ความเห็นของหัวหน้างานคนที่ 1']||doc['ความเห็นหัวหน้างานคนที่ 1']||'-'}</span></div>
+</div>
+<div style="background:#f8fbfe;border:1px dashed #d9e2ea;border-radius:8px;padding:10px 12px;">
+<div style="font-weight:600;color:#2c5f8a;margin-bottom:6px;">หัวหน้างานคนที่ 2</div>
+<div class="view-row"><b>ชื่อ</b><span>${doc['ชื่อหัวหน้างานคนที่ 2']||doc['ชื่อหัวหน้า2']||'-'}</span></div>
+<div class="view-row"><b>รหัส</b><span>${doc['รหัสพนักงานหัวหน้างานคนที่ 2']||doc['รหัสหัวหน้า2']||'-'}</span></div>
+<div class="view-row"><b>ความเห็น</b><span style="max-width:60%;text-align:right;">${doc['ความเห็นของหัวหน้างานคนที่ 2']||doc['ความเห็นหัวหน้างานคนที่ 2']||'-'}</span></div>
+</div>
+
+<div class="view-section">5️⃣ การอนุมัติโดย HR</div>
+<div class="view-row"><b>สถานะ</b><span><span class="badge ${doc['HR_สถานะ']==='อนุมัติ'?'bg-success':doc['HR_สถานะ']==='ไม่อนุมัติ'?'bg-danger':'bg-warning text-dark'}" style="font-size:.8rem;">${doc['HR_สถานะ']||doc['สถานะโดยรวม']||'รอดำเนินการ'}</span></span></div>
+<div class="view-row"><b>ชื่อ HR</b><span>${doc['HR_ชื่อ']||'-'}</span></div>
+<div class="view-row"><b>รหัส HR</b><span>${doc['HR_รหัส']||'-'}</span></div>
+<div class="view-row"><b>ความเห็น HR</b><span style="max-width:60%;text-align:right;">${doc['HR_ความเห็น']||'-'}</span></div>
+<div class="view-row"><b>วันที่ตรวจสอบ</b><span>${doc['HR_วันที่']||'-'}</span></div>
+
+</div>
+
+<div class="d-flex gap-2 mt-4 no-print">
+<button class="btn btn-secondary w-50" onclick="document.getElementById('detailOverlay').classList.remove('show')">ปิด</button>
+<button class="btn btn-primary w-50 fw-bold" onclick="printDetail('${id}')">🖨️ พิมพ์ใบนี้</button>
+</div>
+`;
+
+document.getElementById('detailCard').innerHTML=html;
+document.getElementById('detailOverlay').classList.add('show');
+}
+
+function printDetail(id){
+const printContent=document.getElementById('printArea').innerHTML;
+const w=window.open('','_blank');
+w.document.write(`<html><head><meta charset="UTF-8"><title>พิมพ์ ${id}</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet"><style>body{font-family:'Kanit',sans-serif;padding:20px;color:#2b3a48;} .view-section{border-left:4px solid #2c5f8a;padding-left:12px;margin:18px 0 8px;font-weight:600;color:#1e4664;background:#f7fafc;padding:8px 12px;border-radius:0 8px 8px 0;} .view-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed #e6ecf2;font-size:.9rem;} @media print{ button{display:none!important;} }</style></head><body>${printContent}<div style="text-align:center;margin-top:20px;"><button onclick="window.print()" class="btn btn-primary">🖨️ พิมพ์</button></div></body></html>`);
+w.document.close();
+}
+
 function askDelete(id){document.getElementById('deleteDocId').value=id;document.getElementById('deleteCodeInput').value='';document.getElementById('codeError').style.display='none';document.getElementById('deleteOverlay').classList.add('show');}
 document.getElementById('confirmDeleteBtn').addEventListener('click',async()=>{const code=document.getElementById('deleteCodeInput').value.trim();if(code!==HR_CODE){document.getElementById('codeError').style.display='block';return;}const id=document.getElementById('deleteDocId').value;try{await db.collection(COLLECTION_NAME).doc(id).delete();document.getElementById('deleteOverlay').classList.remove('show');await loadData();}catch(e){alert(e.message);}});
 window.addEventListener('DOMContentLoaded',()=>{setLang(currentLang);loadData();});
