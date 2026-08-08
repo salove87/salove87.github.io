@@ -1409,11 +1409,28 @@ autofillNameFromEmpId(savedId);
           <div class="font-display text-xl mt-1" style="font-weight:600;color:var(--accent-deep);">${x[1]}</div>
         </div>`).join('');
 
+        // แสดงสรุปวันลา โดยลาพักร้อนจะแสดงสิทธิ์คงเหลือในวงเล็บ
+        // คำนวณจากสิทธิ์ MAX_VACATION_DAYS ของปีปัจจุบันแบบรายบุคคล
+        const currentYearForVacation = String(new Date().getFullYear());
+        const vacationUsedThisYear = rows.reduce((sum, r) => {
+          const type = normalizeHistoryLeaveType(r.leaveType);
+          const start = String(r.startDate || '');
+          if (type === 'ลาพักร้อน' && start.startsWith(currentYearForVacation)) {
+            return sum + numericDays(r.leaveDays);
+          }
+          return sum;
+        }, 0);
+        const vacationRemaining = Math.max(0, MAX_VACATION_DAYS - vacationUsedThisYear);
+        const vacationRemainColor = vacationRemaining <= 0 ? 'var(--danger)' : vacationRemaining <= 2 ? 'var(--warning)' : 'var(--success)';
+
         historySummary.innerHTML = leaveTypes.map(type=>{
           const d = totals[type] || 0;
+          const vacationExtra = type === 'ลาพักร้อน'
+            ? `<span style="color:${vacationRemainColor};font-weight:600;margin-left:4px;">(คงเหลือ ${vacationRemaining} วัน)</span>`
+            : '';
           return `<div class="card p-3" style="min-height:82px;border:1px solid var(--line);">
             <div class="text-xs" style="color:var(--ink-soft);line-height:1.45;">${type}</div>
-            <div class="font-display text-base mt-1" style="font-weight:600;color:var(--accent-deep);">${d} วัน</div>
+            <div class="font-display text-base mt-1" style="font-weight:600;color:var(--accent-deep);">${d} วัน ${vacationExtra}</div>
           </div>`;
         }).join('');
 
