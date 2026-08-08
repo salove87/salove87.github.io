@@ -383,7 +383,7 @@ readonly>
       <div class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
         <div class="relative">
           <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:1rem;opacity:.7;">🔎</span>
-          <input id="employeeHistorySearch" class="field-input" style="padding-left:42px;" placeholder="เช่น 10452 / อรสา / ระบบคุณภาพ" autocomplete="off">
+          <input id="employeeHistorySearch" class="field-input" style="padding-left:42px;" placeholder="ค้นหารหัสพนักงาน ชื่อ หรือแผนก" autocomplete="off">
         </div>
         <button id="clearEmployeeHistorySearch" class="px-5 py-2 rounded-lg text-sm font-semibold" style="background:#EEF1F5;color:var(--ink-soft);border:1px solid var(--line);">ล้างการค้นหา</button>
       </div>
@@ -1159,10 +1159,10 @@ autofillNameFromEmpId(savedId);
 
       employeeSearchResultCount.textContent = q
         ? `พบ ${filtered.length} พนักงาน${filtered.length > 0 ? ' — เลือกคนที่ต้องการดูประวัติ' : ''}`
-        : 'พิมพ์รหัส ชื่อ หรือแผนกเพื่อค้นหา';
+        : '';
 
       if(!q){
-        employeeSearchResults.innerHTML = '<div class="md:col-span-2 lg:col-span-3 p-4 rounded-xl" style="background:#FAFBFD;border:1px dashed var(--line);color:var(--ink-soft);">ตัวอย่าง: <b>10452</b> หรือ <b>อรสา</b> หรือ <b>ระบบคุณภาพ</b></div>';
+        employeeSearchResults.innerHTML = '';
         return;
       }
 
