@@ -184,7 +184,34 @@
   0%, 50%, 100% { opacity: 1; }
   25%, 75% { opacity: 0.45; }
 }
-  </style>
+  
+@media print {
+  @page { size: A4 portrait; margin: 12mm; }
+  html, body { background:#fff !important; width:100%; }
+  body > * { display:none !important; }
+  #employeeHistoryModal {
+    display:block !important; position:static !important; inset:auto !important;
+    width:100% !important; height:auto !important; min-height:0 !important;
+    background:#fff !important; overflow:visible !important; padding:0 !important;
+  }
+  #employeeHistoryModal .modal-content {
+    display:block !important; position:static !important;
+    width:100% !important; max-width:none !important;
+    max-height:none !important; overflow:visible !important;
+    box-shadow:none !important; border:0 !important; border-radius:0 !important;
+    padding:0 !important; margin:0 !important;
+  }
+  #employeeHistoryModal .no-print { display:none !important; }
+  #historyTableWrap { max-height:none !important; overflow:visible !important; border:1px solid #d9dee8 !important; }
+  #historyTable { width:100% !important; border-collapse:collapse !important; }
+  #historyTable thead { position:static !important; }
+  #historyTable th, #historyTable td { padding:7px 8px !important; font-size:11px !important; }
+  #historyTable tr { break-inside:avoid; page-break-inside:avoid; }
+  #historySummary { break-inside:avoid; page-break-inside:avoid; }
+  #historyTotals { break-inside:avoid; page-break-inside:avoid; }
+  #historyTitle { font-size:20px !important; }
+}
+</style>
 </head>
 <body class="min-h-screen flex flex-col items-center p-6">
   <div id="loginGate" style="
@@ -348,12 +375,56 @@ readonly>
     </form>
   </div>
 
+  <!-- DASHBOARD -->
+  <section id="dashboardSection" class="w-full max-w-6xl mb-6">
+    <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+      <div>
+        <h2 class="font-display text-xl" style="font-weight:600;color:var(--ink);">📊 Dashboard การลา</h2>
+        <p class="text-sm" style="color:var(--ink-soft);">สรุปภาพรวมการลาและดูประวัติรายบุคคล</p>
+      </div>
+      <button id="refreshDashboard" class="px-4 py-2 rounded-lg text-sm font-semibold" style="background:var(--accent-soft);color:var(--accent-deep);border:1px solid #C9D8FB;">↻ รีเฟรช</button>
+    </div>
+    <div id="dashboardCards" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"></div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="card p-5">
+        <div class="flex justify-between items-center mb-3"><h3 class="font-display font-semibold">🔴 วันนี้มีคนลา</h3><span id="todayLeaveCount" class="chip" style="background:var(--danger-soft);color:var(--danger);">0 คน</span></div>
+        <div id="todayLeaveList" class="space-y-2"></div>
+      </div>
+      <div class="card p-5">
+        <div class="flex justify-between items-center mb-3"><h3 class="font-display font-semibold">🟡 พรุ่งนี้มีคนลา</h3><span id="tomorrowLeaveCount" class="chip" style="background:var(--warning-soft);color:var(--warning);">0 คน</span></div>
+        <div id="tomorrowLeaveList" class="space-y-2"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EMPLOYEE HISTORY SEARCH -->
+  <section id="employeeSearchSection" class="w-full max-w-6xl mb-6">
+    <div class="card sheen p-5">
+      <div class="flex items-start justify-between gap-3 flex-wrap mb-4">
+        <div>
+          <h2 class="font-display text-xl" style="font-weight:600;color:var(--ink);">👥 ค้นหาประวัติการลาพนักงาน</h2>
+          <p class="text-sm" style="color:var(--ink-soft);">ค้นหาด้วยรหัสพนักงาน ชื่อ-นามสกุล หรือแผนก แล้วกดดูประวัติได้ทันที</p>
+        </div>
+        <span class="chip" style="background:var(--accent-soft);color:var(--accent-deep);">ค้นหาพนักงานทั้งหมด</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
+        <div class="relative">
+          <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:1rem;opacity:.7;">🔎</span>
+          <input id="employeeHistorySearch" class="field-input" style="padding-left:42px;" placeholder="ค้นหารหัสพนักงาน ชื่อ หรือแผนก" autocomplete="off">
+        </div>
+        <button id="clearEmployeeHistorySearch" class="px-5 py-2 rounded-lg text-sm font-semibold" style="background:#EEF1F5;color:var(--ink-soft);border:1px solid var(--line);">ล้างการค้นหา</button>
+      </div>
+      <div id="employeeSearchResultCount" class="text-xs mt-3" style="color:var(--ink-soft);"></div>
+      <div id="employeeSearchResults" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-3"></div>
+    </div>
+  </section>
+
   <!-- LIST + CSV -->
   <div class="card sheen w-full max-w-6xl p-6 mt-2">
     <div class="flex justify-between items-center mb-5 flex-wrap gap-3 pt-1">
       <h2 class="font-display text-lg flex items-center gap-2" style="color:var(--ink);font-weight:600;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="color:var(--accent);"><rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M7 9h10M7 13h10M7 17h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        รายการล่าสุด <span class="mono text-sm" style="color:var(--ink-soft);font-weight:500;">(50 รายการ)</span>
+        รายการทั้งหมด <span class="mono text-sm" style="color:var(--ink-soft);font-weight:500;">(ข้อมูลทั้งหมด)</span>
       </h2>
       <div class="flex items-center gap-2">
            <button id="downloadCSV" class="btn text-white px-4 py-2 rounded-lg text-sm border-0 cursor-pointer" style="background:var(--success);font-weight:600;">
@@ -408,6 +479,35 @@ readonly>
         </thead>
         <tbody id="leaveTable" class="divide-y" style="border-color:var(--line);"></tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- EMPLOYEE HISTORY MODAL -->
+  <div id="employeeHistoryModal" class="modal">
+    <div class="modal-content sheen" style="max-width:900px;">
+      <div class="flex justify-between items-start gap-3 mb-4">
+        <div>
+          <h3 id="historyTitle" class="font-display text-xl" style="font-weight:600;color:var(--ink);">ประวัติการลาของพนักงาน</h3>
+          <p id="historySubtitle" class="text-sm" style="color:var(--ink-soft);"></p>
+      <div id="historyTenureInfo" class="mt-2 text-sm" style="color:var(--ink-soft);"></div>
+        </div>
+        <div class="flex items-center gap-2 no-print">
+          <button id="printHistoryBtn" class="px-3 py-2 rounded-lg cursor-pointer" style="background:#EAF0FF;color:var(--accent-deep);font-weight:600;" title="พิมพ์ประวัติการลาเป็น A4">🖨️ พิมพ์ A4</button>
+          <button id="closeHistoryModal" class="icon-btn" style="background:#EEF1F5;color:var(--ink-soft);">✕</button>
+        </div>
+      </div>
+      <div id="historyTotals" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"></div>
+      <div class="mb-2" style="font-weight:600;color:var(--ink);">สรุปแยกตามประเภทการลา</div>
+      <div id="historySummary" class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5"></div>
+      <div id="historyTableWrap" class="overflow-x-auto rounded-xl border" style="border-color:var(--line);max-height:430px;">
+        <table id="historyTable" class="w-full text-sm text-left">
+          <thead style="background:var(--accent-deep);color:#fff;position:sticky;top:0;">
+            <tr><th class="p-3">วันที่</th><th class="p-3">ประเภท</th><th class="p-3 text-center">จำนวน</th><th class="p-3">เหตุผล</th><th class="p-3">ผู้อนุมัติ</th></tr>
+          </thead>
+          <tbody id="historyTableBody"></tbody>
+        </table>
+      </div>
+      <div class="flex justify-end mt-4 no-print"><button id="closeHistoryModal2" class="px-5 py-2 rounded-lg" style="background:#EEF1F5;color:var(--ink-soft);font-weight:600;">ปิด</button></div>
     </div>
   </div>
 
@@ -475,7 +575,8 @@ readonly>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-functions.js";
     // Added 'where' to Firestore imports for filtering
     import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, getDocs, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 
@@ -501,6 +602,8 @@ readonly>
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
+    const functions = getFunctions(app, 'asia-southeast1');
+    const verifyHrAccessFn = httpsCallable(functions, 'verifyHrAccess');
 
     const systemTimeEl = document.getElementById('systemTime');
     function updateSystemTime(){
@@ -550,7 +653,8 @@ readonly>
     submitDate.value = todayISO();
     submitDate.setAttribute('readonly','readonly');
 
-    const HR_PASSWORD = '303647';
+    // HR password is NOT stored in this page. Verification is performed by Firebase Cloud Functions.
+    let hrAccessTokenReady = false;
     const MAX_VACATION_DAYS = 6; // Limit for Vacation Leave
     
     const imageModal = document.getElementById('imageModal');
@@ -626,100 +730,149 @@ readonly>
     }
 
     const EMP_MAP = {
-      "10010": { name: "จินดาวัลย์ มีกุล", dept: "บัญชี" },
-      "10139": { name: "ขวัญใจ บุญเฟื่อง", dept: "สโตร์วัตถุดิบ" },
-      "10141": { name: "เกษร กองวงค์", dept: "วางแผนการผลิต" },
-      "10180": { name: "รุ่งระวี โสมูล", dept: "ประกันคุณภาพ" },
-      "10349": { name: "เกษมสุข เชิดชู", dept: "ผลิต1" },
-      "10350": { name: "รัชนี ตรวจสมบัติ", dept: "ผลิต2" },
-      "10353": { name: "ขวัญเรือน แสนภูมิ", dept: "ประกันคุณภาพ" },
-      "10365": { name: "สุพัตรา วิเชียรชาติ", dept: "การตลาด" },
-      "10385": { name: "พงศ์พันธ์ เกิดทองดี", dept: "ผลิต1" },
-      "10440": { name: "นิภาพร ปิยาโยค", dept: "จัดซื้อ" },
-      "10442": { name: "ดาวเรือง วิระศรี", dept: "ผลิต2" },
-      "10452": { name: "อรสา บุญพิมพ์", dept: "ระบบคุณภาพ" },
-      "10461": { name: "ขจร พิมพ์แมน", dept: "จัดส่ง" },
-      "10470": { name: "มงคล องอาจ", dept: "ซ่อมบำรุง" },
-      "10499": { name: "สมบูรณ์ บัวเข็ม", dept: "จัดส่ง" },
-      "10506": { name: "อรุณี สอนวงษ์", dept: "ผลิต3" },
-      "10516": { name: "สานนท์ เดชโปรด", dept: "ประกันคุณภาพ" },
-      "10518": { name: "ธวัช ทันใจ", dept: "ซ่อมบำรุง" },
-      "10520": { name: "รัตติกรณ์ เครือจันทร์", dept: "ประกันคุณภาพ" },
-      "10525": { name: "ธิญาดา ชาลีวัน", dept: "ประกันคุณภาพ" },
-      "10526": { name: "ประเสริฐ แสงทอง", dept: "ซ่อมบำรุง" },
-      "10527": { name: "ชูพงศ์ ทำดี", dept: "นิวโมเดล" },
-      "10553": { name: "วิทยา ยอดปา", dept: "ผลิต1" },
-      "10556": { name: "สกุณา กรรณิกา", dept: "บัญชี" },
-      "10564": { name: "วัชราฤทธิ์ ยอดปา", dept: "ผลิต1" },
-      "10565": { name: "ลัดดาวัลย์ ทารินทร์", dept: "ผลิต1" },
-      "10583": { name: "อินทุอร สอนจันทร์", dept: "ประกันคุณภาพ" },
-      "10606": { name: "สุริยา ดำดี", dept: "ซ่อมบำรุง" },
-      "10620": { name: "จันทร์สุดา บุญยอ", dept: "ผลิต1" },
-      "10627": { name: "นพดล ตี๊บบุญศรี", dept: "ผลิต3" },
-      "10630": { name: "อังคาร แสนทะวงค์", dept: "นิวโมเดล" },
-      "10635": { name: "รสรินทร์ ชำนาญพงศ์", dept: "ผลิต2" },
-      "10642": { name: "วิสุดา พิไชยรัตนจินดา", dept: "จัดซื้อ" },
-      "10648": { name: "อัจฉริยา จันทร์เยี่ยม", dept: "ประกันคุณภาพ" },
-      "10660": { name: "จิรภิญญา กาศเมฆ", dept: "ประกันคุณภาพ" },
-      "10661": { name: "นภาพรรณ สนใจ", dept: "วางแผนการผลิต" },
-      "10669": { name: "โกวิท รวมคำภา", dept: "ซ่อมบำรุง" },
-      "10670": { name: "อัครพัชร์ กรงเต้น", dept: "มิลิเนีย" },
-      "10675": { name: "ไชยา เรืองฤทธิ์", dept: "ซ่อมบำรุง" },
-      "12453": { name: "จารุณี คุณาคม", dept: "จัดส่ง" },
-      "30070": { name: "NAW TIN TIN HTWE TIN HTWE @ THUY", dept: "ผลิต3" },
-      "30072": { name: "MYOLATT", dept: "ผลิต2" },
-      "30078": { name: "NGWE HTIKE", dept: "ผลิต2" },
-      "30079": { name: "EI EI THET", dept: "ผลิต2" },
-      "30087": { name: "MYO THET", dept: "ผลิต2" },
-      "30113": { name: "THIN THIN AUNG", dept: "ผลิต1" },
-      "30115": { name: "AUNG TIN MYINT", dept: "ผลิต1" },
-      "30117": { name: "KHIN CHO OO", dept: "ผลิต1" },
-      "30149": { name: "ZAW ZAW AUNG", dept: "ผลิต1" },
-      "30171": { name: "MIN ZAW MIN", dept: "ผลิต1" },
-      "30221": { name: "TUN AUNG SHEIN", dept: "ผลิต1" },
-      "30249": { name: "KHAING THA ZIN PHYO", dept: "ผลิต1" },
-      "30251": { name: "KO KO KU KU", dept: "ผลิต2" },
-      "30257": { name: "TOE NAING", dept: "ผลิต1" },
-      "30265": { name: "HNIN THET", dept: "ผลิต2" },
-      "30268": { name: "KYAT PHA", dept: "ผลิต1" },
-      "30269": { name: "NINE NINE @ HNIN HNIN", dept: "ผลิต2" },
-      "30270": { name: "KHON THEIN SAUNG", dept: "ผลิต2" },
+      "10010": { name: "จินดาวัลย์ มีกุล", dept: "บัญชี", hireDate: "2010-01-23" },
+      "10139": { name: "ขวัญใจ บุญเฟื่อง", dept: "สโตร์วัตถุดิบ", hireDate: "2012-08-19" },
+      "10141": { name: "เกษร กองวงค์", dept: "วางแผนการผลิต", hireDate: "2010-06-03" },
+      "10180": { name: "รุ่งระวี โสมูล", dept: "ประกันคุณภาพ", hireDate: "2013-01-09" },
+      "10349": { name: "เกษมสุข เชิดชู", dept: "ผลิต1", hireDate: "2011-01-20" },
+      "10350": { name: "รัชนี ตรวจสมบัติ", dept: "ผลิต2", hireDate: "2022-07-27" },
+      "10353": { name: "ขวัญเรือน แสนภูมิ", dept: "ประกันคุณภาพ", hireDate: "2011-03-09" },
+      "10365": { name: "สุพัตรา วิเชียรชาติ", dept: "การตลาด", hireDate: "2011-03-03" },
+      "10385": { name: "พงศ์พันธ์ เกิดทองดี", dept: "ผลิต1", hireDate: "2012-01-19" },
+      "10440": { name: "นิภาพร ปิยาโยค", dept: "จัดซื้อ", hireDate: "2013-01-23" },
+      "10442": { name: "ดาวเรือง วิระศรี", dept: "ผลิต2", hireDate: "2013-02-10" },
+      "10452": { name: "อรสา บุญพิมพ์", dept: "ระบบคุณภาพ", hireDate: "2013-09-17" },
+      "10461": { name: "ขจร พิมพ์แมน", dept: "จัดส่ง", hireDate: "2014-01-09" },
+      "10470": { name: "มงคล องอาจ", dept: "ซ่อมบำรุง", hireDate: "2014-01-23" },
+      "10499": { name: "สมบูรณ์ บัวเข็ม", dept: "จัดส่ง", hireDate: "2014-07-23" },
+      "10506": { name: "อรุณี สอนวงษ์", dept: "ผลิต3", hireDate: "2015-01-09" },
+      "10516": { name: "สานนท์ เดชโปรด", dept: "ประกันคุณภาพ", hireDate: "2021-12-08" },
+      "10518": { name: "ธวัช ทันใจ", dept: "ซ่อมบำรุง", hireDate: "2023-09-27" },
+      "10520": { name: "รัตติกรณ์ เครือจันทร์", dept: "ประกันคุณภาพ", hireDate: "2015-10-25" },
+      "10525": { name: "ธิญาดา ชาลีวัน", dept: "ประกันคุณภาพ", hireDate: "2016-03-03" },
+      "10526": { name: "ประเสริฐ แสงทอง", dept: "ซ่อมบำรุง", hireDate: "2016-03-10" },
+      "10527": { name: "ชูพงศ์ ทำดี", dept: "นิวโมเดล", hireDate: "2016-03-23" },
+      "10553": { name: "วิทยา ยอดปา", dept: "ผลิต1", hireDate: "2016-09-03" },
+      "10556": { name: "สกุณา กรรณิกา", dept: "บัญชี", hireDate: "2016-10-05" },
+      "10564": { name: "วัชราฤทธิ์ ยอดปา", dept: "ผลิต1", hireDate: "2023-09-27" },
+      "10565": { name: "ลัดดาวัลย์ ทารินทร์", dept: "ผลิต1", hireDate: "2023-09-27" },
+      "10583": { name: "อินทุอร สอนจันทร์", dept: "ประกันคุณภาพ", hireDate: "2018-05-30" },
+      "10606": { name: "สุริยา ดำดี", dept: "ซ่อมบำรุง", hireDate: "2019-02-25" },
+      "10620": { name: "จันทร์สุดา บุญยอ", dept: "ผลิต1", hireDate: "2019-09-18" },
+      "10627": { name: "นพดล ตี๊บบุญศรี", dept: "ผลิต3", hireDate: "2020-08-27" },
+      "10630": { name: "อังคาร แสนทะวงค์", dept: "นิวโมเดล", hireDate: "2021-02-03" },
+      "10635": { name: "รสรินทร์ ชำนาญพงศ์", dept: "ผลิต2", hireDate: "2021-04-26" },
+      "10636": { name: "ปาริชาต ผิวคล้ำ", dept: "ประกันคุณภาพ" },
+      "10637": { name: "ต้นตระกาล มุงคุลคำซาว", dept: "ผลิต1" },
+      "10640": { name: "ศุภกร แรงใหม่", dept: "ซ่อมบำรุง" },
+      "10641": { name: "สุทธิดา ทระเทพ", dept: "วางแผนการผลิต", hireDate: "2021-06-26" },
+      "10642": { name: "วิสุดา พิไชยรัตนจินดา", dept: "จัดซื้อ", hireDate: "2021-06-26" },
+      "10648": { name: "อัจฉริยา จันทร์เยี่ยม", dept: "ประกันคุณภาพ", hireDate: "2022-02-06" },
+      "10660": { name: "จิรภิญญา กาศเมฆ", dept: "ประกันคุณภาพ", hireDate: "2023-07-13" },
+      "10661": { name: "นภาพรรณ สนใจ", dept: "วางแผนการผลิต", hireDate: "2023-10-28" },
+      "10669": { name: "โกวิท รวมคำภา", dept: "ซ่อมบำรุง", hireDate: "2025-05-07" },
+      "10670": { name: "อัครพัชร์ กรงเต้น", dept: "มิลิเนีย", hireDate: "2025-05-07" },
+      "10675": { name: "ไชยา เรืองฤทธิ์", dept: "ซ่อมบำรุง", hireDate: "2026-04-27" },
+      "12453": { name: "จารุณี คุณาคม", dept: "จัดส่ง", hireDate: "2011-05-25" },
+      "30070": { name: "NAW TIN TIN HTWE TIN HTWE @ THUY", dept: "ผลิต3", hireDate: "2012-10-18" },
+      "30072": { name: "MYOLATT", dept: "ผลิต2", hireDate: "2013-03-13" },
+      "30078": { name: "NGWE HTIKE", dept: "ผลิต2", hireDate: "2013-05-10" },
+      "30079": { name: "EI EI THET", dept: "ผลิต2", hireDate: "2013-05-10" },
+      "30087": { name: "MYO THET", dept: "ผลิต2", hireDate: "2013-10-01" },
+      "30113": { name: "THIN THIN AUNG", dept: "ผลิต1", hireDate: "2014-01-09" },
+      "30115": { name: "AUNG TIN MYINT", dept: "ผลิต1", hireDate: "2014-01-09" },
+      "30117": { name: "KHIN CHO OO", dept: "ผลิต1", hireDate: "2014-01-09" },
+      "30149": { name: "ZAW ZAW AUNG", dept: "ผลิต1", hireDate: "2014-12-14" },
+      "30171": { name: "MIN ZAW MIN", dept: "ผลิต1", hireDate: "2015-02-19" },
+      "30221": { name: "TUN AUNG SHEIN", dept: "ผลิต1", hireDate: "2018-02-02" },
+      "30249": { name: "KHAING THA ZIN PHYO", dept: "ผลิต1", hireDate: "2018-09-22" },
+      "30251": { name: "KO KO KU KU", dept: "ผลิต2", hireDate: "2018-10-04" },
+      "30257": { name: "TOE NAING", dept: "ผลิต1", hireDate: "2021-09-27" },
+      "30265": { name: "HNIN THET", dept: "ผลิต2", hireDate: "2019-01-30" },
+      "30268": { name: "KYAT PHA", dept: "ผลิต1", hireDate: "2019-02-06" },
+      "30269": { name: "NINE NINE @ HNIN HNIN", dept: "ผลิต2", hireDate: "2019-02-20" },
+      "30270": { name: "KHON THEIN SAUNG", dept: "ผลิต2", hireDate: "2019-03-06" },
       "30292": { name: "SAI MAUNG MAUNG", dept: "ผลิต2" },
-      "30294": { name: "THUZAR", dept: "ผลิต1" },
-      "30313": { name: "AUNG TUN OO", dept: "ผลิต2" },
-      "30315": { name: "KYAW LIN", dept: "ผลิต3" },
-      "30318": { name: "SAW AHL HTO", dept: "ผลิต1" },
-      "30328": { name: "THEINGI WIN", dept: "ผลิต1" },
-      "30329": { name: "THI THI KHINE", dept: "ผลิต1" },
-      "30333": { name: "YE LIN TUN", dept: "ผลิต1" },
-      "30334": { name: "PHYU PHYU THEIN", dept: "ผลิต1" },
-      "30335": { name: "YE LIN HTIKE", dept: "ผลิต2" },
-      "30336": { name: "AYE PWINT PHYU", dept: "ผลิต1" },
-      "30337": { name: "AYE THANDAR ZAW", dept: "ผลิต1" },
-      "30338": { name: "CHIT HTWE", dept: "ผลิต2" },
-      "30340": { name: "SHAN MA LAY", dept: "ผลิต1" },
-      "30341": { name: "NAING PHYO KYAW", dept: "ผลิต2" },
-      "30342": { name: "NAW SAN THIDA NYEIN", dept: "ผลิต2" },
-      "30348": { name: "PHYO MIN WAI", dept: "ผลิต2" },
-      "30349": { name: "SOE MOE KYAW", dept: "ผลิต2" },
-      "30350": { name: "YE ZAW", dept: "ผลิต1" },
-      "30351": { name: "TIN MYO KO", dept: "สโตร์วัตถุดิบ" },
-      "30352": { name: "NWAY JUNG ZIN LATT", dept: "ผลิต1" },
-      "30353": { name: "SAI KYAW KYAW", dept: "ผลิต1" },
-      "30354": { name: "KYAW THURA SOE", dept: "ผลิต2" },
-      "30362": { name: "EA LA SOE", dept: "ผลิต1" },
-      "30366": { name: "นิ ชาย", dept: "สโตร์สำเร็จรูป" },
-      "30367": { name: "คินวิน", dept: "ผลิต2" },
-      "30368": { name: "กองปีเพียว", dept: "ผลิต1" },
-      "30369": { name: "มิน คานต์ ซอ", dept: "ผลิต1" },
-      "30371": { name: "งี้ งี้", dept: "ผลิต1" },
-      "30372": { name: "ไซตูซาน", dept: "ผลิต1" },
-      "30373": { name: "โซโซอ่อง", dept: "ผลิต1" },
-      "30374": { name: "พินยาดานา", dept: "ผลิต1" },
-      "30375": { name: "พิว โก ซิน", dept: "ผลิต1" },
-      "30376": { name: "ยามินซูอ่าว", dept: "ผลิต1" },
-      "30370": { name: "ชิด มิน นาย", dept: "ผลิต2" }
+      "30294": { name: "THUZAR", dept: "ผลิต1", hireDate: "2019-05-24" },
+      "30313": { name: "AUNG TUN OO", dept: "ผลิต2", hireDate: "2020-12-05" },
+      "30315": { name: "KYAW LIN", dept: "ผลิต3", hireDate: "2021-02-06" },
+      "30318": { name: "SAW AHL HTO", dept: "ผลิต1", hireDate: "2023-10-11" },
+      "30328": { name: "THEINGI WIN", dept: "ผลิต1", hireDate: "2021-09-27" },
+      "30329": { name: "THI THI KHINE", dept: "ผลิต1", hireDate: "2021-09-27" },
+      "30333": { name: "YE LIN TUN", dept: "ผลิต1", hireDate: "2021-10-27" },
+      "30334": { name: "PHYU PHYU THEIN", dept: "ผลิต1", hireDate: "2021-10-27" },
+      "30335": { name: "YE LIN HTIKE", dept: "ผลิต2", hireDate: "2021-11-27" },
+      "30336": { name: "AYE PWINT PHYU", dept: "ผลิต1", hireDate: "2021-11-27" },
+      "30337": { name: "AYE THANDAR ZAW", dept: "ผลิต1", hireDate: "2021-11-27" },
+      "30338": { name: "CHIT HTWE", dept: "ผลิต2", hireDate: "2022-01-21" },
+      "30340": { name: "SHAN MA LAY", dept: "ผลิต1", hireDate: "2022-02-27" },
+      "30341": { name: "NAING PHYO KYAW", dept: "ผลิต2", hireDate: "2022-02-27" },
+      "30342": { name: "NAW SAN THIDA NYEIN", dept: "ผลิต2", hireDate: "2022-02-27" },
+      "30348": { name: "PHYO MIN WAI", dept: "ผลิต2", hireDate: "2022-06-28" },
+      "30349": { name: "SOE MOE KYAW", dept: "ผลิต2", hireDate: "2022-07-28" },
+      "30350": { name: "YE ZAW", dept: "ผลิต1", hireDate: "2022-10-28" },
+      "30351": { name: "TIN MYO KO", dept: "สโตร์วัตถุดิบ", hireDate: "2022-10-28" },
+      "30352": { name: "NWAY JUNG ZIN LATT", dept: "ผลิต1", hireDate: "2022-11-08" },
+      "30353": { name: "SAI KYAW KYAW", dept: "ผลิต1", hireDate: "2022-11-08" },
+      "30354": { name: "KYAW THURA SOE", dept: "ผลิต2", hireDate: "2022-11-23" },
+      "30362": { name: "EA LA SOE", dept: "ผลิต1", hireDate: "2023-10-11" },
+      "30366": { name: "นิ ชาย", dept: "สโตร์สำเร็จรูป", hireDate: "2025-09-27" },
+      "30367": { name: "คินวิน", dept: "ผลิต2", hireDate: "2025-09-30" },
+      "30368": { name: "กองปีเพียว", dept: "ผลิต1", hireDate: "2025-10-17" },
+      "30369": { name: "มิน คานต์ ซอ", dept: "ผลิต1", hireDate: "2025-11-18" },
+      "30371": { name: "งี้ งี้", dept: "ผลิต1", hireDate: "2026-01-28" },
+      "30372": { name: "ไซตูซาน", dept: "ผลิต1", hireDate: "2026-02-25" },
+      "30373": { name: "โซโซอ่อง", dept: "ผลิต1", hireDate: "2026-02-25" },
+      "30374": { name: "พินยาดานา", dept: "ผลิต1", hireDate: "2026-02-25" },
+      "30375": { name: "พิว โก ซิน", dept: "ผลิต1", hireDate: "2026-03-11" },
+      "30376": { name: "ยามินซูอ่าว", dept: "ผลิต1", hireDate: "2026-03-11" },
+      "30370": { name: "ชิด มิน นาย", dept: "ผลิต2", hireDate: "2026-01-08" },
+      "10593": { name: "วีรชาติ แซ่เต๋ง", dept: "", hireDate: "2018-04-27" },
+      "10608": { name: "จักรพงษ์ หิรัญชัยศิลป์", dept: "", hireDate: "2019-02-25" },
+      "10543": { name: "ภูมิสิทธิ์ วัฒนะบวรพัฒน์", dept: "", hireDate: "2016-06-22" },
+      "10558": { name: "ปวีณา โมรา", dept: "", hireDate: "2017-01-28" },
+      "10647": { name: "พิชญ์สินี ไพศาลกูล", dept: "", hireDate: "2022-01-28" },
+      "10656": { name: "บุศรินทร์ นาคประสาน", dept: "", hireDate: "2023-01-28" },
+      "10665": { name: "อภิญญา พงค์ปวน", dept: "", hireDate: "2024-04-27" },
+      "10667": { name: "บังอร วณิชย์สุวรรณ์", dept: "", hireDate: "2024-07-28" },
+      "10671": { name: "ทัศนะชัย อุนทุโร", dept: "", hireDate: "2025-04-27" },
+      "10672": { name: "ภาณุภัค ศรีศิวาพรเจริญ", dept: "", hireDate: "2025-09-27" },
     };
+    // ===== อายุงานพนักงาน =====
+    // hireDate ถูกคำนวณจากอายุงานที่ HR ให้มา ณ วันที่ 08/08/2026
+    // จากนั้นระบบจะคำนวณใหม่จากวันปัจจุบันทุกครั้งที่เปิดหน้าเว็บ จึงอัปเดตอัตโนมัติทุกวัน
+    function calculateTenure(hireDate, asOfDate = new Date()) {
+      if (!hireDate) return null;
+      const start = new Date(hireDate + 'T00:00:00');
+      const end = new Date(asOfDate);
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) return null;
+
+      let years = end.getFullYear() - start.getFullYear();
+      let months = end.getMonth() - start.getMonth();
+      let days = end.getDate() - start.getDate();
+      if (days < 0) {
+        months--;
+        const daysInPrevMonth = new Date(end.getFullYear(), end.getMonth(), 0).getDate();
+        days += daysInPrevMonth;
+      }
+      if (months < 0) {
+        years--;
+        months += 12;
+      }
+      return { years, months, days };
+    }
+
+    function formatTenure(hireDate, asOfDate = new Date()) {
+      const t = calculateTenure(hireDate, asOfDate);
+      if (!t) return '-';
+      return `${t.years} ปี ${t.months} เดือน ${t.days} วัน`;
+    }
+
+    function formatHireDate(hireDate) {
+      if (!hireDate) return '-';
+      return fmtDateDMY(hireDate) || hireDate;
+    }
+
 window.checkLogin = function(){
 
 const id = document.getElementById("loginEmpId").value.trim();
@@ -903,6 +1056,20 @@ autofillNameFromEmpId(savedId);
     function lsLoad(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||'[]'); }catch{ return []; } }
     function lsSave(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
     
+    // รวมรหัสพนักงานเก่าที่พิมพ์ผิดเข้ากับรหัสหลัก
+    // 103493 เป็นข้อมูลเดิมของพนักงานรหัส 10349
+    const EMP_ID_ALIASES = {
+      '103493': '10349'
+    };
+    function normalizeEmployeeId(id){
+      const value = String(id ?? '').trim();
+      return EMP_ID_ALIASES[value] || value;
+    }
+    function normalizeEmployeeRow(row){
+      if(!row) return row;
+      return { ...row, empId: normalizeEmployeeId(row.empId) };
+    }
+
     function makeLocalDriver(){
       let listeners = [];
       function notify(){ listeners.forEach(fn => fn(lsLoad())); }
@@ -916,8 +1083,9 @@ autofillNameFromEmpId(savedId);
         async getAll(){ return lsLoad(); },
         // Add getEmployeeHistory for local storage
         async getEmployeeHistory(id){ 
+             const canonicalId = normalizeEmployeeId(id);
              const all = lsLoad(); 
-             return all.filter(x => x.empId === id);
+             return all.filter(x => normalizeEmployeeId(x.empId) === canonicalId).map(normalizeEmployeeRow);
         }
       };
     }
@@ -927,7 +1095,7 @@ autofillNameFromEmpId(savedId);
       return {
         kind: 'firestore',
         subscribe(onData, onError){ 
-            const q = query(colRef, orderBy('createdAt','desc'), limit(50)); 
+            const q = query(colRef, orderBy('createdAt','desc')); 
             return onSnapshot(q, snap => { onData(snap.docs.map(d => ({ id: d.id, ...d.data() }))); }, err => onError?.(err)); 
         },
         async create(payload){ return addDoc(colRef, { ...payload, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }); },
@@ -940,10 +1108,19 @@ autofillNameFromEmpId(savedId);
         },
         // ADDED: Fetch specific employee history
         async getEmployeeHistory(id){
-             // Query by empId to get history
-             const q = query(colRef, where('empId', '==', id));
-             const snap = await getDocs(q);
-             return snap.docs.map(d => d.data());
+             // รวมประวัติทั้งรหัสหลักและรหัสเก่าที่เป็น alias
+             const canonicalId = normalizeEmployeeId(id);
+             const ids = [canonicalId, ...Object.keys(EMP_ID_ALIASES).filter(k => EMP_ID_ALIASES[k] === canonicalId)];
+             const uniqueIds = [...new Set(ids)];
+             const snaps = await Promise.all(uniqueIds.map(emp => getDocs(query(colRef, where('empId', '==', emp)))));
+             const seen = new Set();
+             const rows = [];
+             snaps.forEach(snap => snap.docs.forEach(d => {
+               if(seen.has(d.id)) return;
+               seen.add(d.id);
+               rows.push({ id: d.id, ...d.data() });
+             }));
+             return rows.map(normalizeEmployeeRow);
         }
       };
     }
@@ -953,7 +1130,7 @@ autofillNameFromEmpId(savedId);
 
     function attachSubscription(){
       if(unsubscribe) try{ unsubscribe(); }catch{}
-      unsubscribe = driver.subscribe(rows => { cache = rows; renderTable(); }, (err)=>{
+      unsubscribe = driver.subscribe(rows => { cache = (Array.isArray(rows) ? rows : []).map(normalizeEmployeeRow); renderTable(); renderDashboard(); }, (err)=>{
         console.error('Firestore Error', err);
         showToast('Firestore อ่านข้อมูลล้มเหลว ใช้โหมด Local แทน', 'error');
         driver = makeLocalDriver(); attachSubscription();
@@ -975,6 +1152,8 @@ autofillNameFromEmpId(savedId);
         'ขาดงาน': 'background:var(--danger-soft);color:var(--danger);',
         'ลาคลอด': 'background:#FBE7F3;color:#A21C6B;',
         'ฌาปณกิจ': 'background:#EEF0F3;color:#3B4250;',
+        'ลาอื่นๆ': 'background:#F3E8FF;color:#7E22CE;',
+        'ชอเชย/สลับวันหยุด': 'background:#E0F2FE;color:#0369A1;',
       };
       return map[type] || 'background:#EEF0F3;color:#3B4250;';
     }
@@ -1046,6 +1225,9 @@ autofillNameFromEmpId(savedId);
         ];
 
         const tdActions = document.createElement('td'); tdActions.className='p-3 text-center';
+        const btnHistory = document.createElement('button'); btnHistory.className='icon-btn cursor-pointer'; btnHistory.style.cssText='background:#EAF7EF;color:#166534;margin-right:6px;'; btnHistory.textContent='👤'; btnHistory.title='ดูประวัติการลา'; btnHistory.dataset.action='history'; btnHistory.dataset.id=row.id;
+        tdActions.appendChild(btnHistory);
+
         const btnEdit = document.createElement('button'); btnEdit.className='icon-btn cursor-pointer'; btnEdit.style.cssText='background:var(--accent-soft);color:var(--accent-deep);margin-right:6px;'; btnEdit.textContent='✏️'; btnEdit.title='แก้ไข'; btnEdit.dataset.action='edit'; btnEdit.dataset.id=row.id;
         const btnDel = document.createElement('button'); btnDel.className='icon-btn cursor-pointer'; btnDel.style.cssText='background:var(--danger-soft);color:var(--danger);'; btnDel.textContent='🗑️'; btnDel.title='ลบ'; btnDel.dataset.action='delete'; btnDel.dataset.id=row.id;
         tdActions.appendChild(btnEdit); tdActions.appendChild(btnDel);
@@ -1058,11 +1240,208 @@ autofillNameFromEmpId(savedId);
       });
     }
 
+    const employeeHistoryModal = document.getElementById('employeeHistoryModal');
+    const closeHistoryModal = document.getElementById('closeHistoryModal');
+    const closeHistoryModal2 = document.getElementById('closeHistoryModal2');
+    const historyTitle = document.getElementById('historyTitle');
+    const historySubtitle = document.getElementById('historySubtitle');
+    const historyTotals = document.getElementById('historyTotals');
+    const historySummary = document.getElementById('historySummary');
+    const historyTableBody = document.getElementById('historyTableBody');
+    const employeeHistorySearch = document.getElementById('employeeHistorySearch');
+    const printHistoryBtn = document.getElementById('printHistoryBtn');
+    const clearEmployeeHistorySearch = document.getElementById('clearEmployeeHistorySearch');
+    const employeeSearchResults = document.getElementById('employeeSearchResults');
+    const employeeSearchResultCount = document.getElementById('employeeSearchResultCount');
+
+    function renderEmployeeSearchResults(keyword = ''){
+      const q = String(keyword || '').trim().toLowerCase();
+      const entries = Object.entries(EMP_MAP).map(([id, info]) => ({ id, ...info }));
+      const filtered = q ? entries.filter(x =>
+        x.id.toLowerCase().includes(q) ||
+        String(x.name || '').toLowerCase().includes(q) ||
+        String(x.dept || '').toLowerCase().includes(q)
+      ) : [];
+
+      employeeSearchResultCount.textContent = q
+        ? `พบ ${filtered.length} พนักงาน${filtered.length > 0 ? ' — เลือกคนที่ต้องการดูประวัติ' : ''}`
+        : '';
+
+      if(!q){
+        employeeSearchResults.innerHTML = '';
+        return;
+      }
+
+      if(!filtered.length){
+        employeeSearchResults.innerHTML = '<div class="md:col-span-2 lg:col-span-3 p-4 rounded-xl" style="background:var(--danger-soft);color:var(--danger);">ไม่พบพนักงานที่ตรงกับคำค้นหา</div>';
+        return;
+      }
+
+      employeeSearchResults.innerHTML = filtered.slice(0,30).map(x => `
+        <button type="button" class="text-left p-4 rounded-xl transition" style="background:#FAFBFD;border:1px solid var(--line);" data-search-emp="${String(x.id).replace(/"/g,'&quot;')}">
+          <div class="flex items-center gap-3">
+            <div style="width:42px;height:42px;border-radius:12px;background:var(--accent-soft);color:var(--accent-deep);display:flex;align-items:center;justify-content:center;font-size:1.1rem;">👤</div>
+            <div class="min-w-0">
+              <div class="font-semibold truncate">${escapeHtml(x.name || '-')}</div>
+              <div class="text-xs mono mt-0.5" style="color:var(--ink-soft);">${escapeHtml(x.id)}</div>
+              <div class="text-xs mt-0.5" style="color:var(--ink-soft);">${escapeHtml(x.dept || '-')}</div><div class="text-xs mt-0.5" style="color:var(--accent-deep);">อายุงาน: ${escapeHtml(formatTenure(x.hireDate))}</div>
+            </div>
+          </div>
+          <div class="mt-3 text-xs font-semibold" style="color:var(--accent);">ดูประวัติการลา →</div>
+        </button>`).join('');
+
+      employeeSearchResults.querySelectorAll('[data-search-emp]').forEach(btn => {
+        btn.addEventListener('click', () => openEmployeeHistory(btn.dataset.searchEmp));
+      });
+    }
+
+    function escapeHtml(value){
+      return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+    }
+
+    employeeHistorySearch.addEventListener('input', e => renderEmployeeSearchResults(e.target.value));
+    clearEmployeeHistorySearch.addEventListener('click', () => {
+      employeeHistorySearch.value = '';
+      renderEmployeeSearchResults('');
+      employeeHistorySearch.focus();
+    });
+    renderEmployeeSearchResults('');
+
+    function numericDays(v){ return parseFloat(String(v ?? '').replace(' วัน','')) || 0; }
+    function rowCoversDate(row, iso){ return row.startDate && row.endDate && row.startDate <= iso && row.endDate >= iso; }
+    function uniqueEmployeeRows(rows){
+      const m = new Map();
+      rows.forEach(r => { if(r.empId) m.set(r.empId, r); });
+      return Array.from(m.values());
+    }
+    function renderDashboard(){
+      const all = Array.isArray(cache) ? cache : [];
+      // Dashboard ใช้ข้อมูลใบลาของปีปัจจุบันทั้งหมด ไม่จำกัด 50 รายการ
+      const currentYear = String(new Date().getFullYear());
+      const yearRows = all.filter(r => {
+        const start = String(r.startDate || '');
+        const end = String(r.endDate || '');
+        return (start.startsWith(currentYear) || end.startsWith(currentYear));
+      });
+      const today = todayISO();
+      const tomorrowD = new Date(today + 'T00:00:00'); tomorrowD.setDate(tomorrowD.getDate()+1);
+      const tomorrow = `${tomorrowD.getFullYear()}-${String(tomorrowD.getMonth()+1).padStart(2,'0')}-${String(tomorrowD.getDate()).padStart(2,'0')}`;
+      const todayRows = uniqueEmployeeRows(all.filter(r=>rowCoversDate(r,today)));
+      const tomorrowRows = uniqueEmployeeRows(all.filter(r=>rowCoversDate(r,tomorrow)));
+      const totalDays = yearRows.reduce((sum,r)=>sum+numericDays(r.leaveDays),0);
+      const sickDays = all.filter(r=>(r.leaveType||'').includes('ลาป่วย')).reduce((s,r)=>s+numericDays(r.leaveDays),0);
+      const businessDays = all.filter(r=>r.leaveType==='ลากิจ').reduce((s,r)=>s+numericDays(r.leaveDays),0);
+      const vacationDays = all.filter(r=>r.leaveType==='ลาพักร้อน').reduce((s,r)=>s+numericDays(r.leaveDays),0);
+      const newRows = all.filter(r=>{
+        if(!r.createdAt) return false;
+        const d=r.createdAt.toDate?r.createdAt.toDate():new Date(r.createdAt); return (Date.now()-d.getTime())<=86400000;
+      });
+      const cards=[
+        ['ใบลาทั้งหมด',yearRows.length,'📋','var(--accent-soft)','var(--accent-deep)'],
+        ['ใบลาใหม่ 24 ชม.',newRows.length,'🆕','var(--success-soft)','var(--success)'],
+        ['ลาวันนี้',todayRows.length,'🔴','var(--danger-soft)','var(--danger)'],
+        ['วันลารวม',totalDays.toFixed(1).replace('.0','')+' วัน','📅','var(--warning-soft)','var(--warning)']
+      ];
+      document.getElementById('dashboardCards').innerHTML=cards.map(c=>`<div class="card p-4"><div class="text-xs" style="color:var(--ink-soft);">${c[2]} ${c[0]}</div><div class="font-display text-2xl mt-1" style="font-weight:600;color:${c[4]};">${c[1]}</div></div>`).join('');
+      document.getElementById('todayLeaveCount').textContent=`${todayRows.length} คน`;
+      document.getElementById('tomorrowLeaveCount').textContent=`${tomorrowRows.length} คน`;
+      const listHtml=(rows)=>rows.length?rows.slice(0,12).map(r=>`<button class="w-full text-left p-3 rounded-xl" style="background:#FAFBFD;border:1px solid var(--line);" data-dashboard-emp="${String(r.empId).replace(/"/g,'&quot;')}"><div class="font-semibold">${r.empName||'-'} <span class="mono text-xs" style="color:var(--ink-soft);">${r.empId||''}</span></div><div class="text-xs mt-1" style="color:var(--ink-soft);">${r.department||'-'} · ${r.leaveType||'-'} · ${r.leaveDays||'-'}</div></button>`).join(''):'<div class="text-sm p-3" style="color:var(--ink-soft);">ไม่มีพนักงานลา</div>';
+      document.getElementById('todayLeaveList').innerHTML=listHtml(todayRows);
+      document.getElementById('tomorrowLeaveList').innerHTML=listHtml(tomorrowRows);
+      document.getElementById('todayLeaveList').querySelectorAll('[data-dashboard-emp],#todayLeaveList [data-dashboard-emp]').forEach(b=>b.onclick=()=>openEmployeeHistory(b.dataset.dashboardEmp));
+      document.getElementById('tomorrowLeaveList').querySelectorAll('[data-dashboard-emp]').forEach(b=>b.onclick=()=>openEmployeeHistory(b.dataset.dashboardEmp));
+    }
+
+    async function openEmployeeHistory(empIdValue){
+      const id=normalizeEmployeeId(empIdValue); if(!id) return;
+      try{
+        historyTableBody.innerHTML='<tr><td colspan="5" class="p-5 text-center">กำลังโหลดประวัติ...</td></tr>';
+        employeeHistoryModal.style.display='block';
+        const rows=await driver.getEmployeeHistory(id);
+        rows.sort((a,b)=>(b.startDate||'').localeCompare(a.startDate||''));
+        const info=EMP_MAP[id] || rows[0] || {};
+        historyTitle.textContent=`ประวัติการลา — ${info.name||rows[0]?.empName||id}`;
+        historySubtitle.innerHTML=`รหัส ${id} · ${escapeHtml(info.dept||rows[0]?.department||'-')}`;
+        // สรุปประเภทการลาแบบแยกชัดเจน: ใช้ค่า leaveType จริงจากฐานข้อมูล และ trim ช่องว่างเพื่อไม่ให้รายการถูกแยกเป็นคนละประเภท
+        const normalizeHistoryLeaveType = (value) => {
+          const raw = String(value ?? '').trim();
+          const aliases = {
+            'ลาป่วยไม่มีใบรับรอง': 'ลาป่วยไม่มีใบรับรองแพทย์',
+            'ลาป่วยไม่มีใบรับรองแพทย์ ': 'ลาป่วยไม่มีใบรับรองแพทย์',
+            'ลาป่วยมีใบรับรอง': 'ลาป่วยมีใบรับรองแพทย์',
+            'ลาป่วยมีใบรับรองแพทย์ ': 'ลาป่วยมีใบรับรองแพทย์',
+            'ชดเชย/สลับวันหยุด': 'ชอเชย/สลับวันหยุด'
+          };
+          return aliases[raw] || raw || 'ลาอื่นๆ';
+        };
+
+        const totals={};
+        rows.forEach(r=>{
+          const k=normalizeHistoryLeaveType(r.leaveType);
+          totals[k]=(totals[k]||0)+numericDays(r.leaveDays);
+        });
+        const total=numericDays(rows.reduce((s,r)=>s+numericDays(r.leaveDays),0));
+
+        // ต้องแสดงครบทุกประเภท แม้ประเภทนั้นยังไม่เคยลา เพื่อไม่ให้ผู้ใช้เข้าใจว่าระบบไม่มีข้อมูล
+        const leaveTypes = [
+          'ลากิจ',
+          'ลาป่วยมีใบรับรองแพทย์',
+          'ลาป่วยไม่มีใบรับรองแพทย์',
+          'ลาคลอด',
+          'ลาพักร้อน',
+          'ฌาปณกิจ',
+          'ลาอื่นๆ',
+          'ขาดงาน',
+          'ชอเชย/สลับวันหยุด'
+        ];
+
+        const tenureInfoEl = document.getElementById('historyTenureInfo');
+        if (tenureInfoEl) {
+          tenureInfoEl.innerHTML = info.hireDate
+            ? `วันเริ่มงาน <strong>${escapeHtml(formatHireDate(info.hireDate))}</strong><span style="margin:0 8px;color:var(--line);">|</span>อายุงาน <strong data-live-tenure="${escapeHtml(id)}">${escapeHtml(formatTenure(info.hireDate))}</strong>`
+            : 'ยังไม่มีข้อมูลวันเริ่มงาน';
+        }
+
+        historyTotals.innerHTML = [
+          ['วันลารวม', `${total} วัน`, '']
+        ].map(x=>`<div class="card p-3" style="min-height:82px;border:1px solid var(--line);">
+          <div class="text-xs" style="color:var(--ink-soft);">${x[0]}</div>
+          <div class="font-display text-xl mt-1" style="font-weight:600;color:var(--accent-deep);">${x[1]}</div>
+        </div>`).join('');
+
+        historySummary.innerHTML = leaveTypes.map(type=>{
+          const d = totals[type] || 0;
+          return `<div class="card p-3" style="min-height:82px;border:1px solid var(--line);">
+            <div class="text-xs" style="color:var(--ink-soft);line-height:1.45;">${type}</div>
+            <div class="font-display text-base mt-1" style="font-weight:600;color:var(--accent-deep);">${d} วัน</div>
+          </div>`;
+        }).join('');
+
+        historyTableBody.innerHTML=rows.length?rows.map(r=>`<tr style="border-bottom:1px solid var(--line);"><td class="p-3 mono">${fmtDateDMY(r.startDate)}${r.endDate&&r.endDate!==r.startDate?' - '+fmtDateDMY(r.endDate):''}</td><td class="p-3"><span class="chip" style="${leaveTypeChipStyle(normalizeHistoryLeaveType(r.leaveType))}">${normalizeHistoryLeaveType(r.leaveType)||'-'}</span></td><td class="p-3 text-center mono">${r.leaveDays||'-'}${r.halfDayPeriod?' ('+r.halfDayPeriod+')':''}</td><td class="p-3">${r.reason||'-'}</td><td class="p-3">${r.approver||'-'}</td></tr>`).join(''):'<tr><td colspan="5" class="p-5 text-center" style="color:var(--ink-soft);">ยังไม่มีประวัติการลา</td></tr>';
+      }catch(err){ console.error(err); historyTableBody.innerHTML=`<tr><td colspan="5" class="p-5 text-center" style="color:var(--danger);">โหลดประวัติไม่สำเร็จ: ${explainFirestoreError(err)}</td></tr>`; }
+    }
+    closeHistoryModal.onclick=()=>employeeHistoryModal.style.display='none';
+    closeHistoryModal2.onclick=()=>employeeHistoryModal.style.display='none';
+    printHistoryBtn.onclick=()=>{
+      if (employeeHistoryModal.style.display !== 'block') return;
+      window.print();
+    };
+    document.getElementById('refreshDashboard').onclick=renderDashboard;
+    // อายุงานคำนวณจากวันที่เริ่มงาน ไม่ได้เก็บตัวเลขอายุงานตายตัว จึงอัปเดตตามวันปัจจุบันอัตโนมัติ
+    setInterval(() => {
+      document.querySelectorAll('[data-live-tenure]').forEach(el => {
+        const id = el.getAttribute('data-live-tenure');
+        if (id && EMP_MAP[id]?.hireDate) el.textContent = formatTenure(EMP_MAP[id].hireDate);
+      });
+    }, 60000);
+
+
     closeImageModal.onclick = () => { imageModal.style.display = 'none'; };
     window.onclick = (e) => {
         if(e.target === imageModal) imageModal.style.display = 'none';
         if(e.target === editModal) editModal.style.display = 'none';
         if(e.target === passwordModal) passwordModal.style.display = 'none';
+        if(e.target === employeeHistoryModal) employeeHistoryModal.style.display = 'none';
     };
 
     form.addEventListener('submit', async (e)=>{
@@ -1089,7 +1468,7 @@ if(leaveType.value === 'ลาป่วยมีใบรับรองแพ�
         }
 
         const row = {
-            empId: empId.value.trim(),
+            empId: normalizeEmployeeId(empId.value.trim()),
             empName: empName.value.trim(),
             department: department.value.trim(),
             leaveType: leaveType.value,
@@ -1193,6 +1572,11 @@ if(!ok){
       const id = btn.getAttribute('data-id'); if(!action || !id) return;
       const idx = cache.findIndex(r=> r.id===id); if(idx<0) return;
 
+      if(action==='history'){
+        openEmployeeHistory(cache[idx].empId);
+        return;
+      }
+
       if(action==='edit'){
         editStart.value = cache[idx].startDate || '';
         editEnd.value = cache[idx].endDate || '';
@@ -1254,13 +1638,25 @@ const { ok, errors, warnings, value } =
       }
 
       if(action==='delete'){
+        if(driver.kind !== 'firestore'){ showToast('⚠️ ระบบลบข้อมูลต้องเปิดผ่าน HTTPS และ Firebase', 'warning'); return; }
         passwordModal.style.display='block'; hrPasswordInput.value='';
         confirmDelete.onclick = async ()=>{
-          if(hrPasswordInput.value !== HR_PASSWORD){ showToast('❌ รหัสผ่านไม่ถูกต้อง','error'); return; }
-          try{ await driver.remove(id); passwordModal.style.display='none'; showToast('🗑️ ลบข้อมูลเรียบร้อยแล้ว','success'); }
-          catch(err){ showToast('ลบไม่สำเร็จ: ' + explainFirestoreError(err), 'error'); }
+          try{
+            confirmDelete.disabled=true; confirmDelete.textContent='กำลังตรวจสอบ...';
+            const result = await verifyHrAccessFn({ password: hrPasswordInput.value });
+            if(result?.data?.customToken){
+              await signInWithCustomToken(auth, result.data.customToken);
+              hrAccessTokenReady = true;
+            }
+            await driver.remove(id);
+            passwordModal.style.display='none';
+            showToast('🗑️ ลบข้อมูลเรียบร้อยแล้ว','success');
+          } catch(err){
+            console.error(err);
+            showToast(err?.message?.includes('รหัสผ่าน') ? '❌ รหัสผ่านไม่ถูกต้อง' : 'ลบไม่สำเร็จ: ' + explainFirestoreError(err), 'error');
+          } finally { confirmDelete.disabled=false; confirmDelete.textContent='ลบ'; }
         };
-        cancelDelete.onclick = ()=>{ passwordModal.style.display='none'; };
+        cancelDelete.onclick = ()=>{passwordModal.style.display='none';};
       }
     });
 
