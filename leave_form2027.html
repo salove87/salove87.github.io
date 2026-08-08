@@ -465,7 +465,9 @@ readonly>
         </div>
         <button id="closeHistoryModal" class="icon-btn" style="background:#EEF1F5;color:var(--ink-soft);">✕</button>
       </div>
-      <div id="historySummary" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5"></div>
+      <div id="historyTotals" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"></div>
+      <div class="mb-2" style="font-weight:600;color:var(--ink);">สรุปแยกตามประเภทการลา</div>
+      <div id="historySummary" class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5"></div>
       <div class="overflow-x-auto rounded-xl border" style="border-color:var(--line);max-height:430px;">
         <table class="w-full text-sm text-left">
           <thead style="background:var(--accent-deep);color:#fff;position:sticky;top:0;">
@@ -1050,6 +1052,8 @@ autofillNameFromEmpId(savedId);
         'ขาดงาน': 'background:var(--danger-soft);color:var(--danger);',
         'ลาคลอด': 'background:#FBE7F3;color:#A21C6B;',
         'ฌาปณกิจ': 'background:#EEF0F3;color:#3B4250;',
+        'ลาอื่นๆ': 'background:#F3E8FF;color:#7E22CE;',
+        'ชอเชย/สลับวันหยุด': 'background:#E0F2FE;color:#0369A1;',
       };
       return map[type] || 'background:#EEF0F3;color:#3B4250;';
     }
@@ -1141,6 +1145,7 @@ autofillNameFromEmpId(savedId);
     const closeHistoryModal2 = document.getElementById('closeHistoryModal2');
     const historyTitle = document.getElementById('historyTitle');
     const historySubtitle = document.getElementById('historySubtitle');
+    const historyTotals = document.getElementById('historyTotals');
     const historySummary = document.getElementById('historySummary');
     const historyTableBody = document.getElementById('historyTableBody');
     const employeeHistorySearch = document.getElementById('employeeHistorySearch');
@@ -1249,11 +1254,55 @@ autofillNameFromEmpId(savedId);
         const info=EMP_MAP[id] || rows[0] || {};
         historyTitle.textContent=`ประวัติการลา — ${info.name||rows[0]?.empName||id}`;
         historySubtitle.textContent=`รหัส ${id} · ${info.dept||rows[0]?.department||'-'}`;
-        const totals={}; rows.forEach(r=>{const k=r.leaveType||'อื่นๆ'; totals[k]=(totals[k]||0)+numericDays(r.leaveDays);});
+        // สรุปประเภทการลาแบบแยกชัดเจน: ใช้ค่า leaveType จริงจากฐานข้อมูล และ trim ช่องว่างเพื่อไม่ให้รายการถูกแยกเป็นคนละประเภท
+        const normalizeHistoryLeaveType = (value) => {
+          const raw = String(value ?? '').trim();
+          const aliases = {
+            'ลาป่วยไม่มีใบรับรอง': 'ลาป่วยไม่มีใบรับรองแพทย์',
+            'ลาป่วยไม่มีใบรับรองแพทย์ ': 'ลาป่วยไม่มีใบรับรองแพทย์',
+            'ลาป่วยมีใบรับรอง': 'ลาป่วยมีใบรับรองแพทย์',
+            'ลาป่วยมีใบรับรองแพทย์ ': 'ลาป่วยมีใบรับรองแพทย์',
+            'ชดเชย/สลับวันหยุด': 'ชอเชย/สลับวันหยุด'
+          };
+          return aliases[raw] || raw || 'ลาอื่นๆ';
+        };
+
+        const totals={};
+        rows.forEach(r=>{
+          const k=normalizeHistoryLeaveType(r.leaveType);
+          totals[k]=(totals[k]||0)+numericDays(r.leaveDays);
+        });
         const total=numericDays(rows.reduce((s,r)=>s+numericDays(r.leaveDays),0));
-        const summary=[['ครั้งทั้งหมด',rows.length,'รายการ'],['วันลารวม',total,'วัน'],['ลากิจ',totals['ลากิจ']||0,'วัน'],['ลาพักร้อน',totals['ลาพักร้อน']||0,'วัน']];
-        historySummary.innerHTML=summary.map(x=>`<div class="card p-3"><div class="text-xs" style="color:var(--ink-soft);">${x[0]}</div><div class="font-display text-xl mt-1" style="font-weight:600;color:var(--accent-deep);">${x[1]} <span class="text-xs font-normal">${x[2]}</span></div></div>`).join('');
-        historyTableBody.innerHTML=rows.length?rows.map(r=>`<tr style="border-bottom:1px solid var(--line);"><td class="p-3 mono">${fmtDateDMY(r.startDate)}${r.endDate&&r.endDate!==r.startDate?' - '+fmtDateDMY(r.endDate):''}</td><td class="p-3"><span class="chip" style="${leaveTypeChipStyle(r.leaveType)}">${r.leaveType||'-'}</span></td><td class="p-3 text-center mono">${r.leaveDays||'-'}${r.halfDayPeriod?' ('+r.halfDayPeriod+')':''}</td><td class="p-3">${r.reason||'-'}</td><td class="p-3">${r.approver||'-'}</td></tr>`).join(''):'<tr><td colspan="5" class="p-5 text-center" style="color:var(--ink-soft);">ยังไม่มีประวัติการลา</td></tr>';
+
+        // ต้องแสดงครบทุกประเภท แม้ประเภทนั้นยังไม่เคยลา เพื่อไม่ให้ผู้ใช้เข้าใจว่าระบบไม่มีข้อมูล
+        const leaveTypes = [
+          'ลากิจ',
+          'ลาป่วยมีใบรับรองแพทย์',
+          'ลาป่วยไม่มีใบรับรองแพทย์',
+          'ลาคลอด',
+          'ลาพักร้อน',
+          'ฌาปณกิจ',
+          'ลาอื่นๆ',
+          'ขาดงาน',
+          'ชอเชย/สลับวันหยุด'
+        ];
+
+        historyTotals.innerHTML = [
+          ['วันลารวม', `${total} วัน`, '']
+        ].map(x=>`<div class="card p-3" style="min-height:82px;border:1px solid var(--line);">
+          <div class="text-xs" style="color:var(--ink-soft);">${x[0]}</div>
+          <div class="font-display text-xl mt-1" style="font-weight:600;color:var(--accent-deep);">${x[1]}</div>
+        </div>`).join('');
+
+        historySummary.innerHTML = leaveTypes.map(type=>{
+          const d = totals[type] || 0;
+          return `<div class="card p-3" style="min-height:82px;border:1px solid var(--line);">
+            <div class="text-xs" style="color:var(--ink-soft);line-height:1.45;">${type}</div>
+            <div class="font-display text-base mt-1" style="font-weight:600;color:var(--accent-deep);">${d} วัน</div>
+          </div>`;
+        }).join('');
+
+        historyTableBody.innerHTML=rows.length?rows.map(r=>`<tr style="border-bottom:1px solid var(--line);"><td class="p-3 mono">${fmtDateDMY(r.startDate)}${r.endDate&&r.endDate!==r.startDate?' - '+fmtDateDMY(r.endDate):''}</td><td class="p-3"><span class="chip" style="${leaveTypeChipStyle(normalizeHistoryLeaveType(r.leaveType))}">${normalizeHistoryLeaveType(r.leaveType)||'-'}</span></td><td class="p-3 text-center mono">${r.leaveDays||'-'}${r.halfDayPeriod?' ('+r.halfDayPeriod+')':''}</td><td class="p-3">${r.reason||'-'}</td><td class="p-3">${r.approver||'-'}</td></tr>`).join(''):'<tr><td colspan="5" class="p-5 text-center" style="color:var(--ink-soft);">ยังไม่มีประวัติการลา</td></tr>';
       }catch(err){ console.error(err); historyTableBody.innerHTML=`<tr><td colspan="5" class="p-5 text-center" style="color:var(--danger);">โหลดประวัติไม่สำเร็จ: ${explainFirestoreError(err)}</td></tr>`; }
     }
     closeHistoryModal.onclick=()=>employeeHistoryModal.style.display='none';
