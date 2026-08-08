@@ -348,6 +348,28 @@ readonly>
     </form>
   </div>
 
+  <!-- DASHBOARD -->
+  <section id="dashboardSection" class="w-full max-w-6xl mb-6">
+    <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+      <div>
+        <h2 class="font-display text-xl" style="font-weight:600;color:var(--ink);">📊 Dashboard การลา</h2>
+        <p class="text-sm" style="color:var(--ink-soft);">สรุปภาพรวมการลาและดูประวัติรายบุคคล</p>
+      </div>
+      <button id="refreshDashboard" class="px-4 py-2 rounded-lg text-sm font-semibold" style="background:var(--accent-soft);color:var(--accent-deep);border:1px solid #C9D8FB;">↻ รีเฟรช</button>
+    </div>
+    <div id="dashboardCards" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"></div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="card p-5">
+        <div class="flex justify-between items-center mb-3"><h3 class="font-display font-semibold">🔴 วันนี้มีคนลา</h3><span id="todayLeaveCount" class="chip" style="background:var(--danger-soft);color:var(--danger);">0 คน</span></div>
+        <div id="todayLeaveList" class="space-y-2"></div>
+      </div>
+      <div class="card p-5">
+        <div class="flex justify-between items-center mb-3"><h3 class="font-display font-semibold">🟡 พรุ่งนี้มีคนลา</h3><span id="tomorrowLeaveCount" class="chip" style="background:var(--warning-soft);color:var(--warning);">0 คน</span></div>
+        <div id="tomorrowLeaveList" class="space-y-2"></div>
+      </div>
+    </div>
+  </section>
+
   <!-- LIST + CSV -->
   <div class="card sheen w-full max-w-6xl p-6 mt-2">
     <div class="flex justify-between items-center mb-5 flex-wrap gap-3 pt-1">
@@ -408,6 +430,29 @@ readonly>
         </thead>
         <tbody id="leaveTable" class="divide-y" style="border-color:var(--line);"></tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- EMPLOYEE HISTORY MODAL -->
+  <div id="employeeHistoryModal" class="modal">
+    <div class="modal-content sheen" style="max-width:900px;">
+      <div class="flex justify-between items-start gap-3 mb-4">
+        <div>
+          <h3 id="historyTitle" class="font-display text-xl" style="font-weight:600;color:var(--ink);">ประวัติการลาของพนักงาน</h3>
+          <p id="historySubtitle" class="text-sm" style="color:var(--ink-soft);"></p>
+        </div>
+        <button id="closeHistoryModal" class="icon-btn" style="background:#EEF1F5;color:var(--ink-soft);">✕</button>
+      </div>
+      <div id="historySummary" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5"></div>
+      <div class="overflow-x-auto rounded-xl border" style="border-color:var(--line);max-height:430px;">
+        <table class="w-full text-sm text-left">
+          <thead style="background:var(--accent-deep);color:#fff;position:sticky;top:0;">
+            <tr><th class="p-3">วันที่</th><th class="p-3">ประเภท</th><th class="p-3 text-center">จำนวน</th><th class="p-3">เหตุผล</th><th class="p-3">ผู้อนุมัติ</th></tr>
+          </thead>
+          <tbody id="historyTableBody"></tbody>
+        </table>
+      </div>
+      <div class="flex justify-end mt-4"><button id="closeHistoryModal2" class="px-5 py-2 rounded-lg" style="background:#EEF1F5;color:var(--ink-soft);font-weight:600;">ปิด</button></div>
     </div>
   </div>
 
@@ -475,7 +520,8 @@ readonly>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-functions.js";
     // Added 'where' to Firestore imports for filtering
     import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, getDocs, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 
@@ -501,6 +547,8 @@ readonly>
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
+    const functions = getFunctions(app, 'asia-southeast1');
+    const verifyHrAccessFn = httpsCallable(functions, 'verifyHrAccess');
 
     const systemTimeEl = document.getElementById('systemTime');
     function updateSystemTime(){
@@ -550,7 +598,8 @@ readonly>
     submitDate.value = todayISO();
     submitDate.setAttribute('readonly','readonly');
 
-    const HR_PASSWORD = '303647';
+    // HR password is NOT stored in this page. Verification is performed by Firebase Cloud Functions.
+    let hrAccessTokenReady = false;
     const MAX_VACATION_DAYS = 6; // Limit for Vacation Leave
     
     const imageModal = document.getElementById('imageModal');
@@ -957,7 +1006,7 @@ autofillNameFromEmpId(savedId);
 
     function attachSubscription(){
       if(unsubscribe) try{ unsubscribe(); }catch{}
-      unsubscribe = driver.subscribe(rows => { cache = rows; renderTable(); }, (err)=>{
+      unsubscribe = driver.subscribe(rows => { cache = rows; renderTable(); renderDashboard(); }, (err)=>{
         console.error('Firestore Error', err);
         showToast('Firestore อ่านข้อมูลล้มเหลว ใช้โหมด Local แทน', 'error');
         driver = makeLocalDriver(); attachSubscription();
@@ -1050,6 +1099,9 @@ autofillNameFromEmpId(savedId);
         ];
 
         const tdActions = document.createElement('td'); tdActions.className='p-3 text-center';
+        const btnHistory = document.createElement('button'); btnHistory.className='icon-btn cursor-pointer'; btnHistory.style.cssText='background:#EAF7EF;color:#166534;margin-right:6px;'; btnHistory.textContent='👤'; btnHistory.title='ดูประวัติการลา'; btnHistory.dataset.action='history'; btnHistory.dataset.id=row.id;
+        tdActions.appendChild(btnHistory);
+
         const btnEdit = document.createElement('button'); btnEdit.className='icon-btn cursor-pointer'; btnEdit.style.cssText='background:var(--accent-soft);color:var(--accent-deep);margin-right:6px;'; btnEdit.textContent='✏️'; btnEdit.title='แก้ไข'; btnEdit.dataset.action='edit'; btnEdit.dataset.id=row.id;
         const btnDel = document.createElement('button'); btnDel.className='icon-btn cursor-pointer'; btnDel.style.cssText='background:var(--danger-soft);color:var(--danger);'; btnDel.textContent='🗑️'; btnDel.title='ลบ'; btnDel.dataset.action='delete'; btnDel.dataset.id=row.id;
         tdActions.appendChild(btnEdit); tdActions.appendChild(btnDel);
@@ -1062,11 +1114,79 @@ autofillNameFromEmpId(savedId);
       });
     }
 
+    const employeeHistoryModal = document.getElementById('employeeHistoryModal');
+    const closeHistoryModal = document.getElementById('closeHistoryModal');
+    const closeHistoryModal2 = document.getElementById('closeHistoryModal2');
+    const historyTitle = document.getElementById('historyTitle');
+    const historySubtitle = document.getElementById('historySubtitle');
+    const historySummary = document.getElementById('historySummary');
+    const historyTableBody = document.getElementById('historyTableBody');
+
+    function numericDays(v){ return parseFloat(String(v ?? '').replace(' วัน','')) || 0; }
+    function rowCoversDate(row, iso){ return row.startDate && row.endDate && row.startDate <= iso && row.endDate >= iso; }
+    function uniqueEmployeeRows(rows){
+      const m = new Map();
+      rows.forEach(r => { if(r.empId) m.set(r.empId, r); });
+      return Array.from(m.values());
+    }
+    function renderDashboard(){
+      const all = Array.isArray(cache) ? cache : [];
+      const today = todayISO();
+      const tomorrowD = new Date(today + 'T00:00:00'); tomorrowD.setDate(tomorrowD.getDate()+1);
+      const tomorrow = `${tomorrowD.getFullYear()}-${String(tomorrowD.getMonth()+1).padStart(2,'0')}-${String(tomorrowD.getDate()).padStart(2,'0')}`;
+      const todayRows = uniqueEmployeeRows(all.filter(r=>rowCoversDate(r,today)));
+      const tomorrowRows = uniqueEmployeeRows(all.filter(r=>rowCoversDate(r,tomorrow)));
+      const totalDays = all.reduce((sum,r)=>sum+numericDays(r.leaveDays),0);
+      const sickDays = all.filter(r=>(r.leaveType||'').includes('ลาป่วย')).reduce((s,r)=>s+numericDays(r.leaveDays),0);
+      const businessDays = all.filter(r=>r.leaveType==='ลากิจ').reduce((s,r)=>s+numericDays(r.leaveDays),0);
+      const vacationDays = all.filter(r=>r.leaveType==='ลาพักร้อน').reduce((s,r)=>s+numericDays(r.leaveDays),0);
+      const newRows = all.filter(r=>{
+        if(!r.createdAt) return false;
+        const d=r.createdAt.toDate?r.createdAt.toDate():new Date(r.createdAt); return (Date.now()-d.getTime())<=86400000;
+      });
+      const cards=[
+        ['ใบลาทั้งหมด',all.length,'📋','var(--accent-soft)','var(--accent-deep)'],
+        ['ใบลาใหม่ 24 ชม.',newRows.length,'🆕','var(--success-soft)','var(--success)'],
+        ['ลาวันนี้',todayRows.length,'🔴','var(--danger-soft)','var(--danger)'],
+        ['วันลารวม',totalDays.toFixed(1).replace('.0','')+' วัน','📅','var(--warning-soft)','var(--warning)']
+      ];
+      document.getElementById('dashboardCards').innerHTML=cards.map(c=>`<div class="card p-4"><div class="text-xs" style="color:var(--ink-soft);">${c[2]} ${c[0]}</div><div class="font-display text-2xl mt-1" style="font-weight:600;color:${c[4]};">${c[1]}</div></div>`).join('');
+      document.getElementById('todayLeaveCount').textContent=`${todayRows.length} คน`;
+      document.getElementById('tomorrowLeaveCount').textContent=`${tomorrowRows.length} คน`;
+      const listHtml=(rows)=>rows.length?rows.slice(0,12).map(r=>`<button class="w-full text-left p-3 rounded-xl" style="background:#FAFBFD;border:1px solid var(--line);" data-dashboard-emp="${String(r.empId).replace(/"/g,'&quot;')}"><div class="font-semibold">${r.empName||'-'} <span class="mono text-xs" style="color:var(--ink-soft);">${r.empId||''}</span></div><div class="text-xs mt-1" style="color:var(--ink-soft);">${r.department||'-'} · ${r.leaveType||'-'} · ${r.leaveDays||'-'}</div></button>`).join(''):'<div class="text-sm p-3" style="color:var(--ink-soft);">ไม่มีพนักงานลา</div>';
+      document.getElementById('todayLeaveList').innerHTML=listHtml(todayRows);
+      document.getElementById('tomorrowLeaveList').innerHTML=listHtml(tomorrowRows);
+      document.getElementById('todayLeaveList').querySelectorAll('[data-dashboard-emp],#todayLeaveList [data-dashboard-emp]').forEach(b=>b.onclick=()=>openEmployeeHistory(b.dataset.dashboardEmp));
+      document.getElementById('tomorrowLeaveList').querySelectorAll('[data-dashboard-emp]').forEach(b=>b.onclick=()=>openEmployeeHistory(b.dataset.dashboardEmp));
+    }
+
+    async function openEmployeeHistory(empIdValue){
+      const id=String(empIdValue||'').trim(); if(!id) return;
+      try{
+        historyTableBody.innerHTML='<tr><td colspan="5" class="p-5 text-center">กำลังโหลดประวัติ...</td></tr>';
+        employeeHistoryModal.style.display='block';
+        const rows=await driver.getEmployeeHistory(id);
+        rows.sort((a,b)=>(b.startDate||'').localeCompare(a.startDate||''));
+        const info=EMP_MAP[id] || rows[0] || {};
+        historyTitle.textContent=`ประวัติการลา — ${info.name||rows[0]?.empName||id}`;
+        historySubtitle.textContent=`รหัส ${id} · ${info.dept||rows[0]?.department||'-'}`;
+        const totals={}; rows.forEach(r=>{const k=r.leaveType||'อื่นๆ'; totals[k]=(totals[k]||0)+numericDays(r.leaveDays);});
+        const total=numericDays(rows.reduce((s,r)=>s+numericDays(r.leaveDays),0));
+        const summary=[['ครั้งทั้งหมด',rows.length,'รายการ'],['วันลารวม',total,'วัน'],['ลากิจ',totals['ลากิจ']||0,'วัน'],['ลาพักร้อน',totals['ลาพักร้อน']||0,'วัน']];
+        historySummary.innerHTML=summary.map(x=>`<div class="card p-3"><div class="text-xs" style="color:var(--ink-soft);">${x[0]}</div><div class="font-display text-xl mt-1" style="font-weight:600;color:var(--accent-deep);">${x[1]} <span class="text-xs font-normal">${x[2]}</span></div></div>`).join('');
+        historyTableBody.innerHTML=rows.length?rows.map(r=>`<tr style="border-bottom:1px solid var(--line);"><td class="p-3 mono">${fmtDateDMY(r.startDate)}${r.endDate&&r.endDate!==r.startDate?' - '+fmtDateDMY(r.endDate):''}</td><td class="p-3"><span class="chip" style="${leaveTypeChipStyle(r.leaveType)}">${r.leaveType||'-'}</span></td><td class="p-3 text-center mono">${r.leaveDays||'-'}${r.halfDayPeriod?' ('+r.halfDayPeriod+')':''}</td><td class="p-3">${r.reason||'-'}</td><td class="p-3">${r.approver||'-'}</td></tr>`).join(''):'<tr><td colspan="5" class="p-5 text-center" style="color:var(--ink-soft);">ยังไม่มีประวัติการลา</td></tr>';
+      }catch(err){ console.error(err); historyTableBody.innerHTML=`<tr><td colspan="5" class="p-5 text-center" style="color:var(--danger);">โหลดประวัติไม่สำเร็จ: ${explainFirestoreError(err)}</td></tr>`; }
+    }
+    closeHistoryModal.onclick=()=>employeeHistoryModal.style.display='none';
+    closeHistoryModal2.onclick=()=>employeeHistoryModal.style.display='none';
+    document.getElementById('refreshDashboard').onclick=renderDashboard;
+
     closeImageModal.onclick = () => { imageModal.style.display = 'none'; };
     window.onclick = (e) => {
         if(e.target === imageModal) imageModal.style.display = 'none';
         if(e.target === editModal) editModal.style.display = 'none';
         if(e.target === passwordModal) passwordModal.style.display = 'none';
+        if(e.target === employeeHistoryModal) employeeHistoryModal.style.display = 'none';
     };
 
     form.addEventListener('submit', async (e)=>{
@@ -1197,6 +1317,11 @@ if(!ok){
       const id = btn.getAttribute('data-id'); if(!action || !id) return;
       const idx = cache.findIndex(r=> r.id===id); if(idx<0) return;
 
+      if(action==='history'){
+        openEmployeeHistory(cache[idx].empId);
+        return;
+      }
+
       if(action==='edit'){
         editStart.value = cache[idx].startDate || '';
         editEnd.value = cache[idx].endDate || '';
@@ -1258,13 +1383,25 @@ const { ok, errors, warnings, value } =
       }
 
       if(action==='delete'){
+        if(driver.kind !== 'firestore'){ showToast('⚠️ ระบบลบข้อมูลต้องเปิดผ่าน HTTPS และ Firebase', 'warning'); return; }
         passwordModal.style.display='block'; hrPasswordInput.value='';
         confirmDelete.onclick = async ()=>{
-          if(hrPasswordInput.value !== HR_PASSWORD){ showToast('❌ รหัสผ่านไม่ถูกต้อง','error'); return; }
-          try{ await driver.remove(id); passwordModal.style.display='none'; showToast('🗑️ ลบข้อมูลเรียบร้อยแล้ว','success'); }
-          catch(err){ showToast('ลบไม่สำเร็จ: ' + explainFirestoreError(err), 'error'); }
+          try{
+            confirmDelete.disabled=true; confirmDelete.textContent='กำลังตรวจสอบ...';
+            const result = await verifyHrAccessFn({ password: hrPasswordInput.value });
+            if(result?.data?.customToken){
+              await signInWithCustomToken(auth, result.data.customToken);
+              hrAccessTokenReady = true;
+            }
+            await driver.remove(id);
+            passwordModal.style.display='none';
+            showToast('🗑️ ลบข้อมูลเรียบร้อยแล้ว','success');
+          } catch(err){
+            console.error(err);
+            showToast(err?.message?.includes('รหัสผ่าน') ? '❌ รหัสผ่านไม่ถูกต้อง' : 'ลบไม่สำเร็จ: ' + explainFirestoreError(err), 'error');
+          } finally { confirmDelete.disabled=false; confirmDelete.textContent='ลบ'; }
         };
-        cancelDelete.onclick = ()=>{ passwordModal.style.display='none'; };
+        cancelDelete.onclick = ()=>{passwordModal.style.display='none';};
       }
     });
 
