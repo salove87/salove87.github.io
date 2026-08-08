@@ -184,7 +184,34 @@
   0%, 50%, 100% { opacity: 1; }
   25%, 75% { opacity: 0.45; }
 }
-  </style>
+  
+@media print {
+  @page { size: A4 portrait; margin: 12mm; }
+  html, body { background:#fff !important; width:100%; }
+  body > * { display:none !important; }
+  #employeeHistoryModal {
+    display:block !important; position:static !important; inset:auto !important;
+    width:100% !important; height:auto !important; min-height:0 !important;
+    background:#fff !important; overflow:visible !important; padding:0 !important;
+  }
+  #employeeHistoryModal .modal-content {
+    display:block !important; position:static !important;
+    width:100% !important; max-width:none !important;
+    max-height:none !important; overflow:visible !important;
+    box-shadow:none !important; border:0 !important; border-radius:0 !important;
+    padding:0 !important; margin:0 !important;
+  }
+  #employeeHistoryModal .no-print { display:none !important; }
+  #historyTableWrap { max-height:none !important; overflow:visible !important; border:1px solid #d9dee8 !important; }
+  #historyTable { width:100% !important; border-collapse:collapse !important; }
+  #historyTable thead { position:static !important; }
+  #historyTable th, #historyTable td { padding:7px 8px !important; font-size:11px !important; }
+  #historyTable tr { break-inside:avoid; page-break-inside:avoid; }
+  #historySummary { break-inside:avoid; page-break-inside:avoid; }
+  #historyTotals { break-inside:avoid; page-break-inside:avoid; }
+  #historyTitle { font-size:20px !important; }
+}
+</style>
 </head>
 <body class="min-h-screen flex flex-col items-center p-6">
   <div id="loginGate" style="
@@ -464,20 +491,23 @@ readonly>
           <p id="historySubtitle" class="text-sm" style="color:var(--ink-soft);"></p>
       <div id="historyTenureInfo" class="mt-2 text-sm" style="color:var(--ink-soft);"></div>
         </div>
-        <button id="closeHistoryModal" class="icon-btn" style="background:#EEF1F5;color:var(--ink-soft);">✕</button>
+        <div class="flex items-center gap-2 no-print">
+          <button id="printHistoryBtn" class="px-3 py-2 rounded-lg cursor-pointer" style="background:#EAF0FF;color:var(--accent-deep);font-weight:600;" title="พิมพ์ประวัติการลาเป็น A4">🖨️ พิมพ์ A4</button>
+          <button id="closeHistoryModal" class="icon-btn" style="background:#EEF1F5;color:var(--ink-soft);">✕</button>
+        </div>
       </div>
       <div id="historyTotals" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"></div>
       <div class="mb-2" style="font-weight:600;color:var(--ink);">สรุปแยกตามประเภทการลา</div>
       <div id="historySummary" class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5"></div>
-      <div class="overflow-x-auto rounded-xl border" style="border-color:var(--line);max-height:430px;">
-        <table class="w-full text-sm text-left">
+      <div id="historyTableWrap" class="overflow-x-auto rounded-xl border" style="border-color:var(--line);max-height:430px;">
+        <table id="historyTable" class="w-full text-sm text-left">
           <thead style="background:var(--accent-deep);color:#fff;position:sticky;top:0;">
             <tr><th class="p-3">วันที่</th><th class="p-3">ประเภท</th><th class="p-3 text-center">จำนวน</th><th class="p-3">เหตุผล</th><th class="p-3">ผู้อนุมัติ</th></tr>
           </thead>
           <tbody id="historyTableBody"></tbody>
         </table>
       </div>
-      <div class="flex justify-end mt-4"><button id="closeHistoryModal2" class="px-5 py-2 rounded-lg" style="background:#EEF1F5;color:var(--ink-soft);font-weight:600;">ปิด</button></div>
+      <div class="flex justify-end mt-4 no-print"><button id="closeHistoryModal2" class="px-5 py-2 rounded-lg" style="background:#EEF1F5;color:var(--ink-soft);font-weight:600;">ปิด</button></div>
     </div>
   </div>
 
@@ -1026,6 +1056,20 @@ autofillNameFromEmpId(savedId);
     function lsLoad(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||'[]'); }catch{ return []; } }
     function lsSave(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
     
+    // รวมรหัสพนักงานเก่าที่พิมพ์ผิดเข้ากับรหัสหลัก
+    // 103493 เป็นข้อมูลเดิมของพนักงานรหัส 10349
+    const EMP_ID_ALIASES = {
+      '103493': '10349'
+    };
+    function normalizeEmployeeId(id){
+      const value = String(id ?? '').trim();
+      return EMP_ID_ALIASES[value] || value;
+    }
+    function normalizeEmployeeRow(row){
+      if(!row) return row;
+      return { ...row, empId: normalizeEmployeeId(row.empId) };
+    }
+
     function makeLocalDriver(){
       let listeners = [];
       function notify(){ listeners.forEach(fn => fn(lsLoad())); }
@@ -1039,8 +1083,9 @@ autofillNameFromEmpId(savedId);
         async getAll(){ return lsLoad(); },
         // Add getEmployeeHistory for local storage
         async getEmployeeHistory(id){ 
+             const canonicalId = normalizeEmployeeId(id);
              const all = lsLoad(); 
-             return all.filter(x => x.empId === id);
+             return all.filter(x => normalizeEmployeeId(x.empId) === canonicalId).map(normalizeEmployeeRow);
         }
       };
     }
@@ -1063,10 +1108,19 @@ autofillNameFromEmpId(savedId);
         },
         // ADDED: Fetch specific employee history
         async getEmployeeHistory(id){
-             // Query by empId to get history
-             const q = query(colRef, where('empId', '==', id));
-             const snap = await getDocs(q);
-             return snap.docs.map(d => d.data());
+             // รวมประวัติทั้งรหัสหลักและรหัสเก่าที่เป็น alias
+             const canonicalId = normalizeEmployeeId(id);
+             const ids = [canonicalId, ...Object.keys(EMP_ID_ALIASES).filter(k => EMP_ID_ALIASES[k] === canonicalId)];
+             const uniqueIds = [...new Set(ids)];
+             const snaps = await Promise.all(uniqueIds.map(emp => getDocs(query(colRef, where('empId', '==', emp)))));
+             const seen = new Set();
+             const rows = [];
+             snaps.forEach(snap => snap.docs.forEach(d => {
+               if(seen.has(d.id)) return;
+               seen.add(d.id);
+               rows.push({ id: d.id, ...d.data() });
+             }));
+             return rows.map(normalizeEmployeeRow);
         }
       };
     }
@@ -1076,7 +1130,7 @@ autofillNameFromEmpId(savedId);
 
     function attachSubscription(){
       if(unsubscribe) try{ unsubscribe(); }catch{}
-      unsubscribe = driver.subscribe(rows => { cache = rows; renderTable(); renderDashboard(); }, (err)=>{
+      unsubscribe = driver.subscribe(rows => { cache = (Array.isArray(rows) ? rows : []).map(normalizeEmployeeRow); renderTable(); renderDashboard(); }, (err)=>{
         console.error('Firestore Error', err);
         showToast('Firestore อ่านข้อมูลล้มเหลว ใช้โหมด Local แทน', 'error');
         driver = makeLocalDriver(); attachSubscription();
@@ -1195,6 +1249,7 @@ autofillNameFromEmpId(savedId);
     const historySummary = document.getElementById('historySummary');
     const historyTableBody = document.getElementById('historyTableBody');
     const employeeHistorySearch = document.getElementById('employeeHistorySearch');
+    const printHistoryBtn = document.getElementById('printHistoryBtn');
     const clearEmployeeHistorySearch = document.getElementById('clearEmployeeHistorySearch');
     const employeeSearchResults = document.getElementById('employeeSearchResults');
     const employeeSearchResultCount = document.getElementById('employeeSearchResultCount');
@@ -1298,7 +1353,7 @@ autofillNameFromEmpId(savedId);
     }
 
     async function openEmployeeHistory(empIdValue){
-      const id=String(empIdValue||'').trim(); if(!id) return;
+      const id=normalizeEmployeeId(empIdValue); if(!id) return;
       try{
         historyTableBody.innerHTML='<tr><td colspan="5" class="p-5 text-center">กำลังโหลดประวัติ...</td></tr>';
         employeeHistoryModal.style.display='block';
@@ -1367,6 +1422,10 @@ autofillNameFromEmpId(savedId);
     }
     closeHistoryModal.onclick=()=>employeeHistoryModal.style.display='none';
     closeHistoryModal2.onclick=()=>employeeHistoryModal.style.display='none';
+    printHistoryBtn.onclick=()=>{
+      if (employeeHistoryModal.style.display !== 'block') return;
+      window.print();
+    };
     document.getElementById('refreshDashboard').onclick=renderDashboard;
     // อายุงานคำนวณจากวันที่เริ่มงาน ไม่ได้เก็บตัวเลขอายุงานตายตัว จึงอัปเดตตามวันปัจจุบันอัตโนมัติ
     setInterval(() => {
@@ -1409,7 +1468,7 @@ if(leaveType.value === 'ลาป่วยมีใบรับรองแพ�
         }
 
         const row = {
-            empId: empId.value.trim(),
+            empId: normalizeEmployeeId(empId.value.trim()),
             empName: empName.value.trim(),
             department: department.value.trim(),
             leaveType: leaveType.value,
