@@ -945,6 +945,20 @@ autofillNameFromEmpId(savedId);
       return /วัน$/.test(t) ? t : (t + ' วัน');
     }
 
+    // ทำให้ชื่อประเภทการลาจากข้อมูลเก่า/ข้อมูลใหม่ใช้มาตรฐานเดียวกัน
+    // ต้องประกาศใน scope กลาง เพราะใช้ทั้งประวัติรายบุคคลและการตรวจโควต้าพักร้อน
+    function normalizeHistoryLeaveType(value){
+      const raw = String(value ?? '').trim();
+      const aliases = {
+        'ลาป่วยไม่มีใบรับรอง': 'ลาป่วยไม่มีใบรับรองแพทย์',
+        'ลาป่วยไม่มีใบรับรองแพทย์ ': 'ลาป่วยไม่มีใบรับรองแพทย์',
+        'ลาป่วยมีใบรับรอง': 'ลาป่วยมีใบรับรองแพทย์',
+        'ลาป่วยมีใบรับรองแพทย์ ': 'ลาป่วยมีใบรับรองแพทย์',
+        'ชดเชย/สลับวันหยุด': 'ชอเชย/สลับวันหยุด'
+      };
+      return aliases[raw] || raw || 'ลาอื่นๆ';
+    }
+
     function validateRow(values, isEdit = false){
       const errors = [];
       const warnings = [];
@@ -1399,19 +1413,6 @@ autofillNameFromEmpId(savedId);
         const info=EMP_MAP[id] || rows[0] || {};
         historyTitle.textContent=`ประวัติการลา — ${info.name||rows[0]?.empName||id}`;
         historySubtitle.innerHTML=`รหัส ${id} · ${escapeHtml(info.dept||rows[0]?.department||'-')}`;
-        // สรุปประเภทการลาแบบแยกชัดเจน: ใช้ค่า leaveType จริงจากฐานข้อมูล และ trim ช่องว่างเพื่อไม่ให้รายการถูกแยกเป็นคนละประเภท
-        const normalizeHistoryLeaveType = (value) => {
-          const raw = String(value ?? '').trim();
-          const aliases = {
-            'ลาป่วยไม่มีใบรับรอง': 'ลาป่วยไม่มีใบรับรองแพทย์',
-            'ลาป่วยไม่มีใบรับรองแพทย์ ': 'ลาป่วยไม่มีใบรับรองแพทย์',
-            'ลาป่วยมีใบรับรอง': 'ลาป่วยมีใบรับรองแพทย์',
-            'ลาป่วยมีใบรับรองแพทย์ ': 'ลาป่วยมีใบรับรองแพทย์',
-            'ชดเชย/สลับวันหยุด': 'ชอเชย/สลับวันหยุด'
-          };
-          return aliases[raw] || raw || 'ลาอื่นๆ';
-        };
-
         const totals={};
         const currentLeaveYearRange = getLeaveYearRange(new Date());
         rows.forEach(r=>{
