@@ -1352,6 +1352,43 @@ autofillNameFromEmpId(savedId);
       document.getElementById('tomorrowLeaveList').querySelectorAll('[data-dashboard-emp]').forEach(b=>b.onclick=()=>openEmployeeHistory(b.dataset.dashboardEmp));
     }
 
+    // ปีสิทธิ์การลาแบบรอบ 26-25: เช่น 26/12/2025 - 25/12/2026 = ปี 2026
+    function getLeaveYearRange(dateInput = new Date()) {
+      const d = dateInput instanceof Date ? new Date(dateInput) : new Date(String(dateInput) + 'T00:00:00');
+      if (isNaN(d.getTime())) return null;
+      let leaveYear;
+      if (d.getMonth() === 11 && d.getDate() >= 26) {
+        leaveYear = d.getFullYear() + 1;
+      } else {
+        leaveYear = d.getFullYear();
+      }
+      return {
+        year: leaveYear,
+        startISO: `${leaveYear - 1}-12-26`,
+        endISO: `${leaveYear}-12-25`
+      };
+    }
+
+    // คำนวณจำนวนวันของใบลาที่ตกอยู่ในช่วง 26-25 ที่กำหนด
+    function leaveDaysWithinRange(row, range) {
+      if (!row || !range || !row.startDate) return 0;
+      const rs = String(row.startDate);
+      const re = String(row.endDate || row.startDate);
+      const from = rs > range.startISO ? rs : range.startISO;
+      const to = re < range.endISO ? re : range.endISO;
+      if (from > to) return 0;
+
+      const totalStart = new Date(rs + 'T00:00:00');
+      const totalEnd = new Date(re + 'T00:00:00');
+      const partStart = new Date(from + 'T00:00:00');
+      const partEnd = new Date(to + 'T00:00:00');
+      const totalCalendarDays = Math.floor((totalEnd - totalStart) / 86400000) + 1;
+      const partCalendarDays = Math.floor((partEnd - partStart) / 86400000) + 1;
+      const days = numericDays(row.leaveDays);
+      if (!days || totalCalendarDays <= 0) return 0;
+      return days * (partCalendarDays / totalCalendarDays);
+    }
+
     async function openEmployeeHistory(empIdValue){
       const id=normalizeEmployeeId(empIdValue); if(!id) return;
       try{
@@ -1376,9 +1413,15 @@ autofillNameFromEmpId(savedId);
         };
 
         const totals={};
+        const currentLeaveYearRange = getLeaveYearRange(new Date());
         rows.forEach(r=>{
           const k=normalizeHistoryLeaveType(r.leaveType);
-          totals[k]=(totals[k]||0)+numericDays(r.leaveDays);
+          if (k === 'ลาพักร้อน') {
+            // ลาพักร้อนนับตามปีสิทธิ์แบบรอบ 26-25 ไม่ใช่ปีปฏิทิน
+            totals[k]=(totals[k]||0)+leaveDaysWithinRange(r, currentLeaveYearRange);
+          } else {
+            totals[k]=(totals[k]||0)+numericDays(r.leaveDays);
+          }
         });
         const total=numericDays(rows.reduce((s,r)=>s+numericDays(r.leaveDays),0));
 
@@ -1410,13 +1453,11 @@ autofillNameFromEmpId(savedId);
         </div>`).join('');
 
         // แสดงสรุปวันลา โดยลาพักร้อนจะแสดงสิทธิ์คงเหลือในวงเล็บ
-        // คำนวณจากสิทธิ์ MAX_VACATION_DAYS ของปีปัจจุบันแบบรายบุคคล
-        const currentYearForVacation = String(new Date().getFullYear());
+        // โควต้าพักร้อน 6 วัน/ปี ใช้ปีสิทธิ์แบบรอบ 26 ธ.ค. - 25 ธ.ค.
         const vacationUsedThisYear = rows.reduce((sum, r) => {
           const type = normalizeHistoryLeaveType(r.leaveType);
-          const start = String(r.startDate || '');
-          if (type === 'ลาพักร้อน' && start.startsWith(currentYearForVacation)) {
-            return sum + numericDays(r.leaveDays);
+          if (type === 'ลาพักร้อน') {
+            return sum + leaveDaysWithinRange(r, currentLeaveYearRange);
           }
           return sum;
         }, 0);
@@ -1519,19 +1560,23 @@ if(!ok){
         if (value.leaveType === 'ลาพักร้อน') {
             const history = await driver.getEmployeeHistory(value.empId);
             
-            // Check specific year based on start date
-            const reqYear = parseInt(value.startDate.split('-')[0]);
-            
-            // Calculate used days for this year
+            // ตรวจโควต้าตามปีสิทธิ์แบบรอบ 26 ธ.ค. - 25 ธ.ค.
+            // ตัวอย่าง: 26/12/2025 - 25/12/2026 ถือเป็นปีสิทธิ์ 2026
+            const reqRange = getLeaveYearRange(value.startDate);
+
+            // คำนวณวันพักร้อนที่ใช้ไปเฉพาะในปีสิทธิ์นั้น
             let usedDays = 0;
             history.forEach(h => {
-                if (h.leaveType === 'ลาพักร้อน' && h.startDate && h.startDate.startsWith(String(reqYear))) {
-                    const d = parseFloat(String(h.leaveDays).replace(' วัน','')) || 0;
-                    usedDays += d;
+                if (normalizeHistoryLeaveType(h.leaveType) === 'ลาพักร้อน') {
+                    usedDays += leaveDaysWithinRange(h, reqRange);
                 }
             });
 
-            const requesting = parseFloat(String(value.leaveDays).replace(' วัน','')) || 0;
+            const requesting = leaveDaysWithinRange({
+                startDate: value.startDate,
+                endDate: value.endDate || value.startDate,
+                leaveDays: value.leaveDays
+            }, reqRange);
             
             if (usedDays + requesting > MAX_VACATION_DAYS) {
                  showToast(`❌ ลาพักร้อนเกินโควตา (ใช้ไป ${usedDays}, ขอเพิ่ม ${requesting}, รวม ${usedDays+requesting} > ${MAX_VACATION_DAYS} วัน)`, 'error');
