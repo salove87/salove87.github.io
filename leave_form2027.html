@@ -604,6 +604,7 @@ readonly>
     const db = getFirestore(app);
     const functions = getFunctions(app, 'asia-southeast1');
     const verifyHrAccessFn = httpsCallable(functions, 'verifyHrAccess');
+    const deleteLeaveRequestFn = httpsCallable(functions, 'deleteLeaveRequest');
 
     const systemTimeEl = document.getElementById('systemTime');
     function updateSystemTime(){
@@ -653,8 +654,17 @@ readonly>
     submitDate.value = todayISO();
     submitDate.setAttribute('readonly','readonly');
 
-    // HR password is NOT stored in this page. Verification is performed by Firebase Cloud Functions.
-    let hrAccessTokenReady = false;
+    // HR password check (client-side): plaintext password is not stored here.
+    // SHA-256 hash of the HR password is stored instead. This is obfuscation, NOT strong security.
+    const HR_PASSWORD_HASH = '36c9ddc15d3c0769797e8b15c2c911bd61840fa7ea810cb3bb3b31aaabd06ed1';
+    async function sha256Hex(value){
+      const data = new TextEncoder().encode(String(value));
+      const hash = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+    async function verifyHrPassword(value){
+      return (await sha256Hex(value)) === HR_PASSWORD_HASH;
+    }
     const MAX_VACATION_DAYS = 6; // Limit for Vacation Leave
     
     const imageModal = document.getElementById('imageModal');
@@ -827,16 +837,6 @@ readonly>
       "30375": { name: "พิว โก ซิน", dept: "ผลิต1", hireDate: "2026-03-11" },
       "30376": { name: "ยามินซูอ่าว", dept: "ผลิต1", hireDate: "2026-03-11" },
       "30370": { name: "ชิด มิน นาย", dept: "ผลิต2", hireDate: "2026-01-08" },
-      "10593": { name: "วีรชาติ แซ่เต๋ง", dept: "", hireDate: "2018-04-27" },
-      "10608": { name: "จักรพงษ์ หิรัญชัยศิลป์", dept: "", hireDate: "2019-02-25" },
-      "10543": { name: "ภูมิสิทธิ์ วัฒนะบวรพัฒน์", dept: "", hireDate: "2016-06-22" },
-      "10558": { name: "ปวีณา โมรา", dept: "", hireDate: "2017-01-28" },
-      "10647": { name: "พิชญ์สินี ไพศาลกูล", dept: "", hireDate: "2022-01-28" },
-      "10656": { name: "บุศรินทร์ นาคประสาน", dept: "", hireDate: "2023-01-28" },
-      "10665": { name: "อภิญญา พงค์ปวน", dept: "", hireDate: "2024-04-27" },
-      "10667": { name: "บังอร วณิชย์สุวรรณ์", dept: "", hireDate: "2024-07-28" },
-      "10671": { name: "ทัศนะชัย อุนทุโร", dept: "", hireDate: "2025-04-27" },
-      "10672": { name: "ภาณุภัค ศรีศิวาพรเจริญ", dept: "", hireDate: "2025-09-27" },
     };
     // ===== อายุงานพนักงาน =====
     // hireDate ถูกคำนวณจากอายุงานที่ HR ให้มา ณ วันที่ 08/08/2026
@@ -943,6 +943,20 @@ autofillNameFromEmpId(savedId);
       const t = String(val ?? '').trim();
       if(!t) return '';
       return /วัน$/.test(t) ? t : (t + ' วัน');
+    }
+
+    // ทำให้ชื่อประเภทการลาจากข้อมูลเก่า/ข้อมูลใหม่ใช้มาตรฐานเดียวกัน
+    // ต้องประกาศใน scope กลาง เพราะใช้ทั้งประวัติรายบุคคลและการตรวจโควต้าพักร้อน
+    function normalizeHistoryLeaveType(value){
+      const raw = String(value ?? '').trim();
+      const aliases = {
+        'ลาป่วยไม่มีใบรับรอง': 'ลาป่วยไม่มีใบรับรองแพทย์',
+        'ลาป่วยไม่มีใบรับรองแพทย์ ': 'ลาป่วยไม่มีใบรับรองแพทย์',
+        'ลาป่วยมีใบรับรอง': 'ลาป่วยมีใบรับรองแพทย์',
+        'ลาป่วยมีใบรับรองแพทย์ ': 'ลาป่วยมีใบรับรองแพทย์',
+        'ชดเชย/สลับวันหยุด': 'ชอเชย/สลับวันหยุด'
+      };
+      return aliases[raw] || raw || 'ลาอื่นๆ';
     }
 
     function validateRow(values, isEdit = false){
@@ -1126,11 +1140,18 @@ autofillNameFromEmpId(savedId);
     }
 
     let driver = null; let unsubscribe = null; let cache = [];
+    // เก็บผลการตรวจใบพักร้อนที่ทำให้สิทธิ์ครบ 6 วัน (ล้างเมื่อข้อมูลเปลี่ยน)
+    const vacationCompletionCache = new Map();
     const isSecureOrigin = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
     function attachSubscription(){
       if(unsubscribe) try{ unsubscribe(); }catch{}
-      unsubscribe = driver.subscribe(rows => { cache = (Array.isArray(rows) ? rows : []).map(normalizeEmployeeRow); renderTable(); renderDashboard(); }, (err)=>{
+      unsubscribe = driver.subscribe(rows => {
+        cache = (Array.isArray(rows) ? rows : []).map(normalizeEmployeeRow);
+        vacationCompletionCache.clear();
+        renderTable();
+        renderDashboard();
+      }, (err)=>{
         console.error('Firestore Error', err);
         showToast('Firestore อ่านข้อมูลล้มเหลว ใช้โหมด Local แทน', 'error');
         driver = makeLocalDriver(); attachSubscription();
@@ -1158,8 +1179,58 @@ autofillNameFromEmpId(savedId);
       return map[type] || 'background:#EEF0F3;color:#3B4250;';
     }
 
-    function renderTable(){
+    async function getVacationCompletionId(empId, range){
+      const canonicalId = normalizeEmployeeId(empId);
+      const key = `${canonicalId}|${range?.year || ''}`;
+      if (vacationCompletionCache.has(key)) return vacationCompletionCache.get(key);
+      try {
+        const history = await driver.getEmployeeHistory(canonicalId);
+        const vacationRows = history
+          .filter(r => normalizeHistoryLeaveType(r.leaveType) === 'ลาพักร้อน')
+          .map(r => ({ row: r, days: leaveDaysWithinRange(r, range) }))
+          .filter(x => x.days > 0)
+          .sort((a,b) => {
+            const ds = String(a.row.startDate || '').localeCompare(String(b.row.startDate || ''));
+            if (ds !== 0) return ds;
+            const de = String(a.row.endDate || '').localeCompare(String(b.row.endDate || ''));
+            if (de !== 0) return de;
+            return String(a.row.createdAt || '').localeCompare(String(b.row.createdAt || ''));
+          });
+        let used = 0;
+        let completionId = null;
+        for (const item of vacationRows) {
+          const before = used;
+          used += item.days;
+          if (!completionId && before < MAX_VACATION_DAYS && used >= MAX_VACATION_DAYS) {
+            completionId = item.row.id || null;
+          }
+        }
+        vacationCompletionCache.set(key, completionId);
+        return completionId;
+      } catch (err) {
+        console.warn('ตรวจสิทธิ์พักร้อนไม่สำเร็จ:', err);
+        vacationCompletionCache.set(key, null);
+        return null;
+      }
+    }
+
+    async function renderTable(){
       leaveTable.innerHTML = '';
+
+      // ตรวจเฉพาะพนักงานที่มีใบพักร้อนในรายการปัจจุบัน
+      const vacationEmployees = new Map();
+      const vacationCompletionByRowId = new Map();
+      cache.forEach(row => {
+        if (normalizeHistoryLeaveType(row.leaveType) === 'ลาพักร้อน') {
+          const range = getLeaveYearRange(row.startDate || new Date());
+          if (range) vacationEmployees.set(`${normalizeEmployeeId(row.empId)}|${range.year}`, { empId: row.empId, range });
+        }
+      });
+      for (const item of vacationEmployees.values()) {
+        const completionId = await getVacationCompletionId(item.empId, item.range);
+        if (completionId) vacationCompletionByRowId.set(completionId, true);
+      }
+
       cache.forEach(row => {
         const tr = document.createElement('tr');
 
@@ -1182,6 +1253,15 @@ autofillNameFromEmpId(savedId);
         chip.style.cssText = leaveTypeChipStyle(row.leaveType);
         chip.textContent = row.leaveType || '';
         tdType.appendChild(chip);
+
+        // แสดงข้อความใต้คำว่า "ลาพักร้อน" เฉพาะใบที่ทำให้ใช้สิทธิ์ครบ 6 วัน
+        if (normalizeHistoryLeaveType(row.leaveType) === 'ลาพักร้อน' && vacationCompletionByRowId.has(row.id)) {
+          const quotaBadge = document.createElement('div');
+          quotaBadge.textContent = 'ใช้สิทธิ์ครบแล้ว';
+          quotaBadge.style.cssText = 'margin-top:4px;font-size:11px;font-weight:700;color:var(--success);line-height:1.2;';
+          tdType.appendChild(quotaBadge);
+        }
+
         if (row.createdAt) {
           const created = row.createdAt.toDate ? row.createdAt.toDate() : new Date(row.createdAt);
           const diffHr = (Date.now() - created.getTime()) / 36e5;
@@ -1352,6 +1432,43 @@ autofillNameFromEmpId(savedId);
       document.getElementById('tomorrowLeaveList').querySelectorAll('[data-dashboard-emp]').forEach(b=>b.onclick=()=>openEmployeeHistory(b.dataset.dashboardEmp));
     }
 
+    // ปีสิทธิ์การลาแบบรอบ 26-25: เช่น 26/12/2025 - 25/12/2026 = ปี 2026
+    function getLeaveYearRange(dateInput = new Date()) {
+      const d = dateInput instanceof Date ? new Date(dateInput) : new Date(String(dateInput) + 'T00:00:00');
+      if (isNaN(d.getTime())) return null;
+      let leaveYear;
+      if (d.getMonth() === 11 && d.getDate() >= 26) {
+        leaveYear = d.getFullYear() + 1;
+      } else {
+        leaveYear = d.getFullYear();
+      }
+      return {
+        year: leaveYear,
+        startISO: `${leaveYear - 1}-12-26`,
+        endISO: `${leaveYear}-12-25`
+      };
+    }
+
+    // คำนวณจำนวนวันของใบลาที่ตกอยู่ในช่วง 26-25 ที่กำหนด
+    function leaveDaysWithinRange(row, range) {
+      if (!row || !range || !row.startDate) return 0;
+      const rs = String(row.startDate);
+      const re = String(row.endDate || row.startDate);
+      const from = rs > range.startISO ? rs : range.startISO;
+      const to = re < range.endISO ? re : range.endISO;
+      if (from > to) return 0;
+
+      const totalStart = new Date(rs + 'T00:00:00');
+      const totalEnd = new Date(re + 'T00:00:00');
+      const partStart = new Date(from + 'T00:00:00');
+      const partEnd = new Date(to + 'T00:00:00');
+      const totalCalendarDays = Math.floor((totalEnd - totalStart) / 86400000) + 1;
+      const partCalendarDays = Math.floor((partEnd - partStart) / 86400000) + 1;
+      const days = numericDays(row.leaveDays);
+      if (!days || totalCalendarDays <= 0) return 0;
+      return days * (partCalendarDays / totalCalendarDays);
+    }
+
     async function openEmployeeHistory(empIdValue){
       const id=normalizeEmployeeId(empIdValue); if(!id) return;
       try{
@@ -1362,23 +1479,16 @@ autofillNameFromEmpId(savedId);
         const info=EMP_MAP[id] || rows[0] || {};
         historyTitle.textContent=`ประวัติการลา — ${info.name||rows[0]?.empName||id}`;
         historySubtitle.innerHTML=`รหัส ${id} · ${escapeHtml(info.dept||rows[0]?.department||'-')}`;
-        // สรุปประเภทการลาแบบแยกชัดเจน: ใช้ค่า leaveType จริงจากฐานข้อมูล และ trim ช่องว่างเพื่อไม่ให้รายการถูกแยกเป็นคนละประเภท
-        const normalizeHistoryLeaveType = (value) => {
-          const raw = String(value ?? '').trim();
-          const aliases = {
-            'ลาป่วยไม่มีใบรับรอง': 'ลาป่วยไม่มีใบรับรองแพทย์',
-            'ลาป่วยไม่มีใบรับรองแพทย์ ': 'ลาป่วยไม่มีใบรับรองแพทย์',
-            'ลาป่วยมีใบรับรอง': 'ลาป่วยมีใบรับรองแพทย์',
-            'ลาป่วยมีใบรับรองแพทย์ ': 'ลาป่วยมีใบรับรองแพทย์',
-            'ชดเชย/สลับวันหยุด': 'ชอเชย/สลับวันหยุด'
-          };
-          return aliases[raw] || raw || 'ลาอื่นๆ';
-        };
-
         const totals={};
+        const currentLeaveYearRange = getLeaveYearRange(new Date());
         rows.forEach(r=>{
           const k=normalizeHistoryLeaveType(r.leaveType);
-          totals[k]=(totals[k]||0)+numericDays(r.leaveDays);
+          if (k === 'ลาพักร้อน') {
+            // ลาพักร้อนนับตามปีสิทธิ์แบบรอบ 26-25 ไม่ใช่ปีปฏิทิน
+            totals[k]=(totals[k]||0)+leaveDaysWithinRange(r, currentLeaveYearRange);
+          } else {
+            totals[k]=(totals[k]||0)+numericDays(r.leaveDays);
+          }
         });
         const total=numericDays(rows.reduce((s,r)=>s+numericDays(r.leaveDays),0));
 
@@ -1409,11 +1519,26 @@ autofillNameFromEmpId(savedId);
           <div class="font-display text-xl mt-1" style="font-weight:600;color:var(--accent-deep);">${x[1]}</div>
         </div>`).join('');
 
+        // แสดงสรุปวันลา โดยลาพักร้อนจะแสดงสิทธิ์คงเหลือในวงเล็บ
+        // โควต้าพักร้อน 6 วัน/ปี ใช้ปีสิทธิ์แบบรอบ 26 ธ.ค. - 25 ธ.ค.
+        const vacationUsedThisYear = rows.reduce((sum, r) => {
+          const type = normalizeHistoryLeaveType(r.leaveType);
+          if (type === 'ลาพักร้อน') {
+            return sum + leaveDaysWithinRange(r, currentLeaveYearRange);
+          }
+          return sum;
+        }, 0);
+        const vacationRemaining = Math.max(0, MAX_VACATION_DAYS - vacationUsedThisYear);
+        const vacationRemainColor = vacationRemaining <= 0 ? 'var(--danger)' : vacationRemaining <= 2 ? 'var(--warning)' : 'var(--success)';
+
         historySummary.innerHTML = leaveTypes.map(type=>{
           const d = totals[type] || 0;
+          const vacationExtra = type === 'ลาพักร้อน'
+            ? `<span style="color:${vacationRemainColor};font-weight:600;margin-left:4px;">(คงเหลือ ${vacationRemaining} วัน)</span>`
+            : '';
           return `<div class="card p-3" style="min-height:82px;border:1px solid var(--line);">
             <div class="text-xs" style="color:var(--ink-soft);line-height:1.45;">${type}</div>
-            <div class="font-display text-base mt-1" style="font-weight:600;color:var(--accent-deep);">${d} วัน</div>
+            <div class="font-display text-base mt-1" style="font-weight:600;color:var(--accent-deep);">${d} วัน ${vacationExtra}</div>
           </div>`;
         }).join('');
 
@@ -1502,19 +1627,23 @@ if(!ok){
         if (value.leaveType === 'ลาพักร้อน') {
             const history = await driver.getEmployeeHistory(value.empId);
             
-            // Check specific year based on start date
-            const reqYear = parseInt(value.startDate.split('-')[0]);
-            
-            // Calculate used days for this year
+            // ตรวจโควต้าตามปีสิทธิ์แบบรอบ 26 ธ.ค. - 25 ธ.ค.
+            // ตัวอย่าง: 26/12/2025 - 25/12/2026 ถือเป็นปีสิทธิ์ 2026
+            const reqRange = getLeaveYearRange(value.startDate);
+
+            // คำนวณวันพักร้อนที่ใช้ไปเฉพาะในปีสิทธิ์นั้น
             let usedDays = 0;
             history.forEach(h => {
-                if (h.leaveType === 'ลาพักร้อน' && h.startDate && h.startDate.startsWith(String(reqYear))) {
-                    const d = parseFloat(String(h.leaveDays).replace(' วัน','')) || 0;
-                    usedDays += d;
+                if (normalizeHistoryLeaveType(h.leaveType) === 'ลาพักร้อน') {
+                    usedDays += leaveDaysWithinRange(h, reqRange);
                 }
             });
 
-            const requesting = parseFloat(String(value.leaveDays).replace(' วัน','')) || 0;
+            const requesting = leaveDaysWithinRange({
+                startDate: value.startDate,
+                endDate: value.endDate || value.startDate,
+                leaveDays: value.leaveDays
+            }, reqRange);
             
             if (usedDays + requesting > MAX_VACATION_DAYS) {
                  showToast(`❌ ลาพักร้อนเกินโควตา (ใช้ไป ${usedDays}, ขอเพิ่ม ${requesting}, รวม ${usedDays+requesting} > ${MAX_VACATION_DAYS} วัน)`, 'error');
@@ -1642,18 +1771,37 @@ const { ok, errors, warnings, value } =
         passwordModal.style.display='block'; hrPasswordInput.value='';
         confirmDelete.onclick = async ()=>{
           try{
-            confirmDelete.disabled=true; confirmDelete.textContent='กำลังตรวจสอบ...';
-            const result = await verifyHrAccessFn({ password: hrPasswordInput.value });
-            if(result?.data?.customToken){
-              await signInWithCustomToken(auth, result.data.customToken);
-              hrAccessTokenReady = true;
+            confirmDelete.disabled=true; confirmDelete.textContent='กำลังลบ...';
+            const password = String(hrPasswordInput.value || '').trim();
+            if(!password){
+              showToast('❌ กรุณากรอกรหัสผ่าน HR','error');
+              return;
             }
+
+            // ตรวจรหัส HR ในหน้าเว็บแบบไม่เก็บรหัสจริงไว้ใน source
+            const ok = await verifyHrPassword(password);
+            if(!ok){
+              showToast('❌ รหัสผ่าน HR ไม่ถูกต้อง','error');
+              return;
+            }
+
+            // ลบโดยตรงจาก Firestore หลังผ่านการตรวจรหัส
             await driver.remove(id);
+
             passwordModal.style.display='none';
+            hrPasswordInput.value='';
             showToast('🗑️ ลบข้อมูลเรียบร้อยแล้ว','success');
           } catch(err){
-            console.error(err);
-            showToast(err?.message?.includes('รหัสผ่าน') ? '❌ รหัสผ่านไม่ถูกต้อง' : 'ลบไม่สำเร็จ: ' + explainFirestoreError(err), 'error');
+            console.error('Delete leave error:', err);
+            const code = err?.code || '';
+            const msg = String(err?.message || '');
+            if(code.includes('permission-denied') || msg.includes('รหัสผ่าน')){
+              showToast('❌ รหัสผ่าน HR ไม่ถูกต้อง','error');
+            } else if(code.includes('not-found')){
+              showToast('⚠️ ไม่พบใบลานี้ อาจถูกลบไปแล้ว','warning');
+            } else {
+              showToast('❌ ลบไม่สำเร็จ: ' + (msg || code || 'เกิดข้อผิดพลาดจากระบบ'), 'error');
+            }
           } finally { confirmDelete.disabled=false; confirmDelete.textContent='ลบ'; }
         };
         cancelDelete.onclick = ()=>{passwordModal.style.display='none';};
