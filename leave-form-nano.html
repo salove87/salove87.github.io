@@ -604,6 +604,7 @@ readonly>
     const db = getFirestore(app);
     const functions = getFunctions(app, 'asia-southeast1');
     const verifyHrAccessFn = httpsCallable(functions, 'verifyHrAccess');
+    const deleteLeaveRequestFn = httpsCallable(functions, 'deleteLeaveRequest');
 
     const systemTimeEl = document.getElementById('systemTime');
     function updateSystemTime(){
@@ -653,8 +654,17 @@ readonly>
     submitDate.value = todayISO();
     submitDate.setAttribute('readonly','readonly');
 
-    // HR password is NOT stored in this page. Verification is performed by Firebase Cloud Functions.
-    let hrAccessTokenReady = false;
+    // HR password check (client-side): plaintext password is not stored here.
+    // SHA-256 hash of the HR password is stored instead. This is obfuscation, NOT strong security.
+    const HR_PASSWORD_HASH = '36c9ddc15d3c0769797e8b15c2c911bd61840fa7ea810cb3bb3b31aaabd06ed1';
+    async function sha256Hex(value){
+      const data = new TextEncoder().encode(String(value));
+      const hash = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+    async function verifyHrPassword(value){
+      return (await sha256Hex(value)) === HR_PASSWORD_HASH;
+    }
     const MAX_VACATION_DAYS = 6; // Limit for Vacation Leave
     
     const imageModal = document.getElementById('imageModal');
@@ -1694,18 +1704,37 @@ const { ok, errors, warnings, value } =
         passwordModal.style.display='block'; hrPasswordInput.value='';
         confirmDelete.onclick = async ()=>{
           try{
-            confirmDelete.disabled=true; confirmDelete.textContent='กำลังตรวจสอบ...';
-            const result = await verifyHrAccessFn({ password: hrPasswordInput.value });
-            if(result?.data?.customToken){
-              await signInWithCustomToken(auth, result.data.customToken);
-              hrAccessTokenReady = true;
+            confirmDelete.disabled=true; confirmDelete.textContent='กำลังลบ...';
+            const password = String(hrPasswordInput.value || '').trim();
+            if(!password){
+              showToast('❌ กรุณากรอกรหัสผ่าน HR','error');
+              return;
             }
+
+            // ตรวจรหัส HR ในหน้าเว็บแบบไม่เก็บรหัสจริงไว้ใน source
+            const ok = await verifyHrPassword(password);
+            if(!ok){
+              showToast('❌ รหัสผ่าน HR ไม่ถูกต้อง','error');
+              return;
+            }
+
+            // ลบโดยตรงจาก Firestore หลังผ่านการตรวจรหัส
             await driver.remove(id);
+
             passwordModal.style.display='none';
+            hrPasswordInput.value='';
             showToast('🗑️ ลบข้อมูลเรียบร้อยแล้ว','success');
           } catch(err){
-            console.error(err);
-            showToast(err?.message?.includes('รหัสผ่าน') ? '❌ รหัสผ่านไม่ถูกต้อง' : 'ลบไม่สำเร็จ: ' + explainFirestoreError(err), 'error');
+            console.error('Delete leave error:', err);
+            const code = err?.code || '';
+            const msg = String(err?.message || '');
+            if(code.includes('permission-denied') || msg.includes('รหัสผ่าน')){
+              showToast('❌ รหัสผ่าน HR ไม่ถูกต้อง','error');
+            } else if(code.includes('not-found')){
+              showToast('⚠️ ไม่พบใบลานี้ อาจถูกลบไปแล้ว','warning');
+            } else {
+              showToast('❌ ลบไม่สำเร็จ: ' + (msg || code || 'เกิดข้อผิดพลาดจากระบบ'), 'error');
+            }
           } finally { confirmDelete.disabled=false; confirmDelete.textContent='ลบ'; }
         };
         cancelDelete.onclick = ()=>{passwordModal.style.display='none';};
