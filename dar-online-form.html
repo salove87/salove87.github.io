@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ใบขอดำเนินการจัดการด้านเอกสาร (DAR.)</title>
+<style>
+:root{--primary:#176b4d;--border:#cfd8d3;--bg:#f5f8f6;--danger:#c62828}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:"Sarabun","Noto Sans Thai",Arial,sans-serif;color:#222}
+.container{max-width:1200px;margin:24px auto;padding:0 14px}
+.card{background:#fff;border-radius:14px;box-shadow:0 4px 18px #00000012;padding:26px}
+.header{text-align:center;border-bottom:3px solid var(--primary);padding-bottom:16px;margin-bottom:22px}
+.header h1{margin:0;font-size:28px;color:var(--primary)}
+.header p{margin:6px 0 0;color:#666}
+.section{border:1px solid var(--border);border-radius:10px;margin:16px 0;padding:18px}
+.section h2{font-size:19px;margin:0 0 14px;color:var(--primary)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+label{font-weight:600;display:block;margin-bottom:6px}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid #c7d0cb;border-radius:8px;font:inherit;background:#fff}
+textarea{min-height:90px;resize:vertical}
+.option-group{display:flex;flex-wrap:wrap;gap:12px 20px}
+.option{display:flex;align-items:center;gap:7px;font-weight:400}
+.option input{width:auto}
+table{width:100%;border-collapse:collapse;min-width:900px}
+.table-wrap{overflow:auto}
+th,td{border:1px solid #aeb9b3;padding:7px;vertical-align:top}
+th{background:#edf4f0;text-align:center}
+td input{border:0;border-radius:0;padding:6px}
+.btn{border:0;border-radius:8px;padding:10px 16px;font:inherit;font-weight:700;cursor:pointer}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-secondary{background:#e7eeea;color:#234}
+.btn-danger{background:#fff0f0;color:var(--danger);border:1px solid #f0bcbc}
+.actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:20px}
+.help{font-size:13px;color:#68736e;margin-top:5px}
+.required{color:var(--danger)}
+.error{color:var(--danger);font-size:13px;margin-top:4px}
+.status{margin-top:15px;padding:12px;border-radius:8px;display:none}
+.status.ok{display:block;background:#eaf7ef;color:#166534}
+.status.bad{display:block;background:#fff1f2;color:#991b1b}
+.file-list{margin-top:8px;font-size:14px}
+.signature-box{min-height:120px;border:1px dashed #9aa7a0;border-radius:8px;padding:12px;color:#777}
+@media(max-width:760px){.grid,.grid3{grid-template-columns:1fr}.card{padding:14px}.header h1{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="card">
+<div class="header">
+  <h1>ใบขอดำเนินการจัดการด้านเอกสาร (DAR.)</h1>
+  <p>FM-QS-001-01 : 11/09/23</p>
+</div>
+
+<form id="darForm">
+<section class="section">
+<h2>1. ประเภทเอกสาร</h2>
+<div class="option-group">
+<label class="option"><input type="checkbox" name="docType" value="คู่มือคุณภาพ (QM)"> คู่มือคุณภาพ (QM)</label>
+<label class="option"><input type="checkbox" name="docType" value="ระเบียบปฏิบัติ (QP)"> ระเบียบปฏิบัติ (QP)</label>
+<label class="option"><input type="checkbox" name="docType" value="วิธีการทำงาน (WI)"> วิธีการทำงาน (WI)</label>
+<label class="option"><input type="checkbox" name="docType" value="แบบฟอร์ม (FM)"> แบบฟอร์ม (FM)</label>
+<label class="option"><input type="checkbox" name="docType" value="เอกสารภายนอก"> เอกสารภายนอก</label>
+<label class="option"><input type="checkbox" name="docType" value="อื่น ๆ"> อื่น ๆ</label>
+</div>
+<input name="docTypeOther" placeholder="ระบุประเภทเอกสารอื่น ๆ">
+</section>
+
+<section class="section">
+<h2>2. มีความประสงค์</h2>
+<div class="option-group">
+<label class="option"><input required type="radio" name="purpose" value="ขอจัดทำใหม่"> ขอจัดทำใหม่</label>
+<label class="option"><input type="radio" name="purpose" value="ขอแก้ไข"> ขอแก้ไข</label>
+<label class="option"><input type="radio" name="purpose" value="ยกเลิก"> ยกเลิก</label>
+<label class="option"><input type="radio" name="purpose" value="อื่น ๆ"> อื่น ๆ</label>
+</div>
+<input name="purposeOther" placeholder="ระบุความประสงค์อื่น ๆ">
+</section>
+
+<section class="section">
+<h2>3. รายการเอกสาร</h2>
+<div class="table-wrap">
+<table>
+<thead><tr><th>ลำดับ</th><th>หมายเลข</th><th>ชื่อเอกสาร</th><th>วันที่เอกสารเดิมบังคับใช้</th><th>ฉบับที่</th><th>เหตุผล</th></tr></thead>
+<tbody id="documentRows"></tbody>
+</table>
+</div>
+<div class="help">กรอกเฉพาะรายการที่ต้องการดำเนินการ สามารถเพิ่ม/ลบรายการได้</div>
+</section>
+
+<section class="section">
+<h2>4. เอกสารที่ต้องทบทวน</h2>
+<div class="option-group">
+<label class="option"><input type="checkbox" name="reviewDoc" value="QP"> QP</label>
+<label class="option"><input type="checkbox" name="reviewDoc" value="PQCT"> PQCT</label>
+<label class="option"><input type="checkbox" name="reviewDoc" value="SD"> SD</label>
+<label class="option"><input type="checkbox" name="reviewDoc" value="WI"> WI</label>
+<label class="option"><input type="checkbox" name="reviewDoc" value="FMEA"> FMEA</label>
+<label class="option"><input type="checkbox" name="reviewDoc" value="เอกสารอื่น ๆ"> เอกสารอื่น ๆ</label>
+</div>
+<input name="reviewOther" placeholder="ระบุเอกสารอื่น ๆ">
+</section>
+
+<section class="section">
+<h2>5. รายละเอียดการแจก-จ่าย</h2>
+<div class="grid3">
+<div><label>วันที่เอกสารฉบับใหม่มีผลบังคับใช้</label><input type="date" name="newEffectiveDate"></div>
+<div><label>ฉบับที่</label><input name="newRevision"></div>
+<div><label>แผนกที่ขอดำเนินการ <span class="required">*</span></label><input required name="department"></div>
+</div>
+<br>
+<label>ผู้ถือครองตามตำแหน่งงาน / จำนวนชุด</label>
+<div class="table-wrap">
+<table>
+<thead><tr><th>#</th><th>ตำแหน่งงาน / ผู้ถือครอง</th><th>จำนวนชุด</th><th>#</th><th>ตำแหน่งงาน / ผู้ถือครอง</th><th>จำนวนชุด</th></tr></thead>
+<tbody id="distributionRows"></tbody>
+</table>
+</div>
+</section>
+
+<section class="section">
+<h2>6. ผู้ขอดำเนินการ / ผู้อนุมัติ</h2>
+<div class="grid">
+<div>
+<label>ผู้ขอดำเนินการ <span class="required">*</span></label>
+<input required name="requester">
+<label style="margin-top:10px">วันที่</label>
+<input type="date" name="requesterDate">
+</div>
+<div>
+<label>ผู้อนุมัติ</label>
+<input name="approver">
+<label style="margin-top:10px">วันที่</label>
+<input type="date" name="approverDate">
+</div>
+</div>
+</section>
+
+<section class="section">
+<h2>7. QMR</h2>
+<div class="option-group">
+<label class="option"><input type="radio" name="qmr" value="YES"> YES</label>
+<label class="option"><input type="radio" name="qmr" value="NO"> NO</label>
+</div>
+<label style="margin-top:12px">หมายเหตุ QMR</label>
+<textarea name="qmrNote" placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"></textarea>
+</section>
+
+<section class="section">
+<h2>8. แนบเอกสารประกอบ</h2>
+<input id="attachments" type="file" name="attachments" multiple
+accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt">
+<div class="help">รองรับ PDF, Word, Excel, รูปภาพ และ TXT สามารถเลือกหลายไฟล์ได้</div>
+<div id="fileList" class="file-list"></div>
+</section>
+
+<div id="status" class="status"></div>
+<div class="actions">
+<button type="button" class="btn btn-secondary" onclick="document.getElementById('darForm').reset(); location.reload()">ล้างข้อมูล</button>
+<button type="submit" class="btn btn-primary">ส่งแบบฟอร์ม DAR</button>
+</div>
+</form>
+</div>
+</div>
+
+<script>
+// ใส่ URL ของ Google Apps Script Web App ที่ได้จากไฟล์ Code.gs
+const SUBMIT_URL = "ใส่_URL_WEB_APP_ตรงนี้";
+
+const docRows = document.getElementById("documentRows");
+for(let i=1;i<=10;i++){
+  const tr=document.createElement("tr");
+  tr.innerHTML=`<td style="text-align:center">${i}</td>
+  <td><input name="doc_${i}_number"></td>
+  <td><input name="doc_${i}_name"></td>
+  <td><input type="date" name="doc_${i}_oldDate"></td>
+  <td><input name="doc_${i}_revision"></td>
+  <td><input name="doc_${i}_reason"></td>`;
+  docRows.appendChild(tr);
+}
+const distRows=document.getElementById("distributionRows");
+for(let i=1;i<=7;i++){
+  const j=i+7;
+  const tr=document.createElement("tr");
+  tr.innerHTML=`<td>${i}</td><td><input name="holder_${i}"></td><td><input type="number" min="0" name="qty_${i}"></td>
+  <td>${j}</td><td><input name="holder_${j}"></td><td><input type="number" min="0" name="qty_${j}"></td>`;
+  distRows.appendChild(tr);
+}
+document.getElementById("attachments").addEventListener("change", e=>{
+  const files=[...e.target.files];
+  document.getElementById("fileList").innerHTML=files.length
+    ? files.map(f=>`• ${escapeHtml(f.name)} (${(f.size/1024/1024).toFixed(2)} MB)`).join("<br>")
+    : "";
+});
+function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
+
+function formObject(form){
+  const data={};
+  [...form.elements].forEach(el=>{
+    if(!el.name || el.type==="file") return;
+    if(el.type==="checkbox"){
+      if(!data[el.name]) data[el.name]=[];
+      if(el.checked) data[el.name].push(el.value);
+    }else if(el.type==="radio"){
+      if(el.checked) data[el.name]=el.value;
+    }else data[el.name]=el.value;
+  });
+  return data;
+}
+function rowsObject(prefix, count, fields){
+  const out=[];
+  for(let i=1;i<=count;i++){
+    const r={};
+    fields.forEach(f=>r[f]=document.querySelector(`[name="${prefix}_${i}_${f}"]`)?.value||"");
+    if(Object.values(r).some(Boolean)) out.push(r);
+  }
+  return out;
+}
+document.getElementById("darForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const status=document.getElementById("status");
+  status.className="status"; status.style.display="block";
+  if(SUBMIT_URL.includes("ใส่_URL")){
+    status.className="status bad";
+    status.textContent="ยังไม่ได้ตั้งค่า URL สำหรับรับข้อมูล กรุณาใส่ URL ของ Google Apps Script ในตัวแปร SUBMIT_URL ก่อนใช้งานจริง";
+    return;
+  }
+  const files=[...document.getElementById("attachments").files];
+  const payload=formObject(e.target);
+  payload.documentItems=rowsObject("doc",10,["number","name","oldDate","revision","reason"]);
+  payload.distribution=[];
+  for(let i=1;i<=14;i++){
+    const holder=document.querySelector(`[name="holder_${i}"]`)?.value||"";
+    const qty=document.querySelector(`[name="qty_${i}"]`)?.value||"";
+    if(holder||qty) payload.distribution.push({holder,qty});
+  }
+  payload.attachments=[];
+  for(const file of files){
+    if(file.size > 10*1024*1024){alert(`ไฟล์ ${file.name} มีขนาดเกิน 10 MB`);return;}
+    payload.attachments.push({
+      name:file.name,type:file.type,size:file.size,
+      data:await toBase64(file)
+    });
+  }
+  try{
+    const res=await fetch(SUBMIT_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});
+    const result=await res.json();
+    if(result.ok){
+      status.className="status ok";
+      status.textContent="ส่งแบบฟอร์มเรียบร้อยแล้ว เลขที่รายการ: "+(result.id||"-");
+      e.target.reset(); document.getElementById("fileList").innerHTML="";
+    }else throw new Error(result.message||"ไม่สามารถส่งข้อมูลได้");
+  }catch(err){
+    status.className="status bad";
+    status.textContent="ส่งข้อมูลไม่สำเร็จ: "+err.message;
+  }
+});
+function toBase64(file){
+ return new Promise((resolve,reject)=>{
+  const r=new FileReader();
+  r.onload=()=>resolve(r.result.split(",")[1]);
+  r.onerror=reject; r.readAsDataURL(file);
+ });
+}
+</script>
+</body>
+</html>
