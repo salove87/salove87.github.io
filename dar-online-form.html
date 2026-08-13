@@ -61,13 +61,13 @@ label{display:block;margin:6px 0}input,textarea{width:100%;box-sizing:border-box
 
 <div id="status" class="status"></div>
 <div style="text-align:center"><button type="button" class="btn gray" onclick="location.reload()">ล้างข้อมูล</button>
-<button type="button" class="btn blue" id="saveEvidence">บันทึกเป็นหลักฐาน</button>
+<button type="button" class="btn blue" id="saveEvidence">บันทึกเป็นหลักฐาน + ดาวน์โหลด PDF</button>
 <button type="submit" class="btn green">ส่ง DAR / รอ QMR</button></div>
 </form>
 
 <div class="section"><h2>ดาวน์โหลดไฟล์แนบ</h2>
 <div class="grid"><input id="darId" placeholder="ใส่เลข DAR"><button class="btn blue" id="findFiles">ค้นหาไฟล์</button></div>
-<div id="files"></div></div>
+<div id="files"></div><div id="darPdfArea" style="margin-top:10px"></div></div>
 </div></div>
 
 <iframe name="gasUploadFrame" id="gasUploadFrame" style="display:none"></iframe>
@@ -75,6 +75,7 @@ label{display:block;margin:6px 0}input,textarea{width:100%;box-sizing:border-box
 <input name="action" value="upload"><input name="darId" id="gasDarId"><input name="filesJson" id="gasFilesJson">
 </form>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import{getFirestore,doc,setDoc,getDoc,addDoc,collection,serverTimestamp}from"https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
@@ -104,6 +105,38 @@ function rows(prefix,count,fields){let a=[];for(let i=1;i<=count;i++){let r={};f
 function darNumber(){let d=new Date(),p=n=>String(n).padStart(2,"0");return`DAR-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}-${Math.random().toString(36).slice(2,6).toUpperCase()}`}
 function status(t,ok=true){let s=$("#status");s.className="status "+(ok?"ok":"bad");s.style.display="block";s.textContent=t}
 
+
+function fmtDate(v){if(!v)return"";const [y,m,d]=v.split("-");return d&&m&&y?`${d}/${m}/${y}`:v}
+function val(o,k){return o&&o[k]!=null?String(o[k]):""}
+function fitText(ctx,text,x,y,maxW,size=16){text=String(text||"");if(!text)return;ctx.font=`${size}px Arial,"Noto Sans Thai",sans-serif`;let f=size;while(ctx.measureText(text).width>maxW&&f>7){f--;ctx.font=`${f}px Arial,"Noto Sans Thai",sans-serif`}ctx.fillText(text,x,y)}
+function mark(ctx,x,y){ctx.font='bold 23px Arial';ctx.fillText('✓',x,y)}
+function drawPdfText(ctx,text,x,y,w,size=16){ctx.textBaseline='middle';fitText(ctx,text,x,y,w,size);ctx.textBaseline='alphabetic'}
+async function makeDarPdf(record){
+ const img=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=reject;i.src='dar_template.png'});
+ const c=document.createElement('canvas');c.width=1191;c.height=1684;const ctx=c.getContext('2d');ctx.drawImage(img,0,0,1191,1684);ctx.fillStyle='#111';
+ const d=record||{}; const types=Array.isArray(d.docType)?d.docType:[], reviews=Array.isArray(d.reviewDoc)?d.reviewDoc:[];
+ // document type checkboxes
+ if(types.includes('QM'))mark(ctx,217,137); if(types.includes('QP'))mark(ctx,217,188); if(types.includes('WI'))mark(ctx,503,137); if(types.includes('FM'))mark(ctx,503,188); if(types.includes('เอกสารภายนอก'))mark(ctx,833,137); if(types.includes('อื่น ๆ'))mark(ctx,833,188);
+ // purpose circles
+ const purpose=val(d,'purpose'); if(purpose==='ขอจัดทำใหม่')mark(ctx,255,247); if(purpose==='ขอแก้ไข')mark(ctx,469,247); if(purpose==='ยกเลิก')mark(ctx,659,247); if(purpose==='อื่น ๆ')mark(ctx,846,247);
+ // other text
+ drawPdfText(ctx,val(d,'docTypeOther'),900,190,220,13); drawPdfText(ctx,val(d,'purposeOther'),895,250,180,13);
+ // document table
+ const items=Array.isArray(d.documentItems)?d.documentItems:[]; const ys=Array.from({length:10},(_,i)=>420+i*39);
+ items.slice(0,10).forEach((r,i)=>{const y=ys[i];drawPdfText(ctx,String(i+1),50,y,45,13);drawPdfText(ctx,r.number,130,y,150,12);drawPdfText(ctx,r.name,305,y,330,12);drawPdfText(ctx,fmtDate(r.oldDate),650,y,165,11);drawPdfText(ctx,r.revision,824,y,75,12);drawPdfText(ctx,r.reason,913,y,240,11)});
+ // review checkboxes
+ const rpos={QP:[192,839],PQCT:[309,839],SD:[425,839],WI:[192,884],FMEA:[309,884],'อื่น ๆ':[425,884]}; reviews.forEach(r=>{if(rpos[r])mark(ctx,rpos[r][0],rpos[r][1])});
+ drawPdfText(ctx,val(d,'reviewOther'),520,884,260,12);
+ // distribution details
+ drawPdfText(ctx,fmtDate(d.newEffectiveDate),390,972,250,13);drawPdfText(ctx,val(d.newRevision),835,972,120,13);drawPdfText(ctx,val(d.department),330,1035,730,14);
+ const dist=Array.isArray(d.distribution)?d.distribution:[]; for(let i=0;i<14;i++){const r=dist[i]||{}, row=i%7, col=i<7?0:1, y=1138+row*48; const nx=col===0?120:645, qx=col===0?505:1030; if(r.holder)drawPdfText(ctx,r.holder,nx,y,330,12); if(r.qty)drawPdfText(ctx,r.qty,qx,y,70,12)}
+ // requester/approver/QMR
+ drawPdfText(ctx,val(d,'requester'),75,1542,450,14);drawPdfText(ctx,val(d,'approver'),585,1542,360,14);drawPdfText(ctx,fmtDate(d.requesterDate),190,1630,180,12);drawPdfText(ctx,fmtDate(d.approverDate),700,1630,180,12);
+ const q=val(d,'qmr'); if(q==='YES')mark(ctx,865,1501);if(q==='NO')mark(ctx,942,1501);
+ // add DAR number small footer for traceability without changing template
+ drawPdfText(ctx,val(d,'darId'),930,1660,230,11);
+ const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});pdf.addImage(c.toDataURL('image/jpeg',0.94),'JPEG',0,0,210,297);pdf.save(`${val(d,'darId')||'DAR'}.pdf`);
+}
 async function uploadToGAS(darId){
  const selected=[...$("#attachments").files];
  const arr=[];
@@ -134,7 +167,7 @@ async function save(mode){
    const files=await uploadToGAS(id);
    await setDoc(doc(db,"darRequests",id),{darId:id,...data,attachments:files,status:mode==="EVIDENCE"?"บันทึกหลักฐาน":"รออนุมัติ QMR",qmrApprovalRequired:mode!=="EVIDENCE",createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
    await addDoc(collection(db,"darLogs"),{darId:id,action:mode==="EVIDENCE"?"SAVE_EVIDENCE":"SUBMIT",createdAt:serverTimestamp()});
-   status(mode==="EVIDENCE"?`บันทึกหลักฐานแล้ว ${id} — QMR ไม่ต้องอนุมัติ`:`ส่ง DAR แล้ว ${id} — รอ QMR อนุมัติ`);
+   const savedRecord={darId:id,...data,attachments:files}; if(mode==="EVIDENCE"){await makeDarPdf(savedRecord); status(`บันทึกหลักฐานแล้ว ${id} — QMR ไม่ต้องอนุมัติ และดาวน์โหลด PDF แล้ว`)}else{await makeDarPdf(savedRecord); status(`ส่ง DAR แล้ว ${id} — รอ QMR อนุมัติ และดาวน์โหลด PDF แล้ว`)}
  }catch(e){console.error(e);status("บันทึกไม่สำเร็จ: "+e.message,false)}
 }
 $("#saveEvidence").onclick=()=>save("EVIDENCE");$("#darForm").onsubmit=e=>{e.preventDefault();save("SUBMIT")};
@@ -142,7 +175,7 @@ $("#saveEvidence").onclick=()=>save("EVIDENCE");$("#darForm").onsubmit=e=>{e.pre
 $("#findFiles").onclick=async()=>{
  const id=$("#darId").value.trim(),box=$("#files");box.innerHTML="";if(!id)return;
  try{const snap=await getDoc(doc(db,"darRequests",id));if(!snap.exists())throw Error("ไม่พบเลข DAR");
- const files=snap.data().attachments||[];if(!files.length){box.textContent="ไม่มีไฟล์แนบ หรือไฟล์ถูกลบแล้ว";return}
+ const record=snap.data(); const pdfBtn=document.createElement("button");pdfBtn.className="btn green";pdfBtn.textContent="ดาวน์โหลดใบ DAR PDF";pdfBtn.onclick=()=>makeDarPdf(record); $("#darPdfArea").innerHTML=""; $("#darPdfArea").appendChild(pdfBtn); const files=record.attachments||[];if(!files.length){box.textContent="ไม่มีไฟล์แนบ หรือไฟล์ถูกลบแล้ว";return}
  files.forEach(f=>{const row=document.createElement("div");row.className="file";const b=document.createElement("button");b.className="btn blue";b.textContent="ดาวน์โหลด "+f.name;
  b.onclick=()=>{const url=GAS_URL+"?action=download&token="+encodeURIComponent(f.token);window.open(url,"_blank");b.disabled=true;b.textContent=f.name+" — ส่งดาวน์โหลดแล้ว / ไฟล์จะถูกลบ"};
  row.appendChild(b);box.appendChild(row)})}
