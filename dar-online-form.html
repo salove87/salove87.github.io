@@ -17,23 +17,6 @@ label{display:block;margin:6px 0}input,textarea{width:100%;box-sizing:border-box
 </head>
 <body>
 
-async function parseApiResponse(res, label="API"){
-  const raw = await res.text();
-  let data = null;
-  try { data = raw ? JSON.parse(raw) : null; } catch(e) {}
-  if(!res.ok){
-    const msg = data?.error || data?.message || raw || `${label} HTTP ${res.status}`;
-    throw new Error(msg);
-  }
-  if(data && data.ok === false){
-    throw new Error(data.error || data.message || `${label} ไม่สำเร็จ`);
-  }
-  if(!data){
-    throw new Error(`${label} ไม่ได้รับข้อมูลตอบกลับ`);
-  }
-  return data;
-}
-
 <div class="container"><div class="card">
 <h1>ใบขอดำเนินการจัดการด้านเอกสาร (DAR.)</h1>
 <p class="small" style="text-align:center">GitHub Pages + Firestore + Google Apps Script + Google Drive ชั่วคราว</p>
@@ -76,7 +59,7 @@ async function parseApiResponse(res, label="API"){
 
 <div class="section"><h2>8. ไฟล์แนบชั่วคราว</h2>
 <input id="attachments" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt">
-<p class="small">แนะนำไฟล์รวมไม่เกิน 15 MB ต่อการบันทึก 1 ครั้ง</p></div>
+<p class="small">ไฟล์ละไม่เกิน 10 MB ต่อการบันทึก 1 ครั้ง</p></div>
 
 <div id="debugInfo" class="small" style="margin:8px 0;color:#7a3e00"></div>
 <div id="status" class="status"></div>
@@ -161,8 +144,8 @@ async function uploadToGAS(darId){
  const selected=[...$("#attachments").files];
  const arr=[];
  for(const f of selected){
-   if(f.size>15*1024*1024)throw Error(`ไฟล์ ${f.name} เกิน 15 MB`);
-   const b64=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(",")[1]);r.onerror=reject;r.readAsDataURL(f)});
+   if(f.size>10*1024*1024)throw Error(`ไฟล์ ${f.name} เกิน 15 MB`);
+   const b64=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>{try{const s=String(r.result||"");const i=s.indexOf(",");if(i<0)throw new Error("อ่านไฟล์ "+f.name+" ไม่สำเร็จ");resolve(s.slice(i+1));}catch(err){reject(err)}};r.onerror=()=>reject(new Error("เบราว์เซอร์อ่านไฟล์ "+f.name+" ไม่ได้"));r.onabort=()=>reject(new Error("การอ่านไฟล์ "+f.name+" ถูกยกเลิก"));r.readAsDataURL(f)});
    arr.push({name:f.name,type:f.type,size:f.size,base64:b64});
  }
  if(!arr.length)return [];
@@ -188,7 +171,7 @@ async function save(mode){
    await setDoc(doc(db,"darRequests",id),{darId:id,...data,attachments:files,status:mode==="EVIDENCE"?"บันทึกหลักฐาน":"รออนุมัติ QMR",qmrApprovalRequired:mode!=="EVIDENCE",createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
    await addDoc(collection(db,"darLogs"),{darId:id,action:mode==="EVIDENCE"?"SAVE_EVIDENCE":"SUBMIT",createdAt:serverTimestamp()});
    const savedRecord={darId:id,...data,attachments:files}; if(mode==="EVIDENCE"){await makeDarPdf(savedRecord); status(`บันทึกหลักฐานแล้ว ${id} — QMR ไม่ต้องอนุมัติ และดาวน์โหลด PDF แล้ว`)}else{await makeDarPdf(savedRecord); status(`ส่ง DAR แล้ว ${id} — รอ QMR อนุมัติ และดาวน์โหลด PDF แล้ว`)}
- }catch(e){console.error(e);status("บันทึกไม่สำเร็จ: "+(e?.message || String(e)),false)}
+ }catch(e){console.error(e);status("บันทึกไม่สำเร็จ: "+(e?.message || String(e)),false);$("#debugInfo").textContent="รายละเอียด: "+(e?.stack||e?.message||String(e))}
 }
 $("#saveEvidence").onclick=()=>save("EVIDENCE");$("#darForm").onsubmit=e=>{e.preventDefault();save("SUBMIT")};
 
