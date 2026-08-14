@@ -96,11 +96,13 @@ body{font-family:'Noto Sans Thai','Noto Sans Myanmar',sans-serif;background:#f1f
 
 <!-- Admin login -->
 <div id="adminModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-<div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-<h2 class="text-xl font-semibold mb-4">🔐 Admin Login</h2>
-<p class="text-sm text-gray-500 mb-4">ใช้บัญชี Firebase Authentication ของผู้ดูแล</p>
-<input id="adminEmail" type="email" class="w-full border rounded-lg p-2 mb-3" placeholder="อีเมล Admin">
-<input id="adminPassword" type="password" class="w-full border rounded-lg p-2 mb-4" placeholder="รหัสผ่าน">
+<div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+<h2 class="text-xl font-semibold mb-4">🔐 Admin</h2>
+<p class="text-sm text-gray-500 mb-4">กรุณาใส่รหัส Admin 6 หลัก</p>
+<input id="adminCode" type="password" inputmode="numeric" maxlength="6"
+ class="w-full border rounded-lg p-3 text-center text-2xl tracking-[.5em] mb-4"
+ placeholder="••••••" autocomplete="off"
+ onkeydown="if(event.key==='Enter') adminLogin()">
 <div class="flex gap-2">
 <button onclick="adminLogin()" class="flex-1 bg-indigo-600 text-white py-2 rounded-lg">เข้าสู่ระบบ</button>
 <button onclick="closeAdminLogin()" class="flex-1 bg-gray-200 py-2 rounded-lg">ยกเลิก</button>
@@ -147,7 +149,7 @@ let formItems=[];
 let editingId=null;
 let latestDocs={};
 let currentLang="th";
-let isAdmin=false;
+let isAdmin=sessionStorage.getItem("supply_admin_unlocked")==="1";
 let unsubscribe=null;
 
 const lang={
@@ -191,18 +193,13 @@ auth.onAuthStateChanged(async user=>{
 });
 
 async function refreshAdminState(user){
- isAdmin=false;
- if(user && !user.isAnonymous){
-   const u=await db.collection("users").doc(user.uid).get();
-   isAdmin=!!(u.exists && u.data().admin===true);
- }
- document.getElementById("authStatus").innerText=isAdmin?"🔐 Admin":"👤 พนักงาน";
- document.getElementById("adminBanner").classList.toggle("hidden",!isAdmin);
- document.getElementById("btn-admin").classList.toggle("hidden",isAdmin);
- document.getElementById("btn-logout").classList.toggle("hidden",!isAdmin);
- document.getElementById("btn-trash").classList.toggle("hidden",!isAdmin);
- document.getElementById("btn-deleteall").classList.toggle("hidden",!isAdmin);
- renderRows();
+document.getElementById("authStatus").innerText=isAdmin?"🔐 Admin":"👤 พนักงาน";
+document.getElementById("adminBanner").classList.toggle("hidden",!isAdmin);
+document.getElementById("btn-admin").classList.toggle("hidden",isAdmin);
+document.getElementById("btn-logout").classList.toggle("hidden",!isAdmin);
+document.getElementById("btn-trash").classList.toggle("hidden",!isAdmin);
+document.getElementById("btn-deleteall").classList.toggle("hidden",!isAdmin);
+renderRows();
 }
 
 function startListening(){
@@ -378,36 +375,29 @@ async function permanentDelete(id){
  catch(err){showError(err.code?`${err.code} - ${err.message}`:err.message);}
 }
 
-function openAdminLogin(){document.getElementById("adminModal").classList.remove("hidden");}
+const ADMIN_CODE="303647";
+function openAdminLogin(){
+ document.getElementById("adminCode").value="";
+ document.getElementById("adminModal").classList.remove("hidden");
+ setTimeout(()=>document.getElementById("adminCode").focus(),100);
+}
 function closeAdminLogin(){document.getElementById("adminModal").classList.add("hidden");}
 async function adminLogin(){
- const email=document.getElementById("adminEmail").value.trim(),password=document.getElementById("adminPassword").value;
- if(!email||!password){alert("กรุณากรอกอีเมลและรหัสผ่าน");return;}
- try{
-   const cred=await auth.signInWithEmailAndPassword(email,password);
-   const u=await db.collection("users").doc(cred.user.uid).get();
-   if(!u.exists||u.data().admin!==true){
-     await auth.signOut();
-     alert("บัญชีนี้ยังไม่ได้รับสิทธิ์ Admin");
-     return;
-   }
-   closeAdminLogin();await refreshAdminState(cred.user);startListening();
- }catch(err){alert("เข้าสู่ระบบไม่สำเร็จ: "+(err.message||err.code));}
+ const code=document.getElementById("adminCode").value.trim();
+ if(code.length!==6){alert("กรุณาใส่รหัส Admin 6 หลัก");return;}
+ if(code!==ADMIN_CODE){alert("รหัส Admin ไม่ถูกต้อง");document.getElementById("adminCode").value="";return;}
+ isAdmin=true;
+ sessionStorage.setItem("supply_admin_unlocked","1");
+ closeAdminLogin();
+ await refreshAdminState(auth.currentUser);
+ renderRows();
 }
-async function adminLogout(){await auth.signOut();await auth.signInAnonymously();}
-
-async function downloadCSV(){
- const snapshot=await db.collection(collectionPath).get();
- let csv="\uFEFFชื่อ,แผนก,รายการ,สถานะ,เวลา\n";
- snapshot.forEach(docSnap=>{
-  const d=docSnap.data();
-  const items=Array.isArray(d.itemsList)?d.itemsList.map(it=>`${it.name} (${it.qty})`).join(" / "):"";
-  const time=d.timestamp?.toMillis?new Date(d.timestamp.toMillis()).toLocaleString("th-TH"):"";
-  csv+=`"${String(d.requesterName||"").replace(/"/g,'""')}","${String(d.department||"").replace(/"/g,'""')}","${items.replace(/"/g,'""')}","${d.complete?"ครบ":"รอดำเนินการ"}","${time}"\n`;
- });
- const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
- const url=URL.createObjectURL(blob),a=document.createElement("a");
- a.href=url;a.download="supply.csv";a.click();URL.revokeObjectURL(url);
+function adminLogout(){
+ isAdmin=false;
+ sessionStorage.removeItem("supply_admin_unlocked");
+ cancelEdit();
+ refreshAdminState(auth.currentUser);
+ renderRows();
 }
 
 function setLang(l){
