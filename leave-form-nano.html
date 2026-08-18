@@ -315,6 +315,7 @@ readonly>
           <option>ขาดงาน</option>
           <option>ชอเชย/สลับวันหยุด</option>
         </select>
+        
       </div>
 
       <!-- ส่วนแนบไฟล์ -->
@@ -384,7 +385,25 @@ readonly>
       </div>
       <button id="refreshDashboard" class="px-4 py-2 rounded-lg text-sm font-semibold" style="background:var(--accent-soft);color:var(--accent-deep);border:1px solid #C9D8FB;">↻ รีเฟรช</button>
     </div>
+    <!-- การ์ดสรุปหลัก: ต้องแสดงอยู่เสมอ -->
     <div id="dashboardCards" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"></div>
+
+    <!-- การ์ดวิเคราะห์เพิ่มเติม -->
+    <div id="dashboardExtraCards" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"></div>
+
+    <!-- รายละเอียดต้องอยู่ตรงกลาง: ระหว่างการ์ดด้านบนกับ "วันนี้มีคนลา" -->
+    <div id="dashboardDetail" class="card sheen p-5 mb-4" style="display:none;">
+      <div class="flex items-center justify-between gap-3 flex-wrap mb-3">
+        <div>
+          <h3 id="dashboardDetailTitle" class="font-display text-lg" style="font-weight:600;color:var(--ink);">รายละเอียด</h3>
+          <p id="dashboardDetailSubtitle" class="text-sm" style="color:var(--ink-soft);"></p>
+        </div>
+        <button id="closeDashboardDetail" type="button" class="px-4 py-2 rounded-lg text-sm font-semibold" style="background:#EEF1F5;color:var(--ink-soft);border:1px solid var(--line);">ปิดรายละเอียด</button>
+      </div>
+      <div id="dashboardDetailList" class="space-y-2"></div>
+    </div>
+
+    <!-- รายการวันนี้/พรุ่งนี้อยู่ด้านล่างรายละเอียดเสมอ -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div class="card p-5">
         <div class="flex justify-between items-center mb-3"><h3 class="font-display font-semibold">🔴 วันนี้มีคนลา</h3><span id="todayLeaveCount" class="chip" style="background:var(--danger-soft);color:var(--danger);">0 คน</span></div>
@@ -640,6 +659,7 @@ readonly>
     const empName = document.getElementById('empName');
     const department = document.getElementById('department');
     const leaveType = document.getElementById('leaveType');
+    const payStatusPreview = document.getElementById('payStatusPreview');
     const startDate = document.getElementById('startDate');
     const endDate = document.getElementById('endDate');
     const leaveDays = document.getElementById('leaveDays');
@@ -667,9 +687,46 @@ readonly>
     }
     const MAX_VACATION_DAYS = 6; // Limit for Vacation Leave
     
+    [empId, leaveType, startDate, endDate, leaveDays].forEach(el => { if (el) el.addEventListener('input', schedulePayStatusPreview); });
+    leaveType.addEventListener('change', schedulePayStatusPreview);
+    updatePayStatusPreview();
+
     const imageModal = document.getElementById('imageModal');
     const modalImageDisplay = document.getElementById('modalImageDisplay');
     const closeImageModal = document.getElementById('closeImageModal');
+
+    let payStatusPreviewTimer = null;
+    async function updatePayStatusPreview(){
+      // P/N แสดงเฉพาะในสรุปประวัติรายบุคคลและข้อมูลดาวน์โหลด ไม่แสดงหน้าใบลา
+      if (!payStatusPreview) return;
+      payStatusPreview.classList.add('hidden');
+      payStatusPreview.innerHTML = '';
+      return;
+      const id = normalizeEmployeeId(empId.value.trim());
+      const type = normalizeHistoryLeaveType(leaveType.value);
+      const days = numericDays(leaveDays.value);
+      const year = String(startDate.value || '').slice(0,4);
+      if (!id || !year || getIncomeType(id) !== 'รายเดือน' || !['ลากิจ','ลาป่วยมีใบรับรองแพทย์','ลาป่วยไม่มีใบรับรองแพทย์'].includes(type) || !days) {
+        payStatusPreview.classList.add('hidden');
+        payStatusPreview.innerHTML = '';
+        return;
+      }
+      try {
+        const history = await driver.getEmployeeHistory(id);
+        const synthetic = { id:'__new__', empId:id, leaveType:type, startDate:startDate.value, endDate:endDate.value || startDate.value, leaveDays:String(days), submitDate:submitDate.value, createdAt:new Date().toISOString() };
+        const statuses = calculatePayStatuses([...history, synthetic]);
+        const st = statuses.get('__new__');
+        if (!st) return;
+        payStatusPreview.classList.remove('hidden');
+        payStatusPreview.innerHTML = `<span style="font-weight:800;">สถานะสิทธิ์:</span> ${statusHtml(st)} <span style="color:var(--ink-soft);margin-left:4px;">(รายเดือน)</span>`;
+      } catch(e) {
+        payStatusPreview.classList.add('hidden');
+      }
+    }
+    function schedulePayStatusPreview(){
+      clearTimeout(payStatusPreviewTimer);
+      payStatusPreviewTimer=setTimeout(updatePayStatusPreview,250);
+    }
 
     leaveType.addEventListener('change', () => {
       if(leaveType.value === 'ลาป่วยมีใบรับรองแพทย์') {
@@ -1140,11 +1197,18 @@ autofillNameFromEmpId(savedId);
     }
 
     let driver = null; let unsubscribe = null; let cache = [];
+    // เก็บผลการตรวจใบพักร้อนที่ทำให้สิทธิ์ครบ 6 วัน (ล้างเมื่อข้อมูลเปลี่ยน)
+    const vacationCompletionCache = new Map();
     const isSecureOrigin = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
     function attachSubscription(){
       if(unsubscribe) try{ unsubscribe(); }catch{}
-      unsubscribe = driver.subscribe(rows => { cache = (Array.isArray(rows) ? rows : []).map(normalizeEmployeeRow); renderTable(); renderDashboard(); }, (err)=>{
+      unsubscribe = driver.subscribe(rows => {
+        cache = (Array.isArray(rows) ? rows : []).map(normalizeEmployeeRow);
+        vacationCompletionCache.clear();
+        renderTable();
+        renderDashboard();
+      }, (err)=>{
         console.error('Firestore Error', err);
         showToast('Firestore อ่านข้อมูลล้มเหลว ใช้โหมด Local แทน', 'error');
         driver = makeLocalDriver(); attachSubscription();
@@ -1172,8 +1236,57 @@ autofillNameFromEmpId(savedId);
       return map[type] || 'background:#EEF0F3;color:#3B4250;';
     }
 
-    function renderTable(){
+    async function getVacationCompletionId(empId, range){
+      const canonicalId = normalizeEmployeeId(empId);
+      const key = `${canonicalId}|${range?.year || ''}`;
+      if (vacationCompletionCache.has(key)) return vacationCompletionCache.get(key);
+      try {
+        const history = await driver.getEmployeeHistory(canonicalId);
+        const vacationRows = history
+          .filter(r => normalizeHistoryLeaveType(r.leaveType) === 'ลาพักร้อน')
+          .map(r => ({ row: r, days: leaveDaysWithinRange(r, range) }))
+          .filter(x => x.days > 0)
+          .sort((a,b) => {
+            const ds = String(a.row.startDate || '').localeCompare(String(b.row.startDate || ''));
+            if (ds !== 0) return ds;
+            const de = String(a.row.endDate || '').localeCompare(String(b.row.endDate || ''));
+            if (de !== 0) return de;
+            return String(a.row.createdAt || '').localeCompare(String(b.row.createdAt || ''));
+          });
+        let used = 0;
+        let completionId = null;
+        for (const item of vacationRows) {
+          const before = used;
+          used += item.days;
+          if (!completionId && before < MAX_VACATION_DAYS && used >= MAX_VACATION_DAYS) {
+            completionId = item.row.id || null;
+          }
+        }
+        vacationCompletionCache.set(key, completionId);
+        return completionId;
+      } catch (err) {
+        console.warn('ตรวจสิทธิ์พักร้อนไม่สำเร็จ:', err);
+        vacationCompletionCache.set(key, null);
+        return null;
+      }
+    }
+
+    async function renderTable(){
       leaveTable.innerHTML = '';
+      // ตรวจเฉพาะพนักงานที่มีใบพักร้อนในรายการปัจจุบัน
+      const vacationEmployees = new Map();
+      const vacationCompletionByRowId = new Map();
+      cache.forEach(row => {
+        if (normalizeHistoryLeaveType(row.leaveType) === 'ลาพักร้อน') {
+          const range = getLeaveYearRange(row.startDate || new Date());
+          if (range) vacationEmployees.set(`${normalizeEmployeeId(row.empId)}|${range.year}`, { empId: row.empId, range });
+        }
+      });
+      for (const item of vacationEmployees.values()) {
+        const completionId = await getVacationCompletionId(item.empId, item.range);
+        if (completionId) vacationCompletionByRowId.set(completionId, true);
+      }
+
       cache.forEach(row => {
         const tr = document.createElement('tr');
 
@@ -1196,6 +1309,15 @@ autofillNameFromEmpId(savedId);
         chip.style.cssText = leaveTypeChipStyle(row.leaveType);
         chip.textContent = row.leaveType || '';
         tdType.appendChild(chip);
+
+        // แสดงข้อความใต้คำว่า "ลาพักร้อน" เฉพาะใบที่ทำให้ใช้สิทธิ์ครบ 6 วัน
+        if (normalizeHistoryLeaveType(row.leaveType) === 'ลาพักร้อน' && vacationCompletionByRowId.has(row.id)) {
+          const quotaBadge = document.createElement('div');
+          quotaBadge.textContent = 'ใช้สิทธิ์ครบแล้ว';
+          quotaBadge.style.cssText = 'margin-top:4px;font-size:11px;font-weight:700;color:var(--success);line-height:1.2;';
+          tdType.appendChild(quotaBadge);
+        }
+
         if (row.createdAt) {
           const created = row.createdAt.toDate ? row.createdAt.toDate() : new Date(row.createdAt);
           const diffHr = (Date.now() - created.getTime()) / 36e5;
@@ -1322,17 +1444,226 @@ autofillNameFromEmpId(savedId);
     renderEmployeeSearchResults('');
 
     function numericDays(v){ return parseFloat(String(v ?? '').replace(' วัน','')) || 0; }
+    // ===================== สถานะสิทธิ์ P / N =====================
+    // รายวัน: ไม่แสดง P/N ตามเงื่อนไขของ HR
+    const DAILY_EMPLOYEE_IDS = new Set([
+      '10506','10620','10635','10675',
+      '30070','30078','30079','30113','30171','30221','30249','30251','30257','30265','30268','30269','30270','30294',
+      '30313','30315','30318','30328','30329','30333','30334','30335','30336','30337','30338','30340','30341','30342','30348','30349','30350','30352','30353','30354','30362','30366','30367','30368','30369','30370','30371','30372','30373','30374','30375','30376'
+    ]);
+
+    function getIncomeType(empId){
+      return DAILY_EMPLOYEE_IDS.has(normalizeEmployeeId(empId)) ? 'รายวัน' : 'รายเดือน';
+    }
+
+    function getPayStatusLabel(info){
+      if (!info || info.incomeType !== 'รายเดือน' || !info.applicable) return '';
+      if (info.paidDays > 0 && info.unpaidDays > 0) {
+        return `P ${formatStatusDays(info.paidDays)} วัน / N ${formatStatusDays(info.unpaidDays)} วัน`;
+      }
+      return info.unpaidDays > 0 ? `N ${formatStatusDays(info.unpaidDays)} วัน` : `P ${formatStatusDays(info.paidDays)} วัน`;
+    }
+
+    function formatStatusDays(v){
+      const n = Number(v || 0);
+      return n.toFixed(1).replace('.0','');
+    }
+
+    // คำนวณตามปีปฏิทินของวันที่เริ่มลา และนับสะสมแยกประเภท:
+    // รายเดือน: ลากิจ P ได้ 5 วัน/ปี, ลาป่วย P ได้ 30 วัน/ปี
+    // รายวัน: ไม่แสดง P/N
+    function calculatePayStatuses(data){
+      const rows = Array.isArray(data) ? data.slice() : [];
+      const result = new Map();
+      const grouped = new Map();
+
+      rows.forEach((row, index) => {
+        const incomeType = getIncomeType(row.empId);
+        const type = normalizeHistoryLeaveType(row.leaveType);
+        if (incomeType !== 'รายเดือน') return;
+        const applicable = type === 'ลากิจ' || String(type || '').includes('ลาป่วย');
+        if (!applicable) return;
+
+        const year = String(row.startDate || '').slice(0,4);
+        if (!/^\d{4}$/.test(year)) return;
+        const key = `${normalizeEmployeeId(row.empId)}|${year}|${type === 'ลากิจ' ? 'ลากิจ' : 'ลาป่วย'}`;
+        if (!grouped.has(key)) grouped.set(key, []);
+        grouped.get(key).push({ row, index });
+      });
+
+      grouped.forEach((items, key) => {
+        items.sort((a,b) => {
+          const da = String(a.row.startDate || '');
+          const db = String(b.row.startDate || '');
+          if (da !== db) return da.localeCompare(db);
+          const sa = String(a.row.submitDate || '');
+          const sb = String(b.row.submitDate || '');
+          if (sa !== sb) return sa.localeCompare(sb);
+          const ca = String(a.row.createdAt || '');
+          const cb = String(b.row.createdAt || '');
+          return ca.localeCompare(cb);
+        });
+
+        const quota = key.endsWith('|ลากิจ') ? 5 : 30;
+        let usedBefore = 0;
+        items.forEach(({row}) => {
+          const days = numericDays(row.leaveDays);
+          const paidDays = Math.max(0, Math.min(days, quota - usedBefore));
+          const unpaidDays = Math.max(0, days - paidDays);
+          result.set(row.id, {
+            incomeType: 'รายเดือน',
+            applicable: true,
+            quota,
+            usedBefore,
+            leaveDays: days,
+            paidDays,
+            unpaidDays,
+            status: unpaidDays > 0 ? (paidDays > 0 ? 'P/N' : 'N') : 'P'
+          });
+          usedBefore += days;
+        });
+      });
+      return result;
+    }
+
+    function statusHtml(info){
+      if (!info || info.incomeType !== 'รายเดือน' || !info.applicable) return '';
+      const p = info.paidDays > 0 ? `<span style="color:#15803D;font-weight:800;">P</span>` : '';
+      const n = info.unpaidDays > 0 ? `<span style="color:#DC2626;font-weight:800;">N</span>` : '';
+      if (p && n) return `<div style="margin-top:4px;font-size:11px;font-weight:700;">${p} ${formatStatusDays(info.paidDays)} วัน / ${n} ${formatStatusDays(info.unpaidDays)} วัน</div>`;
+      if (p) return `<div style="margin-top:4px;font-size:11px;font-weight:700;">${p} ได้รับสิทธิ์ ${formatStatusDays(info.paidDays)} วัน</div>`;
+      return `<div style="margin-top:4px;font-size:11px;font-weight:700;">${n} ไม่ได้รับสิทธิ์ ${formatStatusDays(info.unpaidDays)} วัน</div>`;
+    }
+
     function rowCoversDate(row, iso){ return row.startDate && row.endDate && row.startDate <= iso && row.endDate >= iso; }
     function uniqueEmployeeRows(rows){
       const m = new Map();
       rows.forEach(r => { if(r.empId) m.set(r.empId, r); });
       return Array.from(m.values());
     }
+    const DASHBOARD_EXCLUDED_EMP_IDS = new Set(['10637','30292']);
+    // พนักงานที่ไม่มีสิทธิ์รับรางวัลพนักงานดีเด่น
+    const OUTSTANDING_EXCLUDED_EMP_IDS = new Set(['10350','10365','10516','10527','10642','10661','10670']);
+    let dashboardDetailMode = '';
+
+    function dashboardActiveRows(rows){
+      return rows.filter(r => !DASHBOARD_EXCLUDED_EMP_IDS.has(normalizeEmployeeId(r.empId)));
+    }
+
+    function getDashboardEmployeeGroups(rows){
+      const groups = new Map();
+      rows.forEach(r => {
+        const id = normalizeEmployeeId(r.empId);
+        if(!id || DASHBOARD_EXCLUDED_EMP_IDS.has(id)) return;
+        if(!groups.has(id)){
+          const info = EMP_MAP[id] || {};
+          groups.set(id, {
+            empId:id,
+            empName:r.empName || info.name || id,
+            department:r.department || info.dept || '-',
+            hireDate:info.hireDate || '',
+            totalDays:0,
+            vacationDays:0,
+            leaveTypes:new Set(),
+            rows:[]
+          });
+        }
+        const g=groups.get(id);
+        const days=numericDays(r.leaveDays);
+        g.totalDays += days;
+        g.rows.push(r);
+        const type=normalizeHistoryLeaveType(r.leaveType);
+        g.leaveTypes.add(type);
+        if(type==='ลาพักร้อน') g.vacationDays += days;
+        if(!g.hireDate && EMP_MAP[id]?.hireDate) g.hireDate=EMP_MAP[id].hireDate;
+        if(!g.empName || g.empName===id) g.empName=r.empName || EMP_MAP[id]?.name || id;
+        if(!g.department || g.department==='-') g.department=r.department || EMP_MAP[id]?.dept || '-';
+      });
+      return Array.from(groups.values());
+    }
+
+    function dashboardEscape(value){ return escapeHtml(value); }
+
+    function showDashboardDetail(mode, rows){
+      const detail=document.getElementById('dashboardDetail');
+      const title=document.getElementById('dashboardDetailTitle');
+      const subtitle=document.getElementById('dashboardDetailSubtitle');
+      const list=document.getElementById('dashboardDetailList');
+      if(!detail || !title || !subtitle || !list) return;
+
+      if(dashboardDetailMode===mode && detail.style.display!=='none'){
+        dashboardDetailMode='';
+        detail.style.display='none';
+        return;
+      }
+      dashboardDetailMode=mode;
+
+      const groups=getDashboardEmployeeGroups(rows);
+      if(mode==='over10'){
+        // เกณฑ์ลาเกิน 10 วัน: รวมทุกประเภท ยกเว้นลาพักร้อน
+        const over10Groups = groups.filter(g => (g.totalDays - g.vacationDays) > 10);
+        title.textContent='⚠️ รายละเอียดพนักงานที่ลาเกิน 10 วัน';
+        subtitle.textContent=`พบ ${over10Groups.length} คน ในปี ${new Date().getFullYear()} · ไม่รวมลาพักร้อน`;
+        over10Groups.sort((a,b)=>(b.totalDays-b.vacationDays)-(a.totalDays-a.vacationDays));
+        list.innerHTML=over10Groups.length ? over10Groups.map(g=>{
+          const nonVacationDays = Math.max(0, g.totalDays - g.vacationDays);
+          const nonVacationText = nonVacationDays.toFixed(1).replace('.0','');
+          const vacationText = g.vacationDays.toFixed(1).replace('.0','');
+          return `
+          <button type="button" class="w-full text-left p-3 rounded-xl" style="background:#FFF8F0;border:1px solid #F0D7B3;" data-dashboard-emp="${dashboardEscape(g.empId)}">
+            <div class="flex items-center justify-between gap-3">
+              <div class="min-w-0">
+                <div class="font-semibold truncate">${dashboardEscape(g.empName)} <span class="mono text-xs" style="color:var(--ink-soft);">${dashboardEscape(g.empId)}</span></div>
+                <div class="text-xs mt-1" style="color:var(--ink-soft);">${dashboardEscape(g.department)}</div>
+              </div>
+              <div class="text-right" style="white-space:nowrap;">
+                <div class="font-display text-lg" style="font-weight:600;color:var(--danger);">${nonVacationText} วัน</div>
+                <div class="text-xs" style="color:var(--success);font-weight:600;">(รวมพักร้อน ${vacationText} วัน = ${g.totalDays.toFixed(1).replace('.0','')} วัน)</div>
+              </div>
+            </div>
+          </button>`;
+        }).join('') : '<div class="p-4 rounded-xl text-center" style="background:var(--success-soft);color:var(--success);">ไม่มีพนักงานที่ลาเกิน 10 วัน</div>';
+      }else{
+        title.textContent='🏆 รายละเอียดพนักงานดีเด่น';
+        subtitle.textContent='อายุงานเกิน 2 ปี และใช้สิทธิ์ลาเฉพาะลาพักร้อน ไม่มีการลาอื่น';
+        const now=new Date();
+        const outstanding=groups.filter(g=>{
+          if(OUTSTANDING_EXCLUDED_EMP_IDS.has(g.empId)) return false;
+          if(!g.hireDate) return false;
+          const tenure=calculateTenure(g.hireDate, now);
+          if(!tenure) return false;
+          const tenureDays=(now-new Date(g.hireDate+'T00:00:00'))/86400000;
+          return tenureDays > (2*365) && g.vacationDays > 0 && g.leaveTypes.size===1 && g.leaveTypes.has('ลาพักร้อน');
+        }).sort((a,b)=>a.empName.localeCompare(b.empName,'th'));
+        subtitle.textContent=`พบ ${outstanding.length} คน`;
+        list.innerHTML=outstanding.length ? outstanding.map(g=>`
+          <button type="button" class="w-full text-left p-3 rounded-xl" style="background:#F5FBF6;border:1px solid #CDE8D4;" data-dashboard-emp="${dashboardEscape(g.empId)}">
+            <div class="flex items-center justify-between gap-3">
+              <div class="min-w-0">
+                <div class="font-semibold truncate">${dashboardEscape(g.empName)} <span class="mono text-xs" style="color:var(--ink-soft);">${dashboardEscape(g.empId)}</span></div>
+                <div class="text-xs mt-1" style="color:var(--ink-soft);">${dashboardEscape(g.department)} · อายุงาน ${dashboardEscape(formatTenure(g.hireDate, now))}</div>
+              </div>
+              <div class="font-display text-lg" style="font-weight:600;color:var(--success);white-space:nowrap;">พักร้อน ${g.vacationDays.toFixed(1).replace('.0','')} วัน</div>
+            </div>
+          </button>`).join('') : '<div class="p-4 rounded-xl text-center" style="background:#F5FBF6;color:var(--success);">ยังไม่พบพนักงานตามเกณฑ์พนักงานดีเด่น</div>';
+      }
+
+      list.querySelectorAll('[data-dashboard-emp]').forEach(b=>b.onclick=()=>openEmployeeHistory(b.dataset.dashboardEmp));
+      detail.style.display='block';
+    }
+
+    document.getElementById('closeDashboardDetail')?.addEventListener('click',()=>{
+      dashboardDetailMode='';
+      const detail=document.getElementById('dashboardDetail');
+      if(detail) detail.style.display='none';
+    });
+
     function renderDashboard(){
       const all = Array.isArray(cache) ? cache : [];
+      const activeAll = dashboardActiveRows(all);
       // Dashboard ใช้ข้อมูลใบลาของปีปัจจุบันทั้งหมด ไม่จำกัด 50 รายการ
       const currentYear = String(new Date().getFullYear());
-      const yearRows = all.filter(r => {
+      const yearRows = activeAll.filter(r => {
         const start = String(r.startDate || '');
         const end = String(r.endDate || '');
         return (start.startsWith(currentYear) || end.startsWith(currentYear));
@@ -1340,15 +1671,26 @@ autofillNameFromEmpId(savedId);
       const today = todayISO();
       const tomorrowD = new Date(today + 'T00:00:00'); tomorrowD.setDate(tomorrowD.getDate()+1);
       const tomorrow = `${tomorrowD.getFullYear()}-${String(tomorrowD.getMonth()+1).padStart(2,'0')}-${String(tomorrowD.getDate()).padStart(2,'0')}`;
-      const todayRows = uniqueEmployeeRows(all.filter(r=>rowCoversDate(r,today)));
-      const tomorrowRows = uniqueEmployeeRows(all.filter(r=>rowCoversDate(r,tomorrow)));
+      const todayRows = uniqueEmployeeRows(activeAll.filter(r=>rowCoversDate(r,today)));
+      const tomorrowRows = uniqueEmployeeRows(activeAll.filter(r=>rowCoversDate(r,tomorrow)));
+
+      const groups=getDashboardEmployeeGroups(yearRows);
+      // การ์ดลาเกิน 10 วัน: รวมทุกประเภท ยกเว้นลาพักร้อน
+      const over10Rows=groups.filter(g=>(g.totalDays-g.vacationDays)>10);
+      const outstandingRows=groups.filter(g=>{
+        if(OUTSTANDING_EXCLUDED_EMP_IDS.has(g.empId)) return false;
+        if(!g.hireDate) return false;
+        const now=new Date();
+        const tenureDays=(now-new Date(g.hireDate+'T00:00:00'))/86400000;
+        return tenureDays > (2*365) && g.vacationDays > 0 && g.leaveTypes.size===1 && g.leaveTypes.has('ลาพักร้อน');
+      });
+
+      // การ์ดหลัก 4 ใบเดิม — ต้องคงไว้ตลอด
       const totalDays = yearRows.reduce((sum,r)=>sum+numericDays(r.leaveDays),0);
-      const sickDays = all.filter(r=>(r.leaveType||'').includes('ลาป่วย')).reduce((s,r)=>s+numericDays(r.leaveDays),0);
-      const businessDays = all.filter(r=>r.leaveType==='ลากิจ').reduce((s,r)=>s+numericDays(r.leaveDays),0);
-      const vacationDays = all.filter(r=>r.leaveType==='ลาพักร้อน').reduce((s,r)=>s+numericDays(r.leaveDays),0);
-      const newRows = all.filter(r=>{
+      const newRows = activeAll.filter(r=>{
         if(!r.createdAt) return false;
-        const d=r.createdAt.toDate?r.createdAt.toDate():new Date(r.createdAt); return (Date.now()-d.getTime())<=86400000;
+        const d=r.createdAt.toDate?r.createdAt.toDate():new Date(r.createdAt);
+        return (Date.now()-d.getTime())<=86400000;
       });
       const cards=[
         ['ใบลาทั้งหมด',yearRows.length,'📋','var(--accent-soft)','var(--accent-deep)'],
@@ -1357,6 +1699,35 @@ autofillNameFromEmpId(savedId);
         ['วันลารวม',totalDays.toFixed(1).replace('.0','')+' วัน','📅','var(--warning-soft)','var(--warning)']
       ];
       document.getElementById('dashboardCards').innerHTML=cards.map(c=>`<div class="card p-4"><div class="text-xs" style="color:var(--ink-soft);">${c[2]} ${c[0]}</div><div class="font-display text-2xl mt-1" style="font-weight:600;color:${c[4]};">${c[1]}</div></div>`).join('');
+
+      // การ์ดวิเคราะห์เพิ่มเติม: แสดงทั้ง "ลาเกิน 10 วัน" และ "พนักงานดีเด่น"
+      document.getElementById('dashboardExtraCards').innerHTML=`
+        <button type="button" id="dashboardCardOver10" class="card p-5 text-left cursor-pointer" style="border:1px solid #F0D7B3;background:linear-gradient(180deg,#FFFCF7,#FFF8F0);">
+          <div class="flex items-center justify-between gap-3">
+            <div><div class="text-sm font-semibold" style="color:var(--danger);">⚠️ ลาเกิน 10 วัน <span style="font-weight:600;color:var(--ink-soft);">(ไม่รวมลาพักร้อน)</span></div><div class="font-display text-3xl mt-1" style="font-weight:600;color:var(--danger);">${over10Rows.length} คน</div></div>
+            <span class="chip" style="background:#FFF1E6;color:var(--danger);">แสดงรายละเอียด →</span>
+          </div>
+        </button>
+        <button type="button" id="dashboardCardOutstanding" class="card p-5 text-left cursor-pointer" style="border:1px solid #CDE8D4;background:linear-gradient(180deg,#FCFFFC,#F5FBF6);">
+          <div class="flex items-center justify-between gap-3">
+            <div><div class="text-sm font-semibold" style="color:var(--success);">🏆 พนักงานดีเด่น</div><div class="font-display text-3xl mt-1" style="font-weight:600;color:var(--success);">${outstandingRows.length} คน</div></div>
+            <span class="chip" style="background:var(--success-soft);color:var(--success);">แสดงรายละเอียด →</span>
+          </div>
+        </button>`;
+
+      document.getElementById('dashboardCardOver10').onclick=()=>showDashboardDetail('over10',yearRows);
+      document.getElementById('dashboardCardOutstanding').onclick=()=>showDashboardDetail('outstanding',yearRows);
+
+      // ถ้ามีการรีเฟรชข้อมูล ให้คงรายละเอียดที่เปิดอยู่ไว้ในตำแหน่งเดิม
+      const detail=document.getElementById('dashboardDetail');
+      if(dashboardDetailMode){
+        showDashboardDetail(dashboardDetailMode, yearRows);
+        // showDashboardDetail จะสลับเมื่อ mode เดิมกำลังเปิด จึงเปิดกลับให้ตรงสถานะเดิม
+        showDashboardDetail(dashboardDetailMode, yearRows);
+      }else if(detail){
+        detail.style.display='none';
+      }
+
       document.getElementById('todayLeaveCount').textContent=`${todayRows.length} คน`;
       document.getElementById('tomorrowLeaveCount').textContent=`${tomorrowRows.length} คน`;
       const listHtml=(rows)=>rows.length?rows.slice(0,12).map(r=>`<button class="w-full text-left p-3 rounded-xl" style="background:#FAFBFD;border:1px solid var(--line);" data-dashboard-emp="${String(r.empId).replace(/"/g,'&quot;')}"><div class="font-semibold">${r.empName||'-'} <span class="mono text-xs" style="color:var(--ink-soft);">${r.empId||''}</span></div><div class="text-xs mt-1" style="color:var(--ink-soft);">${r.department||'-'} · ${r.leaveType||'-'} · ${r.leaveDays||'-'}</div></button>`).join(''):'<div class="text-sm p-3" style="color:var(--ink-soft);">ไม่มีพนักงานลา</div>';
@@ -1365,6 +1736,7 @@ autofillNameFromEmpId(savedId);
       document.getElementById('todayLeaveList').querySelectorAll('[data-dashboard-emp],#todayLeaveList [data-dashboard-emp]').forEach(b=>b.onclick=()=>openEmployeeHistory(b.dataset.dashboardEmp));
       document.getElementById('tomorrowLeaveList').querySelectorAll('[data-dashboard-emp]').forEach(b=>b.onclick=()=>openEmployeeHistory(b.dataset.dashboardEmp));
     }
+
 
     // ปีสิทธิ์การลาแบบรอบ 26-25: เช่น 26/12/2025 - 25/12/2026 = ปี 2026
     function getLeaveYearRange(dateInput = new Date()) {
@@ -1476,7 +1848,8 @@ autofillNameFromEmpId(savedId);
           </div>`;
         }).join('');
 
-        historyTableBody.innerHTML=rows.length?rows.map(r=>`<tr style="border-bottom:1px solid var(--line);"><td class="p-3 mono">${fmtDateDMY(r.startDate)}${r.endDate&&r.endDate!==r.startDate?' - '+fmtDateDMY(r.endDate):''}</td><td class="p-3"><span class="chip" style="${leaveTypeChipStyle(normalizeHistoryLeaveType(r.leaveType))}">${normalizeHistoryLeaveType(r.leaveType)||'-'}</span></td><td class="p-3 text-center mono">${r.leaveDays||'-'}${r.halfDayPeriod?' ('+r.halfDayPeriod+')':''}</td><td class="p-3">${r.reason||'-'}</td><td class="p-3">${r.approver||'-'}</td></tr>`).join(''):'<tr><td colspan="5" class="p-5 text-center" style="color:var(--ink-soft);">ยังไม่มีประวัติการลา</td></tr>';
+        const historyPayStatus = calculatePayStatuses(rows);
+        historyTableBody.innerHTML=rows.length?rows.map(r=>{ const st=historyPayStatus.get(r.id); return `<tr style="border-bottom:1px solid var(--line);"><td class="p-3 mono">${fmtDateDMY(r.startDate)}${r.endDate&&r.endDate!==r.startDate?' - '+fmtDateDMY(r.endDate):''}</td><td class="p-3"><span class="chip" style="${leaveTypeChipStyle(normalizeHistoryLeaveType(r.leaveType))}">${normalizeHistoryLeaveType(r.leaveType)||'-'}</span>${st?statusHtml(st):''}</td><td class="p-3 text-center mono">${r.leaveDays||'-'}${r.halfDayPeriod?' ('+r.halfDayPeriod+')':''}</td><td class="p-3">${r.reason||'-'}</td><td class="p-3">${r.approver||'-'}</td></tr>`; }).join(''):'<tr><td colspan="5" class="p-5 text-center" style="color:var(--ink-soft);">ยังไม่มีประวัติการลา</td></tr>';
       }catch(err){ console.error(err); historyTableBody.innerHTML=`<tr><td colspan="5" class="p-5 text-center" style="color:var(--danger);">โหลดประวัติไม่สำเร็จ: ${explainFirestoreError(err)}</td></tr>`; }
     }
     closeHistoryModal.onclick=()=>employeeHistoryModal.style.display='none';
@@ -1595,6 +1968,8 @@ if(!ok){
         });
         
         form.reset();
+        payStatusPreview?.classList.add('hidden');
+        if (payStatusPreview) payStatusPreview.innerHTML='';
         fileUploadSection.classList.add('hidden'); 
         previewImage.classList.add('hidden');
         submitDate.value = todayISO();
@@ -1744,11 +2119,16 @@ const { ok, errors, warnings, value } =
 
     function csvEscape(value){ const s = String(value ?? '').replace(/"/g,'""'); return '"' + s + '"'; }
 function generateCSV(data){
+  const payStatusByRowId = calculatePayStatuses(data);
   const rows = [[
     'รหัส',
     'ชื่อพนักงาน',
     'แผนก',
     'ประเภทการลา',
+    'ประเภทพนักงาน',
+    'สถานะสิทธิ์',
+    'จำนวนวันที่ได้รับสิทธิ์',
+    'จำนวนวันที่ไม่ได้รับสิทธิ์',
     'มีไฟล์แนบ',
     'เริ่ม',
     'สิ้นสุด',
@@ -1762,11 +2142,17 @@ function generateCSV(data){
 
   data.forEach(r => {
     const hasFile = r.attachment ? "มีแนบไฟล์" : "ไม่มี";
+    const st = payStatusByRowId.get(r.id);
+    const status = st ? getPayStatusLabel(st) : '';
     rows.push([
       r.empId || '',
       r.empName || '',
       r.department || '',
       r.leaveType || '',
+      getIncomeType(r.empId),
+      status,
+      st ? formatStatusDays(st.paidDays) : '',
+      st ? formatStatusDays(st.unpaidDays) : '',
       hasFile,
       r.startDate || '',
       r.endDate || '',
