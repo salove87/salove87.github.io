@@ -7,23 +7,90 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ใบประเมินผู้ขายออนไลน์</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f3f6f9;font-family:"Segoe UI","Noto Sans Thai",Tahoma,sans-serif;color:#1f2937}
+*{box-sizing:border-box}
+body{margin:0;background:#f3f6f9;font-family:"Arial","Noto Sans Thai","Tahoma",sans-serif;color:#1f2937}
 .container{max-width:1100px;margin:24px auto;padding:0 14px}
 .card{background:#fff;border-radius:16px;box-shadow:0 5px 24px #00000012;padding:24px;margin-bottom:18px}
 h1{text-align:center;margin:0 0 8px;color:#0f4c5c;font-size:28px}.subtitle{text-align:center;color:#64748b;margin-bottom:22px}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.field label{display:block;font-weight:700;margin-bottom:6px}.field input,.field textarea,.field select{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:9px;font-size:15px}.field textarea{min-height:72px;resize:vertical}
 .section{font-size:19px;font-weight:800;background:#e8f4f7;color:#0f4c5c;padding:11px 14px;border-radius:10px;margin:22px 0 10px}
-.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:850px}th,td{border:1px solid #d7dee6;padding:10px;vertical-align:middle}th{background:#0f4c5c;color:#fff;text-align:center}td.num{text-align:center;width:55px}td.max{text-align:center;width:85px;font-weight:700}td.score{width:110px}td.score input{width:80px;padding:8px;text-align:center;border:1px solid #94a3b8;border-radius:7px}td.note{width:190px}td.note input{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:7px}.category{background:#f0f7f8;font-weight:800;color:#155e75}
+.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:850px}th,td{border:1px solid #d7dee6;padding:10px;vertical-align:middle}th{background:#0f4c5c;color:#fff;text-align:center}td.num{text-align:center;width:55px}td.max{text-align:center;width:85px;font-weight:700}td.score{width:110px}td.score input{width:80px;padding:8px;text-align:center;border:1px solid #94a3b8;border-radius:7px}td.note{width:160px}td.evaluatorCell{width:130px}td.evaluatorCell input{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:7px}td.note input{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:7px}.category{background:#f0f7f8;font-weight:800;color:#155e75}
 .summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:16px}.result{padding:18px;border-radius:12px;background:#f8fafc;text-align:center}.result .big{font-size:32px;font-weight:900;color:#0f4c5c}.grade{font-size:28px;font-weight:900}.pass{color:#15803d}.fail{color:#b91c1c}
 .actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:20px}.btn{border:0;border-radius:10px;padding:12px 20px;font-size:16px;font-weight:700;cursor:pointer}.primary{background:#0f4c5c;color:white}.secondary{background:#e2e8f0;color:#1e293b}.danger{background:#fee2e2;color:#991b1b}
-.notice{background:#fff7ed;border-left:5px solid #f97316;padding:13px 15px;border-radius:8px;line-height:1.6;margin-top:16px}
-.footer{text-align:center;color:#64748b;font-size:13px;padding:10px}
+.notice{background:#fff7ed;border-left:5px solid #f97316;padding:13px 15px;border-radius:8px;line-height:1.6;margin-top:16px}.footer{text-align:center;color:#64748b;font-size:13px;padding:10px}
 @media(max-width:700px){.grid,.summary{grid-template-columns:1fr}.card{padding:15px}h1{font-size:23px}}
-@media print{body{background:#fff}.container{max-width:none;margin:0}.card{box-shadow:none;border:0;padding:8px}.actions,.notice{display:none}input{border:0!important}table{min-width:0;font-size:11px}}
+
+/* ===== A4 print form: closely matches the original Excel form ===== */
+@page{size:A4 portrait;margin:0}
+.print-sheet{font-family:"Arial","Tahoma","Noto Sans Thai",sans-serif;color:#111;background:#fff}
+.print-sheet .ps-head{border:1px solid #111;display:grid;grid-template-columns:54px 1fr 130px;min-height:58px;align-items:stretch}
+.print-sheet .ps-logo{border-right:1px solid #111;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;letter-spacing:-1px}
+.print-sheet .ps-title{text-align:center;padding:5px 4px}.print-sheet .ps-title strong{font-size:16px;display:block}.print-sheet .ps-title span{font-size:10px;font-weight:700}
+.print-sheet .ps-meta{border-left:1px solid #111;font-size:8px;padding:4px 5px;line-height:1.35}.print-sheet .line{display:inline-block;border-bottom:1px solid #111;min-width:42px;height:10px;vertical-align:bottom}
+.print-sheet .ps-info{border:1px solid #111;border-top:0;padding:4px 6px;font-size:8.5px;line-height:1.55}.print-sheet .info-grid{display:grid;grid-template-columns:1.35fr 1fr 1fr;column-gap:8px}.print-sheet .info-wide{grid-column:1/3}
+.print-sheet .ps-section{border:1px solid #111;border-bottom:0;text-align:center;font-size:11px;font-weight:800;padding:3px;background:#f7f7f7;margin-top:5px}
+.print-sheet .ps-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:7.5px}.print-sheet .ps-table th,.print-sheet .ps-table td{border:1px solid #111;padding:2px 3px;line-height:1.15;height:16px}.print-sheet .ps-table th{background:#fff;color:#111;font-weight:800;text-align:center}.print-sheet .ps-table .c1{width:5%}.print-sheet .ps-table .c2{width:49%}.print-sheet .ps-table .c3{width:9%}.print-sheet .ps-table .c4{width:10%}.print-sheet .ps-table .c5{width:17%}.print-sheet .ps-table .c6{width:10%}.print-sheet .ps-table td:nth-child(1),.print-sheet .ps-table td:nth-child(3),.print-sheet .ps-table td:nth-child(4),.print-sheet .ps-table td:nth-child(6){text-align:center}.print-sheet .ps-cat td{font-weight:800;background:#fafafa}.print-sheet .ps-score{text-align:center;font-weight:700}.print-sheet .ps-summary-title{border:1px solid #111;border-top:0;text-align:center;font-size:9px;font-weight:800;padding:3px}.print-sheet .ps-bottom{display:grid;grid-template-columns:1fr 1.35fr;gap:5px;margin-top:3px}.print-sheet .ps-leftbox,.print-sheet .ps-rightbox{border:1px solid #111;font-size:7.5px}.print-sheet .ps-leftbox{padding:3px}.print-sheet .criteria-row{display:grid;grid-template-columns:56px 10px 1fr 62px;line-height:1.35}.print-sheet .criteria-row .g{text-align:center;font-weight:700}.print-sheet .ps-rightbox{display:grid;grid-template-columns:1fr 1fr}.print-sheet .sign{min-height:32px;border-right:1px solid #111;border-bottom:1px solid #111;padding:3px;text-align:center}.print-sheet .sign:nth-child(even){border-right:0}.print-sheet .sign:nth-last-child(-n+2){border-bottom:0}.print-sheet .sign small{display:block;font-size:7px}.print-sheet .ps-warning{font-size:6.7px;line-height:1.35;margin-top:3px}.print-sheet .ps-foot{font-size:6.5px;text-align:right;margin-top:2px}
+.print-sheet .val{border-bottom:1px dotted #777;min-height:10px;display:inline-block;min-width:40px;padding:0 2px}.print-sheet .center{text-align:center}
+
+@media print{
+ body{background:#fff!important;margin:0!important;padding:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ .container{width:190mm!important;max-width:none!important;margin:7mm auto 0!important;padding:0!important}
+ .card{background:#fff!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:0!important;margin:0!important}
+ .container>.card:not(:first-child),.container>.footer{display:none!important}
+ .container>.card:first-child{display:none!important}
+ .print-only{display:block!important}
+}
+@media screen{.print-only{display:none}}
 </style>
 </head>
 <body>
 <div class="container" id="printArea">
+<div class="print-only print-sheet" id="printSheet">
+  <div class="ps-head">
+    <div class="ps-logo">NANO</div>
+    <div class="ps-title"><strong>ใบประเมินผู้ขาย</strong><span>ประเมิน ครั้งที่&nbsp;&nbsp; <span class="val" id="pEvalNo">____</span>&nbsp;&nbsp; | &nbsp;ปี&nbsp; <span class="val" id="pYear">____</span></span></div>
+    <div class="ps-meta">เอกสารเลขที่ : <span class="line"></span><br>วันที่ประเมิน : <span class="line"></span><br>สถานะผู้ขาย : <span class="line"></span></div>
+  </div>
+  <div class="ps-info">
+    <div class="info-grid">
+      <div class="info-wide">ชื่อบริษัท / โรงงาน / ห้างหุ้นส่วน : <span class="val" id="pCompany">-</span></div>
+      <div>ประเภทของสินค้าที่ขาย : <span class="val" id="pProduct">-</span></div>
+      <div class="info-wide">สถานที่ประกอบการ : <span class="val" id="pAddress">-</span></div>
+      <div>เบอร์โทรศัพท์ : <span class="val" id="pPhone">-</span></div>
+      <div>แฟกซ์ : <span class="val" id="pFax">-</span></div>
+      <div>ชื่อผู้ประสานงาน : <span class="val" id="pContact">-</span></div>
+      <div>ตำแหน่ง : <span class="val" id="pPosition">-</span></div>
+      <div>ผลการประเมินประจำเดือน : <span class="val" id="pMonth">-</span></div>
+    </div>
+  </div>
+  <div class="ps-section">✉ ข้อมูลการประเมิน</div>
+  <table class="ps-table">
+    <thead><tr><th class="c1">หัวข้อ</th><th class="c2">หัวข้อการประเมิน</th><th class="c3">คะแนนเต็ม</th><th class="c4">ค่าที่ได้</th><th class="c5">หมายเหตุ</th><th class="c6">ผู้ประเมิน</th></tr></thead>
+    <tbody id="printCriteria"></tbody>
+  </table>
+  <div class="ps-summary-title">สรุปผลการประเมิน [ คะแนนเต็ม 100 คะแนน ]</div>
+  <table class="ps-table"><tr><td style="width:25%;font-weight:700">คะแนนรวมที่ได้</td><td id="pTotal" style="font-weight:800;text-align:center">-</td><td style="width:15%">คะแนน</td><td style="width:18%;font-weight:700">เกรด</td><td id="pGrade" style="font-weight:800;text-align:center">-</td><td id="pStatus" style="text-align:center">-</td></tr></table>
+  <div class="ps-bottom">
+    <div class="ps-leftbox">
+      <div class="criteria-row"><span>91 ~ 100</span><span>=</span><span class="g">A (ดีมาก)</span><span>ผ่านเกณฑ์</span></div>
+      <div class="criteria-row"><span>81 ~ 90</span><span>=</span><span class="g">B (ดี)</span><span>ไม่ผ่านเกณฑ์</span></div>
+      <div class="criteria-row"><span>71 ~ 80</span><span>=</span><span class="g">C (พอใช้)</span><span>ไม่ผ่านเกณฑ์</span></div>
+      <div class="criteria-row"><span>0 ~ 70</span><span>=</span><span class="g">D* (ปรับปรุง)</span><span>ไม่ผ่านเกณฑ์</span></div>
+      <div class="ps-warning">* คะแนนเกณฑ์การประเมินต้องไม่ต่ำกว่า 70 คะแนน ในกรณีที่ต่ำกว่า 70 คะแนน ทางฝ่ายที่เกี่ยวข้องจะทำการเข้าไป Action หน้างานตามหัวข้อที่ไม่ผ่านเกณฑ์การประเมิน</div>
+      <div class="ps-warning">* กรณีที่ทางผู้ขาย (Supplier) ได้เกรด D ติดต่อกัน 3 ครั้ง จะถูกดำเนินการออกใบเพิกถอนรายชื่อผู้ขาย AVL</div>
+    </div>
+    <div class="ps-rightbox">
+      <div class="sign">เจ้าหน้าที่จัดซื้อ<small id="pPurchasing">(...................................................)</small></div>
+      <div class="sign">ประกันคุณภาพ<small id="pQA">(...................................................)</small></div>
+      <div class="sign">เจ้าหน้าที่สโตร์<small id="pStore">(...................................................)</small></div>
+      <div class="sign">SUPPLIER CONFIRM<small id="pSupplier">(...................................................)</small></div>
+      <div class="sign">ผู้จัดการฝ่ายจัดซื้อ<small id="pManager">(...................................................)</small></div>
+      <div class="sign">ผู้ประเมิน<small id="pEvaluator">(...................................................)</small></div>
+    </div>
+  </div>
+  <div class="ps-foot">FM-PU-006-00 : 27/03/18</div>
+</div>
+
 <div class="card">
 <h1>ใบประเมินผู้ขาย</h1>
 <div class="subtitle">แบบฟอร์มประเมิน Supplier / Vendor Evaluation</div>
@@ -45,7 +112,7 @@ h1{text-align:center;margin:0 0 8px;color:#0f4c5c;font-size:28px}.subtitle{text-
 <div class="section">ข้อมูลการประเมิน</div>
 <div class="table-wrap">
 <table>
-<thead><tr><th>หัวข้อ</th><th>หัวข้อการประเมิน</th><th>คะแนนเต็ม</th><th>ค่าที่ได้</th><th>หมายเหตุ</th></tr></thead>
+<thead><tr><th>หัวข้อ</th><th>หัวข้อการประเมิน</th><th>คะแนนเต็ม</th><th>ค่าที่ได้</th><th>หมายเหตุ</th><th>ผู้ประเมิน</th></tr></thead>
 <tbody id="criteria"></tbody>
 </table>
 </div>
@@ -107,13 +174,13 @@ const data=[
 const tbody=document.getElementById('criteria');
 let scoreIndex=0;
 data.forEach(x=>{
- if(x[1]===null){tbody.insertAdjacentHTML('beforeend',`<tr><td colspan="5" class="category">${x[0]}</td></tr>`)}
+ if(x[1]===null){tbody.insertAdjacentHTML('beforeend',`<tr><td colspan="6" class="category">${x[0]}</td></tr>`)}
  else{
   const i=scoreIndex++;
   tbody.insertAdjacentHTML('beforeend',`<tr>
   <td class="num">${x[0]}</td><td>${x[1]}</td><td class="max">${x[2]}</td>
   <td class="score"><input type="number" min="0" max="${x[2]}" step="1" class="scoreInput" data-max="${x[2]}" required oninput="calc()"></td>
-  <td class="note"><input class="noteInput" placeholder="หมายเหตุ"></td></tr>`);
+  <td class="note"><input class="noteInput" placeholder="หมายเหตุ"></td><td class="evaluatorCell"><input class="rowEvaluator" placeholder="ผู้ประเมิน"></td></tr>`);
  }
 });
 function calc(){
@@ -218,33 +285,40 @@ function downloadBlob(blob,filename){
 
 async function createA4PDF(){
  const {jsPDF}=window.jspdf;
- const area=document.getElementById('printArea');
+ syncPrintSheet();
+ const area=document.getElementById('printSheet');
  const clone=area.cloneNode(true);
- clone.querySelectorAll('button,.actions,.notice,#message').forEach(e=>e.remove());
- clone.querySelectorAll('input,textarea').forEach(e=>{
-   const div=document.createElement('div');div.textContent=e.value||'-';div.style.padding='4px 0';div.style.minHeight='20px';div.style.whiteSpace='pre-wrap';
-   e.parentNode.replaceChild(div,e);
- });
- clone.style.width='794px';clone.style.background='#fff';clone.style.position='absolute';clone.style.left='-10000px';clone.style.top='0';clone.style.padding='20px';clone.style.boxShadow='none';
+ clone.classList.add('pdf-clone');
+ clone.style.display='block';
+ clone.style.width='718px';
+ clone.style.height='1070px';
+ clone.style.position='absolute';clone.style.left='-10000px';clone.style.top='0';
+ clone.style.margin='0';clone.style.padding='0';clone.style.background='#fff';
  document.body.appendChild(clone);
- const canvas=await html2canvas(clone,{scale:2,useCORS:true,backgroundColor:'#fff',logging:false});
+ const canvas=await html2canvas(clone,{scale:2,useCORS:true,backgroundColor:'#fff',logging:false,windowWidth:718});
  document.body.removeChild(clone);
  const pdf=new jsPDF('p','mm','a4');
- const pageW=210,pageH=297,margin=8;
- const imgW=pageW-margin*2;
- const imgH=canvas.height*imgW/canvas.width;
- let y=margin,remaining=imgH;
- let sourceY=0;
- while(remaining>0){
-   const sliceH=Math.min(pageH-margin*2,remaining);
-   const slicePx=Math.round(sliceH*canvas.width/imgW);
-   const slice=document.createElement('canvas');slice.width=canvas.width;slice.height=slicePx;
-   slice.getContext('2d').drawImage(canvas,0,sourceY,canvas.width,slicePx,0,0,canvas.width,slicePx);
-   pdf.addImage(slice.toDataURL('image/jpeg',0.92),'JPEG',margin,margin,imgW,sliceH);
-   remaining-=sliceH;sourceY+=slicePx;
-   if(remaining>0){pdf.addPage();}
- }
+ const imgData=canvas.toDataURL('image/jpeg',0.96);
+ pdf.addImage(imgData,'JPEG',10,10,190,277);
  return pdf.output('blob');
+}
+function setPrint(id,val){const el=document.getElementById(id);if(el)el.textContent=(val||'-');}
+function syncPrintSheet(){
+ setPrint('pEvalNo',evalNo.value);
+ const gy=Number((evalMonth.value||'').slice(0,4)); setPrint('pYear', gy ? String(gy+543).slice(-2) : '-');
+ setPrint('pCompany',company.value);setPrint('pProduct',productType.value);setPrint('pAddress',address.value);
+ setPrint('pPhone',phone.value);setPrint('pFax',fax.value);setPrint('pContact',contact.value);setPrint('pPosition',position.value);setPrint('pMonth',evalMonth.value);
+ setPrint('pTotal',document.getElementById('total').textContent);setPrint('pGrade',document.getElementById('grade').textContent);setPrint('pStatus',document.getElementById('status').textContent);
+ setPrint('pPurchasing',purchasing.value||'(...................................................)');setPrint('pQA',qa.value||'(...................................................)');setPrint('pStore',store.value||'(...................................................)');setPrint('pSupplier',supplierConfirm.value||'(...................................................)');setPrint('pManager',manager.value||'(...................................................)');setPrint('pEvaluator',evaluator.value||'(...................................................)');
+ const out=document.getElementById('printCriteria');out.innerHTML='';
+ const rows=[...document.querySelectorAll('#criteria tr')];
+ const scores=[...document.querySelectorAll('.scoreInput')]; const notes=[...document.querySelectorAll('.noteInput')]; const evals=[...document.querySelectorAll('.rowEvaluator')]; let idx=0;
+ rows.forEach(r=>{
+   const cat=r.querySelector('.category');
+   if(cat){out.insertAdjacentHTML('beforeend',`<tr class="ps-cat"><td colspan="6">${cat.textContent}</td></tr>`);return;}
+   const cells=r.querySelectorAll('td'); if(cells.length<5)return;
+   out.insertAdjacentHTML('beforeend',`<tr><td>${cells[0].textContent}</td><td>${cells[1].textContent}</td><td>${cells[2].textContent}</td><td class="ps-score">${scores[idx]?.value||'-'}</td><td>${notes[idx]?.value||''}</td><td>${evals[idx]?.value||evaluator.value||''}</td></tr>`);idx++;
+ });
 }
 
 function exportData(){
@@ -256,6 +330,7 @@ function exportData(){
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='supplier_evaluation_records.csv';a.click();
 }
 function resetForm(){if(confirm('ต้องการล้างข้อมูลทั้งหมดในแบบฟอร์มหรือไม่?'))location.reload()}
+window.addEventListener('beforeprint', syncPrintSheet);
 const savedEmail=localStorage.getItem('supplierRecipientEmail'); if(savedEmail) recipientEmail.value=savedEmail;
 calc();
 </script>
