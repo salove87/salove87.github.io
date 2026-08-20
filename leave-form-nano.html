@@ -1274,7 +1274,7 @@ autofillNameFromEmpId(savedId);
       try {
         const history = await driver.getEmployeeHistory(canonicalId);
         const vacationRows = history
-          .filter(r => normalizeHistoryLeaveType(r.leaveType) === 'ลาพักร้อน')
+          .filter(r => normalizeHistoryLeaveType(r.leaveType) === 'ลาพักร้อน' && r.leaveStatus !== 'cancelled')
           .map(r => ({ row: r, days: leaveDaysWithinRange(r, range) }))
           .filter(x => x.days > 0)
           .sort((a,b) => {
@@ -1349,7 +1349,7 @@ autofillNameFromEmpId(savedId);
           tdType.appendChild(quotaBadge);
         }
 
-        // ใบลาพักร้อนที่ถูกยกเลิกยังแสดงในรายการ แต่ไม่ลบข้อมูล/ไม่เปลี่ยนยอดสิทธิ์
+        // ใบลาพักร้อนที่ถูกยกเลิกยังแสดงในรายการ แต่ไม่ถูกนำไปคำนวณสิทธิ์/ยอดใช้จริง
         if (row.leaveStatus === 'cancelled') {
           const cancelledBadge = document.createElement('div');
           cancelledBadge.textContent = 'ยกเลิก';
@@ -1635,12 +1635,13 @@ autofillNameFromEmpId(savedId);
     let dashboardDetailMode = '';
 
     function dashboardActiveRows(rows){
-      return rows.filter(r => !DASHBOARD_EXCLUDED_EMP_IDS.has(normalizeEmployeeId(r.empId)));
+      return rows.filter(r => !DASHBOARD_EXCLUDED_EMP_IDS.has(normalizeEmployeeId(r.empId)) && r.leaveStatus !== 'cancelled');
     }
 
     function getDashboardEmployeeGroups(rows){
       const groups = new Map();
       rows.forEach(r => {
+        if (r.leaveStatus === 'cancelled') return;
         const id = normalizeEmployeeId(r.empId);
         if(!id || DASHBOARD_EXCLUDED_EMP_IDS.has(id)) return;
         if(!groups.has(id)){
@@ -1876,6 +1877,7 @@ autofillNameFromEmpId(savedId);
         const totals={};
         const currentLeaveYearRange = getLeaveYearRange(new Date());
         rows.forEach(r=>{
+          if (r.leaveStatus === 'cancelled') return;
           const k=normalizeHistoryLeaveType(r.leaveType);
           if (k === 'ลาพักร้อน') {
             // ลาพักร้อนนับตามปีสิทธิ์แบบรอบ 26-25 ไม่ใช่ปีปฏิทิน
@@ -1884,7 +1886,7 @@ autofillNameFromEmpId(savedId);
             totals[k]=(totals[k]||0)+numericDays(r.leaveDays);
           }
         });
-        const total=numericDays(rows.reduce((s,r)=>s+numericDays(r.leaveDays),0));
+        const total=numericDays(rows.reduce((s,r)=>s + (r.leaveStatus === 'cancelled' ? 0 : numericDays(r.leaveDays)),0));
 
         // ต้องแสดงครบทุกประเภท แม้ประเภทนั้นยังไม่เคยลา เพื่อไม่ให้ผู้ใช้เข้าใจว่าระบบไม่มีข้อมูล
         const leaveTypes = [
@@ -1917,7 +1919,7 @@ autofillNameFromEmpId(savedId);
         // โควต้าพักร้อน 6 วัน/ปี ใช้ปีสิทธิ์แบบรอบ 26 ธ.ค. - 25 ธ.ค.
         const vacationUsedThisYear = rows.reduce((sum, r) => {
           const type = normalizeHistoryLeaveType(r.leaveType);
-          if (type === 'ลาพักร้อน') {
+          if (type === 'ลาพักร้อน' && r.leaveStatus !== 'cancelled') {
             return sum + leaveDaysWithinRange(r, currentLeaveYearRange);
           }
           return sum;
@@ -2030,7 +2032,7 @@ if(!ok){
             // คำนวณวันพักร้อนที่ใช้ไปเฉพาะในปีสิทธิ์นั้น
             let usedDays = 0;
             history.forEach(h => {
-                if (normalizeHistoryLeaveType(h.leaveType) === 'ลาพักร้อน') {
+                if (normalizeHistoryLeaveType(h.leaveType) === 'ลาพักร้อน' && h.leaveStatus !== 'cancelled') {
                     usedDays += leaveDaysWithinRange(h, reqRange);
                 }
             });
@@ -2121,7 +2123,7 @@ if(!ok){
         <div>ประเภท: <strong>${escapeHtml(type)}</strong></div>
         <div>วันที่: <strong>${escapeHtml(fmtDateDMY(row.startDate))}${row.endDate && row.endDate !== row.startDate ? ' - ' + escapeHtml(fmtDateDMY(row.endDate)) : ''}</strong></div>
         <div>จำนวน: <strong>${escapeHtml(row.leaveDays || '-')} วัน</strong></div>
-        ${isRestore ? '<div style="margin-top:10px;color:#166534;font-weight:700;">รายการนี้จะกลับมาเป็นใบลาปกติ และยังคงประวัติการดำเนินการไว้</div>' : '<div style="margin-top:10px;color:#B91C1C;font-weight:700;">รายการจะยังไม่ถูกลบ แต่จะเปลี่ยนสถานะเป็น “ยกเลิก” และไม่สามารถยกเลิกซ้ำได้</div>'}
+        ${isRestore ? '<div style="margin-top:10px;color:#166534;font-weight:700;">รายการนี้จะกลับมาเป็นใบลาปกติ และยังคงประวัติการดำเนินการไว้</div>' : '<div style="margin-top:10px;color:#B91C1C;font-weight:700;">รายการจะยังไม่ถูกลบ แต่จะเปลี่ยนสถานะเป็น “ยกเลิก” และไม่สามารถยกเลิกซ้ำได้ โดยสิทธิ์พักร้อนจะคืนกลับตามวันของใบนี้</div>'}
       `;
       vacationActionEmpId.placeholder = `พิมพ์ ${row.empId || 'รหัสพนักงาน'} เพื่อยืนยัน`;
       vacationActionModal.style.display='block';
