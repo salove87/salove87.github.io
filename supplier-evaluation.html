@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ใบประเมินผู้ขายออนไลน์</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f6f9;font-family:"Segoe UI","Noto Sans Thai",Tahoma,sans-serif;color:#1f2937}
+.container{max-width:1100px;margin:24px auto;padding:0 14px}
+.card{background:#fff;border-radius:16px;box-shadow:0 5px 24px #00000012;padding:24px;margin-bottom:18px}
+h1{text-align:center;margin:0 0 8px;color:#0f4c5c;font-size:28px}.subtitle{text-align:center;color:#64748b;margin-bottom:22px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.field label{display:block;font-weight:700;margin-bottom:6px}.field input,.field textarea,.field select{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:9px;font-size:15px}.field textarea{min-height:72px;resize:vertical}
+.section{font-size:19px;font-weight:800;background:#e8f4f7;color:#0f4c5c;padding:11px 14px;border-radius:10px;margin:22px 0 10px}
+.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:850px}th,td{border:1px solid #d7dee6;padding:10px;vertical-align:middle}th{background:#0f4c5c;color:#fff;text-align:center}td.num{text-align:center;width:55px}td.max{text-align:center;width:85px;font-weight:700}td.score{width:110px}td.score input{width:80px;padding:8px;text-align:center;border:1px solid #94a3b8;border-radius:7px}td.note{width:190px}td.note input{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:7px}.category{background:#f0f7f8;font-weight:800;color:#155e75}
+.summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:16px}.result{padding:18px;border-radius:12px;background:#f8fafc;text-align:center}.result .big{font-size:32px;font-weight:900;color:#0f4c5c}.grade{font-size:28px;font-weight:900}.pass{color:#15803d}.fail{color:#b91c1c}
+.actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:20px}.btn{border:0;border-radius:10px;padding:12px 20px;font-size:16px;font-weight:700;cursor:pointer}.primary{background:#0f4c5c;color:white}.secondary{background:#e2e8f0;color:#1e293b}.danger{background:#fee2e2;color:#991b1b}
+.notice{background:#fff7ed;border-left:5px solid #f97316;padding:13px 15px;border-radius:8px;line-height:1.6;margin-top:16px}
+.footer{text-align:center;color:#64748b;font-size:13px;padding:10px}
+@media(max-width:700px){.grid,.summary{grid-template-columns:1fr}.card{padding:15px}h1{font-size:23px}}
+@media print{body{background:#fff}.container{max-width:none;margin:0}.card{box-shadow:none;border:0;padding:8px}.actions,.notice{display:none}input{border:0!important}table{min-width:0;font-size:11px}}
+</style>
+</head>
+<body>
+<div class="container" id="printArea">
+<div class="card">
+<h1>ใบประเมินผู้ขาย</h1>
+<div class="subtitle">แบบฟอร์มประเมิน Supplier / Vendor Evaluation</div>
+<div class="grid">
+<div class="field"><label>ประเมินครั้งที่</label><input id="evalNo" required></div>
+<div class="field"><label>ผลการประเมินประจำเดือน</label><input id="evalMonth" type="month" required></div>
+<div class="field"><label>ชื่อบริษัท / โรงงาน / ห้างหุ้นส่วน</label><input id="company" required></div>
+<div class="field"><label>ประเภทของสินค้าที่ขาย</label><input id="productType" required></div>
+<div class="field"><label>สถานที่ประกอบการ</label><textarea id="address" required></textarea></div>
+<div class="field"><label>เบอร์โทรศัพท์</label><input id="phone" required></div>
+<div class="field"><label>แฟกซ์</label><input id="fax"></div>
+<div class="field"><label>ชื่อของผู้ประสานงาน</label><input id="contact" required></div>
+<div class="field"><label>ตำแหน่ง</label><input id="position" required></div>
+<div class="field"><label>ผู้ประเมิน</label><input id="evaluator" required></div>
+</div>
+</div>
+
+<div class="card">
+<div class="section">ข้อมูลการประเมิน</div>
+<div class="table-wrap">
+<table>
+<thead><tr><th>หัวข้อ</th><th>หัวข้อการประเมิน</th><th>คะแนนเต็ม</th><th>ค่าที่ได้</th><th>หมายเหตุ</th></tr></thead>
+<tbody id="criteria"></tbody>
+</table>
+</div>
+<div class="summary">
+<div class="result"><div>คะแนนเต็ม</div><div class="big">100</div><div>คะแนน</div></div>
+<div class="result"><div>คะแนนรวมที่ได้</div><div class="big" id="total">0</div><div>คะแนน</div></div>
+<div class="result"><div>เกรด</div><div class="grade" id="grade">-</div><div id="status">กรอกคะแนนให้ครบ</div></div>
+</div>
+<div class="notice">
+<strong>เกณฑ์การประเมิน</strong><br>
+91–100 = A (ดีมาก) ผ่านเกณฑ์ &nbsp;|&nbsp; 81–90 = B (ดี) ไม่ผ่านเกณฑ์ตามแบบเดิม &nbsp;|&nbsp;
+71–80 = C (พอใช้) &nbsp;|&nbsp; 0–70 = D* (ปรับปรุง)<br>
+คะแนนเกณฑ์การประเมินต้องไม่ต่ำกว่า 70 คะแนน หากต่ำกว่า 70 คะแนน ฝ่ายที่เกี่ยวข้องจะดำเนินการ Action หน้างานตามหัวข้อที่ไม่ผ่านเกณฑ์
+</div>
+</div>
+
+<div class="card">
+<div class="section">การรับทราบ / ผู้เกี่ยวข้อง</div>
+<div class="grid">
+<div class="field"><label>เจ้าหน้าที่จัดซื้อ</label><input id="purchasing" required></div>
+<div class="field"><label>ประกันคุณภาพ</label><input id="qa" required></div>
+<div class="field"><label>เจ้าหน้าที่สโตร์</label><input id="store" required></div>
+<div class="field"><label>ผู้จัดการฝ่ายจัดซื้อ</label><input id="manager" required></div>
+<div class="field"><label>SUPPLIER CONFIRM / ผู้รับทราบจาก Supplier</label><input id="supplierConfirm" required></div>
+</div>
+<div class="field" style="margin-top:14px"><label>อีเมลผู้รับรายงาน (ตั้งค่า 1 ครั้ง)</label><input id="recipientEmail" type="email" placeholder="เช่น quality@company.com" required></div>
+<div class="actions">
+<button class="btn primary" onclick="submitForm()">บันทึก + สร้าง PDF A4 + ส่งอีเมล</button>
+<button class="btn secondary" onclick="window.print()">พิมพ์ / Save PDF</button>
+<button class="btn secondary" onclick="exportData()">ส่งออกข้อมูล CSV</button>
+<button class="btn danger" onclick="resetForm()">ล้างแบบฟอร์ม</button>
+</div>
+<div id="message" style="text-align:center;margin-top:12px;font-weight:700"></div>
+</div>
+<div class="footer">แบบฟอร์มอ้างอิง: FM-PU-006-00 : 27/03/18</div>
+</div>
+
+<script>
+const data=[
+["ด้านคุณภาพ",null],
+["1","การประเมินด้านคุณภาพของผลิตภัณฑ์ที่ส่งมอบ",15],
+["2","การจัดส่งเอกสาร การตรวจสอบ ประกันคุณภาพของผลิตภัณฑ์ที่ส่งมอบ",5],
+["3","การประเมินจำนวนครั้งที่เกิดปัญหาหลุดรอด ด้านคุณภาพ",10],
+["4","การประเมิน ความร่วมมือในการแก้ไขปัญหาและระยะเวลา การตอบกลับปัญหา",5],
+["5","การรบกวนกระบวนการของลูกค้า (การบริการด้าน Q)",10],
+["ด้านการจัดส่ง",null],
+["6","การประเมินด้านความถูกต้องของผลิตภัณฑ์",10],
+["7","การประเมินด้านสภาพการบรรจุหีบห่อ",5],
+["8","การประเมินด้านความถูกต้องของเอกสารในการจัดส่ง",5],
+["9","การประเมินด้านค่าใช้จ่ายพิเศษในการส่งมอบ",5],
+["ด้านส่งมอบ",null],
+["10","การประเมินความสามารถการส่งมอบได้ตามแผนเรียกเข้าที่กำหนด",10],
+["11","การประเมินความร่วมมือในการตอบกลับเอกสาร PO",5],
+["12","การประเมินความร่วมมือในการตอบกลับเอกสาร แผนเรียกเข้าชิ้นส่วน",5],
+["การควบคุมผู้ให้บริการภายนอกด้านกระบวนการผลิตภัณฑ์",null],
+["13","สถานะพิเศษที่ลูกค้าแจ้งตักเตือนซึ่งเป็นประเด็นปัญหาเกี่ยวข้องกับคุณภาพหรือการส่งมอบ",5],
+["14","เคลมคืนจากผู้ใช้ยานพาหนะ",5]
+];
+const tbody=document.getElementById('criteria');
+let scoreIndex=0;
+data.forEach(x=>{
+ if(x[1]===null){tbody.insertAdjacentHTML('beforeend',`<tr><td colspan="5" class="category">${x[0]}</td></tr>`)}
+ else{
+  const i=scoreIndex++;
+  tbody.insertAdjacentHTML('beforeend',`<tr>
+  <td class="num">${x[0]}</td><td>${x[1]}</td><td class="max">${x[2]}</td>
+  <td class="score"><input type="number" min="0" max="${x[2]}" step="1" class="scoreInput" data-max="${x[2]}" required oninput="calc()"></td>
+  <td class="note"><input class="noteInput" placeholder="หมายเหตุ"></td></tr>`);
+ }
+});
+function calc(){
+ let total=0, count=0, valid=true;
+ document.querySelectorAll('.scoreInput').forEach(el=>{
+  if(el.value===''){valid=false;return}
+  let v=Number(el.value),m=Number(el.dataset.max);
+  if(v<0){v=0;el.value=0} if(v>m){v=m;el.value=m}
+  total+=v;count++;
+ });
+ document.getElementById('total').textContent=total;
+ let g='-',s='กรอกคะแนนให้ครบ',cls='';
+ if(valid && count===14){
+  if(total>=91){g='A';s='ผ่านเกณฑ์';cls='pass'}
+  else if(total>=81){g='B';s='ไม่ผ่านเกณฑ์ตามแบบประเมิน';cls='fail'}
+  else if(total>=71){g='C';s='ไม่ผ่านเกณฑ์';cls='fail'}
+  else {g='D*';s='ไม่ผ่านเกณฑ์ / ต้อง Action';cls='fail'}
+ }
+ const ge=document.getElementById('grade');ge.textContent=g;ge.className='grade '+cls;
+ document.getElementById('status').textContent=s;
+}
+function requiredFields(){
+ const req=[...document.querySelectorAll('[required]')];
+ const missing=req.find(x=>!String(x.value||'').trim());
+ if(missing){missing.focus();return false}
+ return true;
+}
+function collect(){
+ const scores=[...document.querySelectorAll('.scoreInput')].map(x=>x.value);
+ const notes=[...document.querySelectorAll('.noteInput')].map(x=>x.value);
+ return {
+  timestamp:new Date().toLocaleString('th-TH'),evalNo:evalNo.value,evalMonth:evalMonth.value,
+  company:company.value,productType:productType.value,address:address.value,phone:phone.value,fax:fax.value,
+  contact:contact.value,position:position.value,evaluator:evaluator.value,scores:scores.join('|'),
+  notes:notes.join('|'),total:total.textContent,grade:grade.textContent,status:status.textContent,
+  purchasing:purchasing.value,qa:qa.value,store:store.value,manager:manager.value,supplierConfirm:supplierConfirm.value
+ };
+}
+async function submitForm(){
+ // เปิดหน้าต่าง Outlook ตั้งแต่จังหวะที่ผู้ใช้กดปุ่ม เพื่อไม่ให้ Browser บล็อก Popup
+ const outlookWindow=window.open('about:blank','_blank','width=1100,height=800');
+ if(!requiredFields()){
+   if(outlookWindow) outlookWindow.close();
+   document.getElementById('message').textContent='กรุณากรอกข้อมูลและคะแนน รวมถึงอีเมลผู้รับให้ครบทุกช่อง';
+   document.getElementById('message').style.color='#b91c1c';
+   return;
+ }
+ calc();
+ const msg=document.getElementById('message');
+ msg.textContent='กำลังสร้างไฟล์ PDF A4...'; msg.style.color='#0f4c5c';
+ try{
+   const obj=collect();
+   const records=JSON.parse(localStorage.getItem('supplierEvaluations')||'[]');
+   records.push(obj);
+   localStorage.setItem('supplierEvaluations',JSON.stringify(records));
+
+   // สร้าง PDF A4
+   const pdfBlob=await createA4PDF();
+   const filename=`Supplier_Evaluation_${safeFileName(company.value||'Supplier')}_${evalMonth.value||''}.pdf`;
+
+   // ดาวน์โหลด PDF ทันที
+   downloadBlob(pdfBlob,filename);
+
+   // เปิด Outlook Compose
+   const email=recipientEmail.value.trim();
+   localStorage.setItem('supplierRecipientEmail',email);
+   const subject=`ใบประเมินผู้ขาย - ${company.value} - ${evalMonth.value}`;
+   const body=`เรียนผู้เกี่ยวข้อง\n\nขอส่งใบประเมินผู้ขาย ${company.value}\nประเมินครั้งที่: ${evalNo.value}\nประจำเดือน: ${evalMonth.value}\nคะแนนรวม: ${document.getElementById('total').textContent}/100\nเกรด: ${document.getElementById('grade').textContent}\n\nระบบได้ดาวน์โหลดไฟล์ PDF A4 ลงในเครื่องแล้ว\nกรุณาแนบไฟล์ PDF ที่ดาวน์โหลดชื่อ ${filename} ก่อนกดส่งอีเมล\n\nขอบคุณครับ/ค่ะ`;
+
+   const outlookUrl='https://outlook.office.com/mail/deeplink/compose?to='+encodeURIComponent(email)+'&subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+   const mailto='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+
+   // ใช้ Outlook Web เป็นหลัก; หากเปิดไม่ได้ ผู้ใช้ยังมีปุ่มเปิด Outlook Desktop/Default Mail App
+   if(outlookWindow){
+      outlookWindow.location.href=outlookUrl;
+   }else{
+      window.location.href=mailto;
+   }
+
+   msg.innerHTML='บันทึกเรียบร้อย ✓ สร้าง PDF A4 และดาวน์โหลดแล้ว<br><span style="font-weight:600;font-size:14px">กำลังเปิดหน้าส่งอีเมล Outlook...</span>';
+   msg.style.color='#15803d';
+ }catch(err){
+   if(outlookWindow) outlookWindow.close();
+   console.error(err);
+   msg.textContent='เกิดข้อผิดพลาดในการสร้าง PDF กรุณาลองใหม่อีกครั้ง';
+   msg.style.color='#b91c1c';
+ }
+}
+function safeFileName(name){
+ return String(name).replace(/[^a-zA-Z0-9ก-๙_-]/g,'_').replace(/_+/g,'_').slice(0,80);
+}
+function downloadBlob(blob,filename){
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement('a');
+ a.href=url;
+ a.download=filename;
+ a.style.display='none';
+ document.body.appendChild(a);
+ a.click();
+ setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},60000);
+}
+
+async function createA4PDF(){
+ const {jsPDF}=window.jspdf;
+ const area=document.getElementById('printArea');
+ const clone=area.cloneNode(true);
+ clone.querySelectorAll('button,.actions,.notice,#message').forEach(e=>e.remove());
+ clone.querySelectorAll('input,textarea').forEach(e=>{
+   const div=document.createElement('div');div.textContent=e.value||'-';div.style.padding='4px 0';div.style.minHeight='20px';div.style.whiteSpace='pre-wrap';
+   e.parentNode.replaceChild(div,e);
+ });
+ clone.style.width='794px';clone.style.background='#fff';clone.style.position='absolute';clone.style.left='-10000px';clone.style.top='0';clone.style.padding='20px';clone.style.boxShadow='none';
+ document.body.appendChild(clone);
+ const canvas=await html2canvas(clone,{scale:2,useCORS:true,backgroundColor:'#fff',logging:false});
+ document.body.removeChild(clone);
+ const pdf=new jsPDF('p','mm','a4');
+ const pageW=210,pageH=297,margin=8;
+ const imgW=pageW-margin*2;
+ const imgH=canvas.height*imgW/canvas.width;
+ let y=margin,remaining=imgH;
+ let sourceY=0;
+ while(remaining>0){
+   const sliceH=Math.min(pageH-margin*2,remaining);
+   const slicePx=Math.round(sliceH*canvas.width/imgW);
+   const slice=document.createElement('canvas');slice.width=canvas.width;slice.height=slicePx;
+   slice.getContext('2d').drawImage(canvas,0,sourceY,canvas.width,slicePx,0,0,canvas.width,slicePx);
+   pdf.addImage(slice.toDataURL('image/jpeg',0.92),'JPEG',margin,margin,imgW,sliceH);
+   remaining-=sliceH;sourceY+=slicePx;
+   if(remaining>0){pdf.addPage();}
+ }
+ return pdf.output('blob');
+}
+
+function exportData(){
+ const records=JSON.parse(localStorage.getItem('supplierEvaluations')||'[]');
+ if(!records.length){alert('ยังไม่มีข้อมูลที่บันทึก');return}
+ const headers=Object.keys(records[0]);
+ const csv=[headers.join(','),...records.map(r=>headers.map(h=>`"${String(r[h]??'').replaceAll('"','""')}"`).join(','))].join('\\n');
+ const blob=new Blob(["\\ufeff"+csv],{type:'text/csv;charset=utf-8'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='supplier_evaluation_records.csv';a.click();
+}
+function resetForm(){if(confirm('ต้องการล้างข้อมูลทั้งหมดในแบบฟอร์มหรือไม่?'))location.reload()}
+const savedEmail=localStorage.getItem('supplierRecipientEmail'); if(savedEmail) recipientEmail.value=savedEmail;
+calc();
+</script>
+</body>
+</html>
