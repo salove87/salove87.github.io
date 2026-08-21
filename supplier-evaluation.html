@@ -173,7 +173,7 @@ h1{text-align:center;margin:0 0 8px;color:#0f4c5c;font-size:28px}.subtitle{text-
 <button class="btn danger" onclick="resetForm()">ล้างแบบฟอร์ม</button>
 </div>
 <div id="evaluationList" class="evaluation-list" style="display:none">
-  <div class="list-head"><div><strong>รายการใบประเมินผู้ขาย</strong><div class="list-sub">แสดงรายการจากฐานข้อมูล Firebase แยกตามบริษัท</div></div><button class="btn secondary small" onclick="closeEvaluationList()">ปิด</button></div>
+  <div class="list-head"><div><strong>รายการใบประเมินผู้ขาย</strong><div class="list-sub">แสดงรายการแยกตามบริษัท</div></div><button class="btn secondary small" onclick="closeEvaluationList()">ปิด</button></div>
   <div id="evaluationRows"></div>
 </div>
 <div id="message" style="text-align:center;margin-top:12px;font-weight:700"></div>
@@ -293,10 +293,13 @@ async function initFirebase(){
 function showFirebaseError(err){
   const msg=document.getElementById('message');
   if(!msg)return;
+  const code = err && err.code ? err.code : 'unknown';
   let text='เชื่อมต่อ Firebase ไม่สำเร็จ';
-  if(err && err.code==='auth/operation-not-allowed') text='ยังไม่ได้เปิด Anonymous Authentication ใน Firebase Console';
-  else if(err && (err.code==='permission-denied'||err.code==='firestore/permission-denied')) text='Firebase Rules ไม่อนุญาตให้เข้าถึงฐานข้อมูล';
-  msg.textContent=text;
+  if(code==='auth/operation-not-allowed') text='ยังไม่ได้เปิด Anonymous Authentication ใน Firebase Console';
+  else if(code==='auth/unauthorized-domain') text='โดเมนนี้ยังไม่ได้เพิ่มใน Firebase Authentication > Settings > Authorized domains';
+  else if(code==='permission-denied'||code==='firestore/permission-denied') text='Firebase Rules ไม่อนุญาตให้เข้าถึงฐานข้อมูล';
+  else if(code==='failed-precondition') text='ยังไม่ได้สร้าง Cloud Firestore Database หรือฐานข้อมูลยังไม่พร้อมใช้งาน';
+  msg.innerHTML = `<div>${text}</div><div style=\"font-size:12px;margin-top:5px;color:#7f1d1d\">รหัส: ${escapeHtml(code)}${err&&err.message?' — '+escapeHtml(err.message):''}</div>`;
   msg.style.color='#b91c1c';
 }
 
@@ -380,7 +383,7 @@ async function renderEvaluationList(){
  const wrap=document.getElementById('evaluationRows');
  if(!wrap)return;
  const records=await getEvaluationRecords();
- if(!records.length){wrap.innerHTML='<div style="text-align:center;padding:22px;color:#64748b">ยังไม่มีรายการประเมินในฐานข้อมูล Firebase</div>';return;}
+ if(!records.length){wrap.innerHTML='<div style="text-align:center;padding:22px;color:#64748b">ยังไม่มีรายการประเมิน</div>';return;}
  const groups={};
  records.forEach(r=>{const key=r.company||'ไม่ระบุบริษัท';(groups[key] ||= []).push(r);});
  wrap.innerHTML=Object.entries(groups).map(([companyName,items])=>`
