@@ -3,6 +3,9 @@
 <head>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ใบประเมินผู้ขายออนไลน์</title>
@@ -18,23 +21,40 @@ h1{text-align:center;margin:0 0 8px;color:#0f4c5c;font-size:28px}.subtitle{text-
 .summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:16px}.result{padding:18px;border-radius:12px;background:#f8fafc;text-align:center}.result .big{font-size:32px;font-weight:900;color:#0f4c5c}.grade{font-size:28px;font-weight:900}.pass{color:#15803d}.fail{color:#b91c1c}
 .actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:20px}.btn{border:0;border-radius:10px;padding:12px 20px;font-size:16px;font-weight:700;cursor:pointer}.primary{background:#0f4c5c;color:white}.secondary{background:#e2e8f0;color:#1e293b}.danger{background:#fee2e2;color:#991b1b}
 .notice{background:#fff7ed;border-left:5px solid #f97316;padding:13px 15px;border-radius:8px;line-height:1.6;margin-top:16px}.footer{text-align:center;color:#64748b;font-size:13px;padding:10px}
+.signature-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:12px}
+.signature-box{border:1px dashed #94a3b8;border-radius:10px;padding:12px;background:#f8fafc}
+.signature-box label{display:block;font-weight:800;margin-bottom:7px}
+.signature-box input[type=file]{width:100%;font-size:14px}
+.signature-preview{height:70px;margin-top:8px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;color:#94a3b8;font-size:12px}
+.signature-preview img{max-width:95%;max-height:64px;object-fit:contain}
+.signature-help{font-size:12px;color:#64748b;margin-top:5px}
 @media(max-width:700px){.grid,.summary{grid-template-columns:1fr}.card{padding:15px}h1{font-size:23px}}
 
 /* ===== A4 print form: closely matches the original Excel form ===== */
 @page{size:A4 portrait;margin:0}
 .print-sheet{font-family:"Arial","Tahoma","Noto Sans Thai",sans-serif;color:#111;background:#fff}
-.print-sheet .ps-head{border:1px solid #111;display:grid;grid-template-columns:54px 1fr 130px;min-height:58px;align-items:stretch}
-.print-sheet .ps-logo{border-right:1px solid #111;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;letter-spacing:-1px}
-.print-sheet .ps-title{text-align:center;padding:5px 4px}.print-sheet .ps-title strong{font-size:16px;display:block}.print-sheet .ps-title span{font-size:10px;font-weight:700}
-.print-sheet .ps-meta{border-left:1px solid #111;font-size:8px;padding:4px 5px;line-height:1.35}.print-sheet .line{display:inline-block;border-bottom:1px solid #111;min-width:42px;height:10px;vertical-align:bottom}
-.print-sheet .ps-info{border:1px solid #111;border-top:0;padding:4px 6px;font-size:8.5px;line-height:1.55}.print-sheet .info-grid{display:grid;grid-template-columns:1.35fr 1fr 1fr;column-gap:8px}.print-sheet .info-wide{grid-column:1/3}
-.print-sheet .ps-section{border:1px solid #111;border-bottom:0;text-align:center;font-size:11px;font-weight:800;padding:3px;background:#f7f7f7;margin-top:5px}
-.print-sheet .ps-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:7.5px}.print-sheet .ps-table th,.print-sheet .ps-table td{border:1px solid #111;padding:2px 3px;line-height:1.15;height:16px}.print-sheet .ps-table th{background:#fff;color:#111;font-weight:800;text-align:center}.print-sheet .ps-table .c1{width:5%}.print-sheet .ps-table .c2{width:49%}.print-sheet .ps-table .c3{width:9%}.print-sheet .ps-table .c4{width:10%}.print-sheet .ps-table .c5{width:17%}.print-sheet .ps-table .c6{width:10%}.print-sheet .ps-table td:nth-child(1),.print-sheet .ps-table td:nth-child(3),.print-sheet .ps-table td:nth-child(4),.print-sheet .ps-table td:nth-child(6){text-align:center}.print-sheet .ps-cat td{font-weight:800;background:#fafafa}.print-sheet .ps-score{text-align:center;font-weight:700}.print-sheet .ps-summary-title{border:1px solid #111;border-top:0;text-align:center;font-size:9px;font-weight:800;padding:3px}.print-sheet .ps-bottom{display:grid;grid-template-columns:1fr 1.35fr;gap:5px;margin-top:3px}.print-sheet .ps-leftbox,.print-sheet .ps-rightbox{border:1px solid #111;font-size:7.5px}.print-sheet .ps-leftbox{padding:3px}.print-sheet .criteria-row{display:grid;grid-template-columns:56px 10px 1fr 62px;line-height:1.35}.print-sheet .criteria-row .g{text-align:center;font-weight:700}.print-sheet .ps-rightbox{display:grid;grid-template-columns:1fr 1fr}.print-sheet .sign{min-height:32px;border-right:1px solid #111;border-bottom:1px solid #111;padding:3px;text-align:center}.print-sheet .sign:nth-child(even){border-right:0}.print-sheet .sign:nth-last-child(-n+2){border-bottom:0}.print-sheet .sign small{display:block;font-size:7px}.print-sheet .ps-warning{font-size:6.7px;line-height:1.35;margin-top:3px}.print-sheet .ps-foot{font-size:6.5px;text-align:right;margin-top:2px}
-.print-sheet .val{border-bottom:1px dotted #777;min-height:10px;display:inline-block;min-width:40px;padding:0 2px}.print-sheet .center{text-align:center}
+.print-sheet{width:200mm;min-height:287mm;padding:0}
+.print-sheet .ps-head{border:1px solid #111;display:grid;grid-template-columns:58px 1fr 138px;min-height:70px;align-items:stretch}
+.print-sheet .ps-logo{border-right:1px solid #111;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;letter-spacing:-1px}
+.print-sheet .ps-title{text-align:center;padding:8px 4px}.print-sheet .ps-title strong{font-size:19px;display:block}.print-sheet .ps-title span{font-size:12px;font-weight:700}
+.print-sheet .ps-meta{border-left:1px solid #111;font-size:9.5px;padding:4px 5px;line-height:1.35}.print-sheet .line{display:inline-block;border-bottom:1px solid #111;min-width:42px;height:10px;vertical-align:bottom}
+.print-sheet .ps-info{border:1px solid #111;border-top:0;padding:7px 8px;font-size:10px;line-height:1.7}.print-sheet .info-grid{display:grid;grid-template-columns:1.35fr 1fr 1fr;column-gap:8px}.print-sheet .info-wide{grid-column:1/3}
+.print-sheet .ps-section{border:1px solid #111;border-bottom:0;text-align:center;font-size:13px;font-weight:800;padding:5px;background:#f7f7f7;margin-top:5px}
+.print-sheet .ps-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:9px}.print-sheet .ps-table th,.print-sheet .ps-table td{border:1px solid #111;padding:3px 4px;line-height:1.25;height:24px}.print-sheet .ps-table th{background:#fff;color:#111;font-weight:800;text-align:center}.print-sheet .ps-table .c1{width:5%}.print-sheet .ps-table .c2{width:49%}.print-sheet .ps-table .c3{width:9%}.print-sheet .ps-table .c4{width:10%}.print-sheet .ps-table .c5{width:17%}.print-sheet .ps-table .c6{width:10%}.print-sheet .ps-table td:nth-child(1),.print-sheet .ps-table td:nth-child(3),.print-sheet .ps-table td:nth-child(4),.print-sheet .ps-table td:nth-child(6){text-align:center}.print-sheet .ps-cat td{font-weight:800;background:#fafafa}.print-sheet .ps-score{text-align:center;font-weight:700}.print-sheet .ps-summary-title{border:1px solid #111;border-top:0;text-align:center;font-size:11px;font-weight:800;padding:5px}.print-sheet .ps-bottom{display:grid;grid-template-columns:1fr 1.35fr;gap:7px;margin-top:6px}.print-sheet .ps-leftbox,.print-sheet .ps-rightbox{border:1px solid #111;font-size:9px}.print-sheet .ps-leftbox{padding:3px}.print-sheet .criteria-row{display:grid;grid-template-columns:60px 12px 1fr 70px;line-height:1.6}.print-sheet .criteria-row .g{text-align:center;font-weight:700}.print-sheet .ps-rightbox{display:grid;grid-template-columns:1fr 1fr}.print-sheet .sign{min-height:48px;border-right:1px solid #111;border-bottom:1px solid #111;padding:3px;text-align:center}.print-sheet .sign:nth-child(even){border-right:0}.print-sheet .sign:nth-last-child(-n+2){border-bottom:0}.print-sheet .sign small{display:block;font-size:8px}
+.print-sheet .sign img.signature-img{display:block;width:72px;height:28px;object-fit:contain;margin:0 auto 1px}
+.print-sheet .sign .sig-line{display:block;font-size:8px;line-height:1.1}.print-sheet .ps-warning{font-size:8px;line-height:1.5;margin-top:5px}.print-sheet .ps-foot{font-size:8px;text-align:right;margin-top:2px}
+.print-sheet .val{border-bottom:1px dotted #777;min-height:13px;display:inline-block;min-width:40px;padding:0 2px}.print-sheet .center{text-align:center}
 
+
+.evaluation-list{margin-top:18px;border:1px solid #cbd5e1;border-radius:14px;background:#f8fafc;padding:16px}
+.list-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}.list-sub{font-size:12px;color:#64748b;margin-top:3px}
+.list-group{margin-top:12px}.list-company{font-weight:900;color:#0f4c5c;background:#e8f4f7;padding:9px 11px;border-radius:9px}
+.eval-item{background:#fff;border:1px solid #dbe2ea;border-radius:10px;padding:10px 12px;margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.eval-info{min-width:0}.eval-title{font-weight:800}.eval-meta{font-size:12px;color:#64748b;margin-top:3px}.eval-actions{display:flex;gap:6px;flex-wrap:wrap}.btn.small{padding:8px 11px;font-size:13px}
+@media(max-width:700px){.eval-item{flex-direction:column;align-items:stretch}.eval-actions{justify-content:flex-end}}
 @media print{
  body{background:#fff!important;margin:0!important;padding:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
- .container{width:190mm!important;max-width:none!important;margin:7mm auto 0!important;padding:0!important}
+ .container{width:200mm!important;max-width:none!important;margin:5mm auto 0!important;padding:0!important}
  .card{background:#fff!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:0!important;margin:0!important}
  .container>.card:not(:first-child),.container>.footer{display:none!important}
  .container>.card:first-child{display:none!important}
@@ -80,12 +100,12 @@ h1{text-align:center;margin:0 0 8px;color:#0f4c5c;font-size:28px}.subtitle{text-
       <div class="ps-warning">* กรณีที่ทางผู้ขาย (Supplier) ได้เกรด D ติดต่อกัน 3 ครั้ง จะถูกดำเนินการออกใบเพิกถอนรายชื่อผู้ขาย AVL</div>
     </div>
     <div class="ps-rightbox">
-      <div class="sign">เจ้าหน้าที่จัดซื้อ<small id="pPurchasing">(...................................................)</small></div>
-      <div class="sign">ประกันคุณภาพ<small id="pQA">(...................................................)</small></div>
-      <div class="sign">เจ้าหน้าที่สโตร์<small id="pStore">(...................................................)</small></div>
-      <div class="sign">SUPPLIER CONFIRM<small id="pSupplier">(...................................................)</small></div>
-      <div class="sign">ผู้จัดการฝ่ายจัดซื้อ<small id="pManager">(...................................................)</small></div>
-      <div class="sign">ผู้ประเมิน<small id="pEvaluator">(...................................................)</small></div>
+      <div class="sign">เจ้าหน้าที่จัดซื้อ<img id="pSigPurchasing" class="signature-img" alt=""><small id="pPurchasing" class="sig-line">(...................................................)</small></div>
+      <div class="sign">ประกันคุณภาพ<img id="pSigQA" class="signature-img" alt=""><small id="pQA" class="sig-line">(...................................................)</small></div>
+      <div class="sign">เจ้าหน้าที่สโตร์<img id="pSigStore" class="signature-img" alt=""><small id="pStore" class="sig-line">(...................................................)</small></div>
+      <div class="sign">SUPPLIER CONFIRM<img id="pSigSupplier" class="signature-img" alt=""><small id="pSupplier" class="sig-line">(...................................................)</small></div>
+      <div class="sign">ผู้จัดการฝ่ายจัดซื้อ<img id="pSigManager" class="signature-img" alt=""><small id="pManager" class="sig-line">(...................................................)</small></div>
+      <div class="sign">ผู้ประเมิน<img id="pSigEvaluator" class="signature-img" alt=""><small id="pEvaluator" class="sig-line">(...................................................)</small></div>
     </div>
   </div>
   <div class="ps-foot">FM-PU-006-00 : 27/03/18</div>
@@ -138,12 +158,23 @@ h1{text-align:center;margin:0 0 8px;color:#0f4c5c;font-size:28px}.subtitle{text-
 <div class="field"><label>ผู้จัดการฝ่ายจัดซื้อ</label><input id="manager" required></div>
 <div class="field"><label>SUPPLIER CONFIRM / ผู้รับทราบจาก Supplier</label><input id="supplierConfirm" required></div>
 </div>
-<div class="field" style="margin-top:14px"><label>อีเมลผู้รับรายงาน (ตั้งค่า 1 ครั้ง)</label><input id="recipientEmail" type="email" placeholder="เช่น quality@company.com" required></div>
+<div class="section" style="margin-top:18px">อัปโหลดรูปลายเซ็น</div>
+<div class="signature-grid">
+  <div class="signature-box"><label>1. เจ้าหน้าที่จัดซื้อ</label><input type="file" id="sigPurchasing" accept="image/png,image/jpeg,image/webp" required onchange="previewSignature('sigPurchasing','previewPurchasing','pSigPurchasing')"><div class="signature-preview" id="previewPurchasing">ยังไม่ได้เลือกรูปลายเซ็น</div><div class="signature-help">แนะนำ PNG พื้นหลังโปร่งใส</div></div>
+  <div class="signature-box"><label>2. ประกันคุณภาพ</label><input type="file" id="sigQA" accept="image/png,image/jpeg,image/webp" required onchange="previewSignature('sigQA','previewQA','pSigQA')"><div class="signature-preview" id="previewQA">ยังไม่ได้เลือกรูปลายเซ็น</div><div class="signature-help">แนะนำ PNG พื้นหลังโปร่งใส</div></div>
+  <div class="signature-box"><label>3. เจ้าหน้าที่สโตร์</label><input type="file" id="sigStore" accept="image/png,image/jpeg,image/webp" required onchange="previewSignature('sigStore','previewStore','pSigStore')"><div class="signature-preview" id="previewStore">ยังไม่ได้เลือกรูปลายเซ็น</div><div class="signature-help">แนะนำ PNG พื้นหลังโปร่งใส</div></div>
+  <div class="signature-box"><label>4. SUPPLIER CONFIRM</label><input type="file" id="sigSupplier" accept="image/png,image/jpeg,image/webp" required onchange="previewSignature('sigSupplier','previewSupplier','pSigSupplier')"><div class="signature-preview" id="previewSupplier">ยังไม่ได้เลือกรูปลายเซ็น</div><div class="signature-help">แนะนำ PNG พื้นหลังโปร่งใส</div></div>
+  <div class="signature-box"><label>5. ผู้จัดการฝ่ายจัดซื้อ</label><input type="file" id="sigManager" accept="image/png,image/jpeg,image/webp" required onchange="previewSignature('sigManager','previewManager','pSigManager')"><div class="signature-preview" id="previewManager">ยังไม่ได้เลือกรูปลายเซ็น</div><div class="signature-help">แนะนำ PNG พื้นหลังโปร่งใส</div></div>
+  <div class="signature-box"><label>6. ผู้ประเมิน</label><input type="file" id="sigEvaluator" accept="image/png,image/jpeg,image/webp" required onchange="previewSignature('sigEvaluator','previewEvaluator','pSigEvaluator')"><div class="signature-preview" id="previewEvaluator">ยังไม่ได้เลือกรูปลายเซ็น</div><div class="signature-help">แนะนำ PNG พื้นหลังโปร่งใส</div></div>
+</div>
 <div class="actions">
-<button class="btn primary" onclick="submitForm()">บันทึก + สร้าง PDF A4 + ส่งอีเมล</button>
-<button class="btn secondary" onclick="window.print()">พิมพ์ / Save PDF</button>
-<button class="btn secondary" onclick="exportData()">ส่งออกข้อมูล CSV</button>
+<button class="btn secondary" onclick="saveCurrentAndPrint()">พิมพ์ / Save PDF</button>
+<button class="btn secondary" onclick="openEvaluationList()">📋 เปิดรายการประเมิน</button>
 <button class="btn danger" onclick="resetForm()">ล้างแบบฟอร์ม</button>
+</div>
+<div id="evaluationList" class="evaluation-list" style="display:none">
+  <div class="list-head"><div><strong>รายการใบประเมินผู้ขาย</strong><div class="list-sub">แสดงรายการจากฐานข้อมูล Firebase แยกตามบริษัท</div></div><button class="btn secondary small" onclick="closeEvaluationList()">ปิด</button></div>
+  <div id="evaluationRows"></div>
 </div>
 <div id="message" style="text-align:center;margin-top:12px;font-weight:700"></div>
 </div>
@@ -206,119 +237,287 @@ function requiredFields(){
  const req=[...document.querySelectorAll('[required]')];
  const missing=req.find(x=>!String(x.value||'').trim());
  if(missing){missing.focus();return false}
+ const sigIds=['sigPurchasing','sigQA','sigStore','sigSupplier','sigManager','sigEvaluator'];
+ const missingSig=sigIds.find(id=>!getSignatureData(id));
+ if(missingSig){document.getElementById(missingSig).focus();return false}
  return true;
 }
+function getSignatureData(id){
+ const input=document.getElementById(id);
+ return input && input.dataset.signatureData ? input.dataset.signatureData : '';
+}
+function previewSignature(inputId,previewId,imgId){
+ const input=document.getElementById(inputId);
+ const preview=document.getElementById(previewId);
+ const img=document.getElementById(imgId);
+ const file=input.files && input.files[0];
+ if(!file){input.dataset.signatureData='';preview.textContent='ยังไม่ได้เลือกรูปลายเซ็น';img.removeAttribute('src');return}
+ if(!file.type.startsWith('image/')){input.value='';input.dataset.signatureData='';preview.textContent='กรุณาเลือกไฟล์รูปภาพ';img.removeAttribute('src');return}
+ const reader=new FileReader();
+ reader.onload=e=>{
+   input.dataset.signatureData=e.target.result;
+   preview.innerHTML='';
+   const p=document.createElement('img'); p.src=e.target.result; p.alt='ลายเซ็น'; preview.appendChild(p);
+   img.src=e.target.result; img.style.display='block';
+ };
+ reader.readAsDataURL(file);
+}
+// ========================= Firebase =========================
+const firebaseConfig = {
+  apiKey: "AIzaSyDBA_J4ca2X_l0sfC-J6au-iGyVCOR6Tso",
+  authDomain: "supplier-evaluation-dabb4.firebaseapp.com",
+  projectId: "supplier-evaluation-dabb4",
+  storageBucket: "supplier-evaluation-dabb4.firebasestorage.app",
+  messagingSenderId: "919112707494",
+  appId: "1:919112707494:web:6c75cbbb0919e261c1b367",
+  measurementId: "G-VRZ63HXK5S"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+let firebaseUser = null;
+
+// Anonymous Auth is used so the web form can securely talk to Firestore
+// without exposing a service-account key in the HTML file.
+async function initFirebase(){
+  try{
+    const cred = await firebase.auth().signInAnonymously();
+    firebaseUser = cred.user;
+    return true;
+  }catch(err){
+    console.error('Firebase Auth:', err);
+    showFirebaseError(err);
+    return false;
+  }
+}
+function showFirebaseError(err){
+  const msg=document.getElementById('message');
+  if(!msg)return;
+  let text='เชื่อมต่อ Firebase ไม่สำเร็จ';
+  if(err && err.code==='auth/operation-not-allowed') text='ยังไม่ได้เปิด Anonymous Authentication ใน Firebase Console';
+  else if(err && (err.code==='permission-denied'||err.code==='firestore/permission-denied')) text='Firebase Rules ไม่อนุญาตให้เข้าถึงฐานข้อมูล';
+  msg.textContent=text;
+  msg.style.color='#b91c1c';
+}
+
 function collect(){
  const scores=[...document.querySelectorAll('.scoreInput')].map(x=>x.value);
  const notes=[...document.querySelectorAll('.noteInput')].map(x=>x.value);
  return {
-  timestamp:new Date().toLocaleString('th-TH'),evalNo:evalNo.value,evalMonth:evalMonth.value,
+  evalNo:evalNo.value,evalMonth:evalMonth.value,
   company:company.value,productType:productType.value,address:address.value,phone:phone.value,fax:fax.value,
   contact:contact.value,position:position.value,evaluator:evaluator.value,scores:scores.join('|'),
-  notes:notes.join('|'),total:total.textContent,grade:grade.textContent,status:status.textContent,
-  purchasing:purchasing.value,qa:qa.value,store:store.value,manager:manager.value,supplierConfirm:supplierConfirm.value
+  notes:notes.join('|'),rowEvaluators:[...document.querySelectorAll('.rowEvaluator')].map(x=>x.value).join('|'),
+  total:total.textContent,grade:grade.textContent,status:status.textContent,
+  purchasing:purchasing.value,qa:qa.value,store:store.value,manager:manager.value,supplierConfirm:supplierConfirm.value,
+  signatures:{purchasing:getSignatureData('sigPurchasing'),qa:getSignatureData('sigQA'),store:getSignatureData('sigStore'),supplier:getSignatureData('sigSupplier'),manager:getSignatureData('sigManager'),evaluator:getSignatureData('sigEvaluator')}
  };
 }
-async function submitForm(){
- // เปิดหน้าต่าง Outlook ตั้งแต่จังหวะที่ผู้ใช้กดปุ่ม เพื่อไม่ให้ Browser บล็อก Popup
- const outlookWindow=window.open('about:blank','_blank','width=1100,height=800');
+
+async function saveCurrentEvaluation(){
  if(!requiredFields()){
-   if(outlookWindow) outlookWindow.close();
-   document.getElementById('message').textContent='กรุณากรอกข้อมูลและคะแนน รวมถึงอีเมลผู้รับให้ครบทุกช่อง';
-   document.getElementById('message').style.color='#b91c1c';
-   return;
+   const msg=document.getElementById('message');
+   msg.textContent='กรุณากรอกข้อมูล คะแนน และรูปลายเซ็นให้ครบทุกช่อง';
+   msg.style.color='#b91c1c';
+   return null;
  }
  calc();
- const msg=document.getElementById('message');
- msg.textContent='กำลังสร้างไฟล์ PDF A4...'; msg.style.color='#0f4c5c';
+ if(!firebaseUser && !(await initFirebase())) return null;
+ const obj=collect();
+ obj.createdAtMillis=Date.now();
+ obj.createdBy=firebaseUser ? firebaseUser.uid : null;
+ obj.formVersion='Firebase-1';
  try{
-   const obj=collect();
-   const records=JSON.parse(localStorage.getItem('supplierEvaluations')||'[]');
-   records.push(obj);
-   localStorage.setItem('supplierEvaluations',JSON.stringify(records));
-
-   // สร้าง PDF A4
-   const pdfBlob=await createA4PDF();
-   const filename=`Supplier_Evaluation_${safeFileName(company.value||'Supplier')}_${evalMonth.value||''}.pdf`;
-
-   // ดาวน์โหลด PDF ทันที
-   downloadBlob(pdfBlob,filename);
-
-   // เปิด Outlook Compose
-   const email=recipientEmail.value.trim();
-   localStorage.setItem('supplierRecipientEmail',email);
-   const subject=`ใบประเมินผู้ขาย - ${company.value} - ${evalMonth.value}`;
-   const body=`เรียนผู้เกี่ยวข้อง\n\nขอส่งใบประเมินผู้ขาย ${company.value}\nประเมินครั้งที่: ${evalNo.value}\nประจำเดือน: ${evalMonth.value}\nคะแนนรวม: ${document.getElementById('total').textContent}/100\nเกรด: ${document.getElementById('grade').textContent}\n\nระบบได้ดาวน์โหลดไฟล์ PDF A4 ลงในเครื่องแล้ว\nกรุณาแนบไฟล์ PDF ที่ดาวน์โหลดชื่อ ${filename} ก่อนกดส่งอีเมล\n\nขอบคุณครับ/ค่ะ`;
-
-   const outlookUrl='https://outlook.office.com/mail/deeplink/compose?to='+encodeURIComponent(email)+'&subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
-   const mailto='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
-
-   // ใช้ Outlook Web เป็นหลัก; หากเปิดไม่ได้ ผู้ใช้ยังมีปุ่มเปิด Outlook Desktop/Default Mail App
-   if(outlookWindow){
-      outlookWindow.location.href=outlookUrl;
-   }else{
-      window.location.href=mailto;
-   }
-
-   msg.innerHTML='บันทึกเรียบร้อย ✓ สร้าง PDF A4 และดาวน์โหลดแล้ว<br><span style="font-weight:600;font-size:14px">กำลังเปิดหน้าส่งอีเมล Outlook...</span>';
-   msg.style.color='#15803d';
+   const ref=await db.collection('supplierEvaluations').add(obj);
+   obj.id=ref.id;
+   renderEvaluationList();
+   return obj;
  }catch(err){
-   if(outlookWindow) outlookWindow.close();
-   console.error(err);
-   msg.textContent='เกิดข้อผิดพลาดในการสร้าง PDF กรุณาลองใหม่อีกครั้ง';
-   msg.style.color='#b91c1c';
+   console.error('Firestore save:',err);
+   showFirebaseError(err);
+   return null;
  }
 }
-function safeFileName(name){
- return String(name).replace(/[^a-zA-Z0-9ก-๙_-]/g,'_').replace(/_+/g,'_').slice(0,80);
-}
-function downloadBlob(blob,filename){
- const url=URL.createObjectURL(blob);
- const a=document.createElement('a');
- a.href=url;
- a.download=filename;
- a.style.display='none';
- document.body.appendChild(a);
- a.click();
- setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},60000);
+
+async function saveCurrentAndPrint(){
+ const msg=document.getElementById('message');
+ msg.textContent='กำลังบันทึกลง Firebase...'; msg.style.color='#0f4c5c';
+ const saved=await saveCurrentEvaluation();
+ if(!saved)return;
+ syncPrintSheet();
+ msg.textContent='บันทึกลง Firebase เรียบร้อย ✓ กำลังเปิดหน้าพิมพ์ / Save PDF';
+ msg.style.color='#15803d';
+ setTimeout(()=>window.print(),150);
 }
 
-async function createA4PDF(){
- const {jsPDF}=window.jspdf;
- syncPrintSheet();
- const area=document.getElementById('printSheet');
- const clone=area.cloneNode(true);
- clone.classList.add('pdf-clone');
- clone.style.display='block';
- clone.style.width='718px';
- clone.style.height='1070px';
- clone.style.position='absolute';clone.style.left='-10000px';clone.style.top='0';
- clone.style.margin='0';clone.style.padding='0';clone.style.background='#fff';
- document.body.appendChild(clone);
- const canvas=await html2canvas(clone,{scale:2,useCORS:true,backgroundColor:'#fff',logging:false,windowWidth:718});
- document.body.removeChild(clone);
- const pdf=new jsPDF('p','mm','a4');
- const imgData=canvas.toDataURL('image/jpeg',0.96);
- pdf.addImage(imgData,'JPEG',10,10,190,277);
- return pdf.output('blob');
+async function getEvaluationRecords(){
+ if(!firebaseUser && !(await initFirebase())) return [];
+ try{
+   const snap=await db.collection('supplierEvaluations').orderBy('createdAtMillis','desc').get();
+   return snap.docs.map(doc=>({id:doc.id,...doc.data()}));
+ }catch(err){
+   // Fallback for databases where an index/order issue exists.
+   try{
+     const snap=await db.collection('supplierEvaluations').get();
+     return snap.docs.map(doc=>({id:doc.id,...doc.data()})).sort((a,b)=>(b.createdAtMillis||0)-(a.createdAtMillis||0));
+   }catch(e){
+     console.error('Firestore read:',e); showFirebaseError(e); return [];
+   }
+ }
 }
-function setPrint(id,val){const el=document.getElementById(id);if(el)el.textContent=(val||'-');}
+
+async function openEvaluationList(){
+ const box=document.getElementById('evaluationList');
+ box.style.display='block';
+ const wrap=document.getElementById('evaluationRows');
+ wrap.innerHTML='<div style="text-align:center;padding:22px;color:#64748b">กำลังโหลดรายการจาก Firebase...</div>';
+ box.scrollIntoView({behavior:'smooth',block:'start'});
+ await renderEvaluationList();
+}
+function closeEvaluationList(){document.getElementById('evaluationList').style.display='none';}
+
+async function renderEvaluationList(){
+ const wrap=document.getElementById('evaluationRows');
+ if(!wrap)return;
+ const records=await getEvaluationRecords();
+ if(!records.length){wrap.innerHTML='<div style="text-align:center;padding:22px;color:#64748b">ยังไม่มีรายการประเมินในฐานข้อมูล Firebase</div>';return;}
+ const groups={};
+ records.forEach(r=>{const key=r.company||'ไม่ระบุบริษัท';(groups[key] ||= []).push(r);});
+ wrap.innerHTML=Object.entries(groups).map(([companyName,items])=>`
+   <div class="list-group">
+     <div class="list-company">${escapeHtml(companyName)} <span style="font-weight:600;font-size:12px">(${items.length} รายการ)</span></div>
+     ${items.map(r=>`<div class="eval-item">
+       <div class="eval-info">
+         <div class="eval-title">ครั้งที่ ${escapeHtml(r.evalNo||'-')} · ${escapeHtml(r.evalMonth||'-')} · คะแนน ${escapeHtml(r.total||'0')}/100 · เกรด ${escapeHtml(r.grade||'-')}</div>
+         <div class="eval-meta">บันทึกเมื่อ ${escapeHtml(formatTimestamp(r.createdAtMillis))} · ผู้ประเมิน: ${escapeHtml(r.evaluator||'-')}</div>
+       </div>
+       <div class="eval-actions">
+         <button class="btn primary small" onclick="downloadSavedEvaluation('${r.id}')">⬇ ดาวน์โหลด PDF</button>
+         <button class="btn danger small" onclick="deleteSavedEvaluation('${r.id}')">🗑 ลบ</button>
+       </div>
+     </div>`).join('')}
+   </div>`).join('');
+}
+function formatTimestamp(ms){return ms ? new Date(ms).toLocaleString('th-TH') : '-';}
+function escapeHtml(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+
+async function getSavedById(id){
+ if(!firebaseUser && !(await initFirebase())) return null;
+ try{
+   const doc=await db.collection('supplierEvaluations').doc(id).get();
+   return doc.exists ? {id:doc.id,...doc.data()} : null;
+ }catch(err){console.error(err);showFirebaseError(err);return null;}
+}
+
+async function downloadSavedEvaluation(id){
+ const r=await getSavedById(id); if(!r){alert('ไม่พบรายการนี้ใน Firebase');return;}
+ const snapshot=collectFormState();
+ try{
+   fillFormFromRecord(r);
+   calc();
+   const blob=await createA4PDF();
+   const filename=`Supplier_Evaluation_${safeFileName(r.company||'Supplier')}_${r.evalMonth||''}_ครั้งที่${safeFileName(r.evalNo||'')}.pdf`;
+   downloadBlob(blob,filename);
+ }catch(e){console.error(e);alert('สร้าง PDF ของรายการนี้ไม่สำเร็จ');}
+ finally{restoreFormState(snapshot);}
+}
+
+async function deleteSavedEvaluation(id){
+ const r=await getSavedById(id); if(!r)return;
+ if(!confirm(`ต้องการลบใบประเมินของบริษัท ${r.company||''} ครั้งที่ ${r.evalNo||'-'} หรือไม่?`))return;
+ try{
+   await db.collection('supplierEvaluations').doc(id).delete();
+   await renderEvaluationList();
+ }catch(err){console.error('Firestore delete:',err);showFirebaseError(err);}
+}
+
+function collectFormState(){
+  return {evalNo:evalNo.value,evalMonth:evalMonth.value,company:company.value,productType:productType.value,address:address.value,phone:phone.value,fax:fax.value,contact:contact.value,position:position.value,evaluator:evaluator.value,purchasing:purchasing.value,qa:qa.value,store:store.value,manager:manager.value,supplierConfirm:supplierConfirm.value,scores:[...document.querySelectorAll('.scoreInput')].map(x=>x.value),notes:[...document.querySelectorAll('.noteInput')].map(x=>x.value),evals:[...document.querySelectorAll('.rowEvaluator')].map(x=>x.value),sigs:['sigPurchasing','sigQA','sigStore','sigSupplier','sigManager','sigEvaluator'].map(id=>getSignatureData(id))};
+}
+function restoreFormState(s){
+  evalNo.value=s.evalNo;evalMonth.value=s.evalMonth;company.value=s.company;productType.value=s.productType;address.value=s.address;phone.value=s.phone;fax.value=s.fax;contact.value=s.contact;position.value=s.position;evaluator.value=s.evaluator;purchasing.value=s.purchasing;qa.value=s.qa;store.value=s.store;manager.value=s.manager;supplierConfirm.value=s.supplierConfirm;
+  document.querySelectorAll('.scoreInput').forEach((x,i)=>x.value=s.scores[i]||'');document.querySelectorAll('.noteInput').forEach((x,i)=>x.value=s.notes[i]||'');document.querySelectorAll('.rowEvaluator').forEach((x,i)=>x.value=s.evals[i]||'');
+  ['sigPurchasing','sigQA','sigStore','sigSupplier','sigManager','sigEvaluator'].forEach((id,i)=>{const el=document.getElementById(id);el.dataset.signatureData=s.sigs[i]||'';});
+  syncSignaturePreviews(); calc();
+}
+function fillFormFromRecord(r){
+  evalNo.value=r.evalNo||'';evalMonth.value=r.evalMonth||'';company.value=r.company||'';productType.value=r.productType||'';address.value=r.address||'';phone.value=r.phone||'';fax.value=r.fax||'';contact.value=r.contact||'';position.value=r.position||'';evaluator.value=r.evaluator||'';purchasing.value=r.purchasing||'';qa.value=r.qa||'';store.value=r.store||'';manager.value=r.manager||'';supplierConfirm.value=r.supplierConfirm||'';
+  const scores=(r.scores||'').split('|'), notes=(r.notes||'').split('|');document.querySelectorAll('.scoreInput').forEach((x,i)=>x.value=scores[i]||'');document.querySelectorAll('.noteInput').forEach((x,i)=>x.value=notes[i]||'');
+  const sig=r.signatures||{}; const map={sigPurchasing:sig.purchasing||'',sigQA:sig.qa||'',sigStore:sig.store||'',sigSupplier:sig.supplier||'',sigManager:sig.manager||'',sigEvaluator:sig.evaluator||''};Object.entries(map).forEach(([id,v])=>document.getElementById(id).dataset.signatureData=v);
+  const evs=(r.rowEvaluators||'').split('|');document.querySelectorAll('.rowEvaluator').forEach((x,i)=>x.value=evs[i]||'');syncSignaturePreviews();
+}
+function syncSignaturePreviews(){
+  const map=[['sigPurchasing','previewPurchasing','pSigPurchasing'],['sigQA','previewQA','pSigQA'],['sigStore','previewStore','pSigStore'],['sigSupplier','previewSupplier','pSigSupplier'],['sigManager','previewManager','pSigManager'],['sigEvaluator','previewEvaluator','pSigEvaluator']];
+  map.forEach(([id,previewId,imgId])=>{const src=getSignatureData(id),p=document.getElementById(previewId),img=document.getElementById(imgId);if(src){p.innerHTML=`<img src="${src}" alt="ลายเซ็น">`;img.src=src;img.style.display='block';}else{p.textContent='ยังไม่ได้เลือกรูปลายเซ็น';img.removeAttribute('src');img.style.display='none';}});
+}
+
 function syncPrintSheet(){
- setPrint('pEvalNo',evalNo.value);
- const gy=Number((evalMonth.value||'').slice(0,4)); setPrint('pYear', gy ? String(gy+543).slice(-2) : '-');
- setPrint('pCompany',company.value);setPrint('pProduct',productType.value);setPrint('pAddress',address.value);
- setPrint('pPhone',phone.value);setPrint('pFax',fax.value);setPrint('pContact',contact.value);setPrint('pPosition',position.value);setPrint('pMonth',evalMonth.value);
- setPrint('pTotal',document.getElementById('total').textContent);setPrint('pGrade',document.getElementById('grade').textContent);setPrint('pStatus',document.getElementById('status').textContent);
- setPrint('pPurchasing',purchasing.value||'(...................................................)');setPrint('pQA',qa.value||'(...................................................)');setPrint('pStore',store.value||'(...................................................)');setPrint('pSupplier',supplierConfirm.value||'(...................................................)');setPrint('pManager',manager.value||'(...................................................)');setPrint('pEvaluator',evaluator.value||'(...................................................)');
- const out=document.getElementById('printCriteria');out.innerHTML='';
- const rows=[...document.querySelectorAll('#criteria tr')];
- const scores=[...document.querySelectorAll('.scoreInput')]; const notes=[...document.querySelectorAll('.noteInput')]; const evals=[...document.querySelectorAll('.rowEvaluator')]; let idx=0;
- rows.forEach(r=>{
-   const cat=r.querySelector('.category');
-   if(cat){out.insertAdjacentHTML('beforeend',`<tr class="ps-cat"><td colspan="6">${cat.textContent}</td></tr>`);return;}
-   const cells=r.querySelectorAll('td'); if(cells.length<5)return;
-   out.insertAdjacentHTML('beforeend',`<tr><td>${cells[0].textContent}</td><td>${cells[1].textContent}</td><td>${cells[2].textContent}</td><td class="ps-score">${scores[idx]?.value||'-'}</td><td>${notes[idx]?.value||''}</td><td>${evals[idx]?.value||evaluator.value||''}</td></tr>`);idx++;
- });
+  // คัดลอกข้อมูลจากฟอร์มออนไลน์ไปยังแบบฟอร์ม A4 สำหรับ Print Preview / Save PDF
+  const setText=(id,value)=>{
+    const el=document.getElementById(id);
+    if(el) el.textContent=(value===undefined || value===null || value==='')?'-':String(value);
+  };
+  const monthText=(value)=>{
+    if(!value) return '-';
+    const parts=value.split('-');
+    if(parts.length!==2) return value;
+    const y=Number(parts[0]);
+    const m=Number(parts[1]);
+    const names=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+    return `${names[m-1]||parts[1]} ${y+543}`;
+  };
+
+  setText('pEvalNo', evalNo.value);
+  const evalYear=evalMonth.value ? Number(evalMonth.value.slice(0,4))+543 : new Date().getFullYear()+543;
+  setText('pYear', String(evalYear).slice(-2));
+  setText('pCompany', company.value);
+  setText('pProduct', productType.value);
+  setText('pAddress', address.value);
+  setText('pPhone', phone.value);
+  setText('pFax', fax.value);
+  setText('pContact', contact.value);
+  setText('pPosition', position.value);
+  setText('pMonth', monthText(evalMonth.value));
+
+  // ตารางคะแนน A4
+  const out=document.getElementById('printCriteria');
+  if(out){
+    const scores=[...document.querySelectorAll('.scoreInput')].map(x=>x.value);
+    const notes=[...document.querySelectorAll('.noteInput')].map(x=>x.value);
+    const evaluators=[...document.querySelectorAll('.rowEvaluator')].map(x=>x.value);
+    let si=0;
+    out.innerHTML='';
+    data.forEach(x=>{
+      if(x[1]===null){
+        out.insertAdjacentHTML('beforeend',`<tr class="category"><td colspan="6">${x[0]}</td></tr>`);
+      }else{
+        const score=scores[si]||'';
+        const note=notes[si]||'';
+        const ev=evaluators[si]||'';
+        out.insertAdjacentHTML('beforeend',`<tr>
+          <td class="num">${x[0]}</td>
+          <td>${x[1]}</td>
+          <td class="max">${x[2]}</td>
+          <td class="score">${score}</td>
+          <td class="note">${note}</td>
+          <td class="evaluatorCell">${ev}</td>
+        </tr>`);
+        si++;
+      }
+    });
+  }
+
+  setText('pTotal', document.getElementById('total')?.textContent || '0');
+  setText('pGrade', document.getElementById('grade')?.textContent || '-');
+  setText('pStatus', document.getElementById('status')?.textContent || '-');
+  setText('pPurchasing', purchasing.value);
+  setText('pQA', qa.value);
+  setText('pStore', store.value);
+  setText('pSupplier', supplierConfirm.value);
+  setText('pManager', manager.value);
+  setText('pEvaluator', evaluator.value);
+
+  syncSignaturePreviews();
 }
 
 function exportData(){
@@ -331,8 +530,8 @@ function exportData(){
 }
 function resetForm(){if(confirm('ต้องการล้างข้อมูลทั้งหมดในแบบฟอร์มหรือไม่?'))location.reload()}
 window.addEventListener('beforeprint', syncPrintSheet);
-const savedEmail=localStorage.getItem('supplierRecipientEmail'); if(savedEmail) recipientEmail.value=savedEmail;
 calc();
+initFirebase();
 </script>
 </body>
 </html>
