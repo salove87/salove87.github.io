@@ -189,58 +189,124 @@ button{touch-action:manipulation}
     width:100%;
   }
 
-  /* Request list becomes card rows; no horizontal scrolling needed */
-  .card .overflow-x-auto{overflow:visible !important}
-  #tableBody tr{
-    display:block;
-    margin:0 0 10px;
-    padding:12px;
-    border:1px solid var(--ui-border);
-    border-radius:14px;
-    background:#fff;
-    box-shadow:0 3px 12px rgba(15,23,42,.04);
+  /* Request list: real mobile cards */
+  #requestsCard .overflow-x-auto,
+  #allRequestsCard .overflow-x-auto,
+  .requests-table-wrap{
+    overflow:visible !important;
+    width:100% !important;
+    max-width:100% !important;
   }
-  #tableBody tr:last-child{margin-bottom:0}
-  #tableBody td{
-    display:grid;
-    grid-template-columns:76px minmax(0,1fr);
-    gap:10px;
-    width:auto !important;
-    padding:7px 0 !important;
+
+  #requestsTable,
+  table#requestsTable{
+    display:block !important;
+    width:100% !important;
+    min-width:0 !important;
+    table-layout:auto !important;
+  }
+
+  #requestsTable thead{
+    display:none !important;
+  }
+
+  #requestsTable tbody{
+    display:block !important;
+    width:100% !important;
+  }
+
+  #requestsTable tbody tr{
+    display:block !important;
+    width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+    margin:0 0 12px !important;
+    padding:12px 14px !important;
+    border:1px solid #e5e7eb !important;
+    border-radius:16px !important;
+    background:#fff !important;
+    box-shadow:0 4px 14px rgba(15,23,42,.06) !important;
+  }
+
+  #requestsTable tbody td{
+    display:grid !important;
+    grid-template-columns:76px minmax(0,1fr) !important;
+    align-items:start !important;
+    gap:10px !important;
+    width:100% !important;
+    min-width:0 !important;
+    max-width:none !important;
+    box-sizing:border-box !important;
+    padding:8px 0 !important;
+    margin:0 !important;
     border:0 !important;
     text-align:left !important;
-    overflow-wrap:anywhere;
+    white-space:normal !important;
+    overflow:visible !important;
+    overflow-wrap:anywhere !important;
+    word-break:break-word !important;
   }
-  #tableBody td::before{
-    font-size:12px;
-    font-weight:700;
-    color:#64748b;
+
+  #requestsTable tbody td::before{
+    display:block !important;
+    width:auto !important;
+    min-width:0 !important;
+    color:#64748b !important;
+    font-size:12px !important;
+    line-height:1.4 !important;
+    font-weight:700 !important;
   }
-  #tableBody td:nth-child(1)::before{content:"ชื่อ"}
-  #tableBody td:nth-child(2)::before{content:"แผนก"}
-  #tableBody td:nth-child(3)::before{content:"รายการ"}
-  #tableBody td:nth-child(4)::before{content:"สถานะ"}
-  #tableBody td:nth-child(5)::before{content:"เวลา"}
-  #tableBody td:nth-child(6)::before{content:"จัดการ"}
-  #tableBody td:nth-child(6){
-    display:flex;
-    flex-wrap:wrap;
-    gap:6px;
-    padding-top:10px !important;
-    margin-top:4px;
+
+  #requestsTable tbody td:nth-child(1)::before{content:"ชื่อ"}
+  #requestsTable tbody td:nth-child(2)::before{content:"แผนก"}
+  #requestsTable tbody td:nth-child(3)::before{content:"รายการ"}
+  #requestsTable tbody td:nth-child(4)::before{content:"สถานะ"}
+  #requestsTable tbody td:nth-child(5)::before{content:"เวลา"}
+  #requestsTable tbody td:nth-child(6)::before{content:"การดำเนินการ"}
+
+  #requestsTable tbody td:nth-child(1) > *,
+  #requestsTable tbody td:nth-child(2) > *,
+  #requestsTable tbody td:nth-child(3) > *,
+  #requestsTable tbody td:nth-child(4) > *,
+  #requestsTable tbody td:nth-child(5) > *{
+    min-width:0 !important;
+    max-width:100% !important;
+    overflow-wrap:anywhere !important;
+    word-break:break-word !important;
+  }
+
+  #requestsTable tbody td:nth-child(6){
+    display:flex !important;
+    flex-wrap:wrap !important;
+    align-items:center !important;
+    gap:8px !important;
+    margin-top:5px !important;
+    padding-top:12px !important;
     border-top:1px solid #eef1f5 !important;
   }
-  #tableBody td:nth-child(6)::before{
-    display:block;
-    width:100%;
-    margin-bottom:2px;
+
+  #requestsTable tbody td:nth-child(6)::before{
+    flex:0 0 100% !important;
+    width:100% !important;
+    margin:0 0 2px !important;
   }
-  #tableBody td:nth-child(6) button{
-    flex:0 0 42px;
-    min-width:42px;
-    min-height:42px;
+
+  #requestsTable tbody td:nth-child(6) button{
+    flex:0 0 42px !important;
+    width:42px !important;
+    min-width:42px !important;
+    height:42px !important;
+    min-height:42px !important;
+    padding:0 !important;
   }
-  #tableBody td:nth-child(3) > *{max-width:100%}
+
+  /* Fallback selectors in case the table has no id */
+  @media (max-width:767px){
+    .card table{
+      width:100% !important;
+      min-width:0 !important;
+    }
+  }
 
   /* Catalog manager */
   #itemManagerModal{
@@ -330,6 +396,22 @@ button{touch-action:manipulation}
 /* Respect reduced motion */
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto !important;transition:none !important}
+}
+</style>
+
+
+<style id="mobile-final-override">
+@media (max-width:767px){
+  html,body{width:100%;max-width:100%;overflow-x:hidden!important}
+  body{box-sizing:border-box}
+  body *{box-sizing:border-box}
+  #requestsTable td,#requestsTable th{max-width:none}
+  #requestsTable tbody td > div,
+  #requestsTable tbody td > span,
+  #requestsTable tbody td > p{
+    max-width:100%!important;
+    width:auto!important;
+  }
 }
 </style>
 
