@@ -1,12 +1,19 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>แบบฟอร์มเบิกอุปกรณ์สำนักงาน | Office Supply Request</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;600&family=Noto+Sans+Myanmar:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
+*{font-family:"Inter","Noto Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,select,textarea{font-family:inherit}
+body{letter-spacing:-.01em}
+
 body{font-family:'Noto Sans Thai','Noto Sans Myanmar',sans-serif;background:#f1f5f9}
 .card{background:white;border-radius:14px;box-shadow:0 10px 25px rgba(0,0,0,.08)}
 .lang-btn{padding:6px 14px;border-radius:8px;border:1px solid #ddd;font-size:14px}
@@ -14,6 +21,11 @@ body{font-family:'Noto Sans Thai','Noto Sans Myanmar',sans-serif;background:#f1f
 .chip{display:inline-flex;align-items:center;gap:6px;background:#eef2ff;color:#3730a3;border-radius:999px;padding:4px 10px;font-size:13px;margin:3px}
 .chip button{color:#dc2626;font-weight:700;line-height:1}
 .hidden{display:none!important}
+
+.item-option{padding:.65rem .85rem;cursor:pointer;border-bottom:1px solid #f1f5f9;font-size:.95rem}
+.item-option:hover,.item-option.active{background:#eef2ff}
+.item-option-name{font-weight:500}
+.item-option-meta{font-size:.75rem;color:#64748b;margin-top:2px}
 </style>
 </head>
 <body class="p-6">
@@ -45,16 +57,38 @@ body{font-family:'Noto Sans Thai','Noto Sans Myanmar',sans-serif;background:#f1f
 <form id="request-form" class="space-y-4">
 <div>
 <label id="lbl-dept" class="text-sm font-medium">แผนก</label>
-<input id="department" class="mt-1 w-full border rounded-lg p-2" placeholder="เช่น บัญชี" required>
+<select id="department" class="mt-1 w-full border rounded-lg p-2" required>
+<option value="">-- เลือกแผนก --</option>
+<option>PD1</option>
+<option>PD2</option>
+<option>PD3</option>
+<option>WH SP</option>
+<option>DL</option>
+<option>PL</option>
+<option>AC</option>
+<option>DC</option>
+<option>HR</option>
+<option>ND</option>
+<option>MK</option>
+<option>QA</option>
+<option>PU</option>
+</select>
 </div>
 
 <div>
 <label id="lbl-items" class="text-sm font-medium">รายการที่ต้องการเบิก</label>
 <div class="mt-1 flex gap-2">
-<input id="itemNameInput" class="flex-1 border rounded-lg p-2" placeholder="ชื่อรายการ เช่น กระดาษ A4">
+<div class="relative flex-1" id="itemPicker">
+  <input id="itemSearchInput" type="text" autocomplete="off" class="w-full border rounded-lg p-2 pr-10" placeholder="ค้นหา/พิมพ์ชื่อรายการ...">
+  <button type="button" id="itemPickerToggle" class="absolute right-0 top-0 h-full px-3 text-gray-600" aria-label="เปิดรายการ">⌄</button>
+  <input id="itemNameInput" type="hidden" value="">
+  <div id="itemDropdown" class="hidden absolute z-50 left-0 right-0 mt-1 bg-white border rounded-lg shadow-xl max-h-72 overflow-y-auto"></div>
+</div>
 <input id="itemQtyInput" type="number" min="1" class="w-24 border rounded-lg p-2" placeholder="จำนวน">
+<input id="itemUnitInput" type="text" class="w-24 border rounded-lg p-2 bg-gray-100" placeholder="หน่วย" readonly>
 <button type="button" onclick="addItem()" id="btn-add-item" class="bg-indigo-100 text-indigo-700 px-3 rounded-lg whitespace-nowrap">+ เพิ่ม</button>
 </div>
+<div class="text-xs text-gray-500 mt-1">เลือกรายการ ระบบจะใส่หน่วยให้อัตโนมัติ</div>
 <div id="itemsChips" class="mt-2"></div>
 </div>
 
@@ -71,6 +105,7 @@ body{font-family:'Noto Sans Thai','Noto Sans Myanmar',sans-serif;background:#f1f
   <div class="flex gap-2">
     <button onclick="downloadCSV()" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm" id="btn-download">ดาวน์โหลด</button>
     <button onclick="openTrash()" class="hidden bg-orange-500 text-white px-4 py-2 rounded-lg text-sm" id="btn-trash">🗑️ ถังขยะ</button>
+    <button onclick="openItemManager()" class="hidden bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm" id="btn-item-manager">⚙️ จัดการรายการ/ราคา</button>
   </div>
   <button onclick="deleteAll()" class="hidden bg-red-600 text-white px-4 py-2 rounded-lg text-sm" id="btn-deleteall">ลบทั้งหมด</button>
 </div>
@@ -110,6 +145,54 @@ body{font-family:'Noto Sans Thai','Noto Sans Myanmar',sans-serif;background:#f1f
 </div>
 </div>
 
+<!-- Item catalog manager -->
+<div id="itemManagerModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+<div class="bg-white rounded-2xl p-6 w-full max-w-5xl max-h-[90vh] overflow-auto shadow-xl">
+<div class="flex justify-between items-center mb-4 gap-3">
+  <div>
+    <h2 class="text-xl font-semibold">⚙️ จัดการรายการและราคา</h2>
+    <p class="text-sm text-gray-500 mt-1">แก้ไขราคา/หน่วยของรายการได้จากหน้านี้ ราคาจะไม่แสดงให้พนักงานเห็น</p>
+  
+<div id="newItemBox" class="mb-5 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
+  <div class="flex items-center justify-between gap-3 mb-3">
+    <div>
+      <div class="font-semibold text-slate-800">เพิ่มรายการเบิกใหม่</div>
+      <div class="text-xs text-slate-500 mt-1">ชื่อรายการและราคาจะถูกเก็บเป็นข้อมูลหลังบ้าน</div>
+    </div>
+    <span class="text-xs font-semibold text-indigo-600 bg-indigo-100 px-2.5 py-1 rounded-full">ADMIN</span>
+  </div>
+  <div class="grid md:grid-cols-4 gap-3">
+    <input id="newItemName" class="border rounded-xl p-2.5 bg-white" placeholder="ชื่อรายการ">
+    <input id="newItemUnit" class="border rounded-xl p-2.5 bg-white" placeholder="หน่วย เช่น ชิ้น">
+    <input id="newItemPrice" type="number" min="0" step="0.01" class="border rounded-xl p-2.5 bg-white" placeholder="ราคา/หน่วย">
+    <button id="btn-add-new-item" type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4 py-2.5 font-semibold">＋ เพิ่มรายการ</button>
+  </div>
+</div>
+</div>
+  <button onclick="closeItemManager()" class="text-gray-500 text-xl">✕</button>
+</div>
+<div class="flex gap-2 mb-4 flex-wrap">
+  <input id="catalogSearch" class="flex-1 min-w-[240px] border rounded-lg p-2" placeholder="🔍 ค้นหารายการ...">
+  <button onclick="seedCatalogToFirebase()" id="btn-seed-catalog" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm">นำเข้ารายการเริ่มต้น</button>
+  <button onclick="loadCatalogFromFirebase(true)" class="bg-gray-200 px-4 py-2 rounded-lg text-sm">↻ รีเฟรช</button>
+</div>
+<div id="catalogStatus" class="text-sm text-gray-500 mb-3"></div>
+<div class="overflow-x-auto border rounded-xl">
+<table class="w-full text-sm">
+<thead class="bg-gray-50 border-b">
+<tr>
+<th class="p-3 text-left">รายการ</th>
+<th class="p-3 text-left">หน่วย</th>
+<th class="p-3 text-right">ราคา/หน่วย</th>
+<th class="p-3 text-center">จัดการ</th>
+</tr>
+</thead>
+<tbody id="catalogBody"></tbody>
+</table>
+</div>
+</div>
+</div>
+
 <!-- Trash -->
 <div id="trashModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
 <div class="bg-white rounded-2xl p-6 w-full max-w-5xl max-h-[90vh] overflow-auto shadow-xl">
@@ -123,9 +206,6 @@ body{font-family:'Noto Sans Thai','Noto Sans Myanmar',sans-serif;background:#f1f
 
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
 <script>
 const firebaseConfig={
  apiKey:"AIzaSyASVRfcI29rcxgzQuOC6R-CMT7X7vBWg_g",
@@ -136,12 +216,49 @@ const firebaseConfig={
  appId:"1:873410566683:web:6c7e3058085b09acb036be"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db=firebase.firestore();
-const auth=firebase.auth();
+let db=null;
+let auth=null;
+let firebaseReady=false;
+
+function loadScript(src){
+  return new Promise((resolve,reject)=>{
+    const s=document.createElement("script");
+    s.src=src; s.async=true;
+    s.onload=resolve; s.onerror=reject;
+    document.head.appendChild(s);
+  });
+}
+
+async function initFirebase(){
+  try{
+    document.getElementById("authStatus").innerText="กำลังเชื่อมต่อ...";
+    await loadScript("https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js");
+    await loadScript("https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js");
+    await loadScript("https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js");
+    firebase.initializeApp(firebaseConfig);
+    db=firebase.firestore();
+    auth=firebase.auth();
+    firebaseReady=true;
+    auth.onAuthStateChanged(async user=>{
+      clearError();
+      try{
+        if(!user){ await auth.signInAnonymously(); return; }
+        await refreshAdminState(user);
+        await loadCatalogFromFirebase(false);
+        startListening();
+      }catch(err){ showError(err.code?`${err.code} - ${err.message}`:err.message); }
+    });
+  }catch(err){
+    document.getElementById("authStatus").innerText="โหมดตัวอย่าง";
+    showError("ไม่สามารถเชื่อมต่อฐานข้อมูลได้ แต่สามารถดูแบบฟอร์มและทดลองคำนวณราคาได้");
+  }
+}
+
 
 const collectionPath="supply-requests";
 const trashPath="supply-trash";
+const catalogPath="supply-items";
+let catalogDocIds={};
 
 const form=document.getElementById("request-form");
 const tableBody=document.getElementById("tableBody");
@@ -151,6 +268,9 @@ let latestDocs={};
 let currentLang="th";
 let isAdmin=sessionStorage.getItem("supply_admin_unlocked")==="1";
 let unsubscribe=null;
+
+// Render the interface immediately; Firebase loads in the background.
+renderRows();
 
 const lang={
 th:{
@@ -182,16 +302,6 @@ function showError(msg){
 }
 function clearError(){document.getElementById("errorBanner").classList.add("hidden");}
 
-auth.onAuthStateChanged(async user=>{
- clearError();
- if(!user){
-   await auth.signInAnonymously();
-   return;
- }
- await refreshAdminState(user);
- startListening();
-});
-
 async function refreshAdminState(user){
 document.getElementById("authStatus").innerText=isAdmin?"🔐 Admin":"👤 พนักงาน";
 document.getElementById("adminBanner").classList.toggle("hidden",!isAdmin);
@@ -199,6 +309,7 @@ document.getElementById("btn-admin").classList.toggle("hidden",isAdmin);
 document.getElementById("btn-logout").classList.toggle("hidden",!isAdmin);
 document.getElementById("btn-trash").classList.toggle("hidden",!isAdmin);
 document.getElementById("btn-deleteall").classList.toggle("hidden",!isAdmin);
+document.getElementById("btn-item-manager").classList.toggle("hidden",!isAdmin);
 renderRows();
 }
 
@@ -211,56 +322,302 @@ function startListening(){
  },err=>showError(err.code?`${err.code} - ${err.message}`:err.message));
 }
 
+function formatMoney(v){
+  return Number(v||0).toLocaleString("th-TH",{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+function getRequestTotal(data){
+  if(!Array.isArray(data.itemsList)) return 0;
+  return data.itemsList.reduce((sum,it)=>sum+(Number(it.qty)||0)*(Number(it.price)||0),0);
+}
+
 function renderRows(){
- tableBody.innerHTML="";
- Object.entries(latestDocs).forEach(([id,data])=>{
-   const tr=document.createElement("tr");
-   tr.className="border-b";
-   const statusText=data.complete?"✅ ครบ":"⏳ รอดำเนินการ";
-   const statusColor=data.complete?"bg-green-600":"bg-yellow-500";
-   const time=data.timestamp?.toMillis?new Date(data.timestamp.toMillis()).toLocaleString("th-TH"):"-";
-   const itemsDisplay=Array.isArray(data.itemsList)?data.itemsList.map(it=>`${escapeHtml(it.name)} (${escapeHtml(it.qty)})`).join(", "):(data.items||"-");
-   tr.innerHTML=`
-<td class="p-2">${escapeHtml(data.requesterName||"")}</td>
-<td class="p-2">${escapeHtml(data.department||"")}</td>
-<td class="p-2">${itemsDisplay}</td>
-<td class="p-2"><button class="${statusColor} text-white px-2 py-1 rounded text-xs">${statusText}</button></td>
-<td class="p-2">${time}</td>
-<td class="p-2 flex gap-2">
-<button class="bg-blue-600 text-white px-2 py-1 rounded text-xs action-complete">✔</button>
-<button class="bg-gray-500 text-white px-2 py-1 rounded text-xs action-pending">↺</button>
-${isAdmin?'<button class="bg-amber-500 text-white px-2 py-1 rounded text-xs action-edit">✎</button><button class="bg-red-600 text-white px-2 py-1 rounded text-xs action-delete">🗑</button>':""}
-</td>`;
-   tr.querySelector(".action-complete").onclick=()=>db.collection(collectionPath).doc(id).update({complete:true});
-   tr.querySelector(".action-pending").onclick=()=>db.collection(collectionPath).doc(id).update({complete:false});
-   if(isAdmin){
-     tr.querySelector(".action-edit").onclick=()=>startEdit(id);
-     tr.querySelector(".action-delete").onclick=()=>startDelete(id);
-   }
-   tableBody.appendChild(tr);
- });
+  tableBody.innerHTML="";
+  const rows=Object.entries(latestDocs).sort((a,b)=>{
+    const ta=a[1].timestamp?.toMillis?a[1].timestamp.toMillis():0;
+    const tb=b[1].timestamp?.toMillis?b[1].timestamp.toMillis():0;
+    return tb-ta;
+  });
+  rows.forEach(([id,data])=>{
+    const tr=document.createElement("tr");
+    tr.className="border-b";
+    const statusText=data.complete?"✅ ครบ":"⏳ รอดำเนินการ";
+    const statusColor=data.complete?"bg-green-600":"bg-yellow-500";
+    const time=data.timestamp?.toMillis?new Date(data.timestamp.toMillis()).toLocaleString("th-TH"):"-";
+    const itemsDisplay=Array.isArray(data.itemsList)
+      ?data.itemsList.map(it=>`${escapeHtml(it.name)} (${escapeHtml(it.qty)}${it.unit?` ${escapeHtml(it.unit)}`:""})`).join("<br>")
+      :(data.items||"-");
+    tr.innerHTML=`
+      <td class="p-2">${escapeHtml(data.requesterName||"")}</td>
+      <td class="p-2">${escapeHtml(data.department||"")}</td>
+      <td class="p-2">${itemsDisplay}</td>
+      <td class="p-2"><button class="${statusColor} text-white px-2 py-1 rounded text-xs">${statusText}</button></td>
+      <td class="p-2">${time}</td>
+      <td class="p-2 flex gap-2">
+        <button class="bg-blue-600 text-white px-2 py-1 rounded text-xs action-complete">✔</button>
+        <button class="bg-gray-500 text-white px-2 py-1 rounded text-xs action-pending">↺</button>
+        ${isAdmin?'<button type="button" class="bg-amber-500 text-white px-2 py-1 rounded text-xs action-edit">✎</button><button type="button" title="ลบรายการ" data-delete-id="'+escapeHtml(id)+'" class="bg-red-600 text-white px-2 py-1 rounded text-xs action-delete">🗑</button>':""}
+      </td>`;
+    tr.querySelector(".action-complete").onclick=()=>db.collection(collectionPath).doc(id).update({complete:true});
+    tr.querySelector(".action-pending").onclick=()=>db.collection(collectionPath).doc(id).update({complete:false});
+    if(isAdmin){
+      const editBtn=tr.querySelector(".action-edit");
+      if(editBtn) editBtn.onclick=(event)=>{event.preventDefault();event.stopPropagation();startEdit(id);};
+
+      const deleteBtn=tr.querySelector(".action-delete");
+      if(deleteBtn){
+        deleteBtn.type="button";
+        deleteBtn.onclick=async (event)=>{
+          event.preventDefault();
+          event.stopPropagation();
+          await startDelete(id);
+        };
+      }
+    }
+    tableBody.appendChild(tr);
+  });
 }
 
 function escapeHtml(v){
  return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
 }
 
+let itemCatalog = [{"name":"ปากกาน้ำเงิน","unit":"แท่ง","price":3.5},{"name":"ปากกาแดง","unit":"แท่ง","price":3.5},{"name":"ปากกาดำ","unit":"แท่ง","price":3.5},{"name":"ปากาลบคำผิด","unit":"อัน","price":56.0},{"name":"ปากกาเน้นข้อความ สีเหลือง","unit":"แท่ง","price":22.0},{"name":"ปากกาเน้นข้อความ สีชมพู","unit":"แท่ง","price":22.0},{"name":"ปากกาเน้นข้อความ สีฟ้า","unit":"แท่ง","price":22.0},{"name":"ปากกาเน้นข้อความ เขียว","unit":"แท่ง","price":22.0},{"name":"ปากกาเน้นข้อความ ส้ม","unit":"แท่ง","price":22.0},{"name":"ปากกาเคมี 2หัว สีน้ำเงิน","unit":"แท่ง","price":7.75},{"name":"ปากกาเคมี 2หัว สีแดง","unit":"แท่ง","price":7.75},{"name":"ปากกาเคมี 2หัว สีดำ","unit":"แท่ง","price":7.75},{"name":"ปากกา Paint MARKER PX-20 สีเหลือง","unit":"แท่ง","price":48.6},{"name":"ปากกา Paint MARKER PX-20 สีชมพู","unit":"แท่ง","price":48.6},{"name":"ปากกา Paint MARKER PX-20 สีน้ำเงิน","unit":"แท่ง","price":48.6},{"name":"ปากกา Paint MARKER PX-21 สีขาว","unit":"แท่ง","price":48.6},{"name":"ปากกา Paint MARKER PX-21 สีเขียว","unit":"แท่ง","price":48.6},{"name":"ปากกา Paint MARKER PX-21 สีชมพู","unit":"แท่ง","price":48.6},{"name":"ปากกา Paint MARKER PX-21 สีแดง","unit":"แท่ง","price":48.6},{"name":"ปากกา Paint MARKER PX-21 สีน้ำเงิน","unit":"แท่ง","price":48.6},{"name":"ปากกาไวท์บอร์ด สีดำ","unit":"แท่ง","price":12.5},{"name":"ปากกาไวท์บอร์ด สีแดง","unit":"แท่ง","price":12.5},{"name":"ปากกาไวท์บอร์ด สีน้ำเงิน","unit":"แท่ง","price":12.5},{"name":"ดินสอไม้","unit":"แท่ง","price":2.25},{"name":"ดินสอเทียนสีเหลือง","unit":"แท่ง","price":5.41},{"name":"ดินสอเทียนสีแดง","unit":"แท่ง","price":5.5},{"name":"ดินสอเทียนสีชมพู","unit":"แท่ง","price":25.67},{"name":"ดินสอเทียนสีดำ","unit":"แท่ง","price":5.25},{"name":"ดินสอเทียนสีเขียว","unit":"แท่ง","price":5.25},{"name":"ยางลบดินสอ","unit":"อัน","price":5.5},{"name":"ถ่าน 3A","unit":"ก้อน","price":12.0},{"name":"ถ่าน 2A","unit":"ก้อน","price":12.0},{"name":"ถ่าน SIZE C","unit":"ก้อน","price":16.0},{"name":"ถ่าน SIZE D","unit":"ก้อน","price":15.0},{"name":"ถ่านกระดุม","unit":"ก้อน","price":12.5},{"name":"ถ่าน A 76","unit":"ก้อน","price":32.0},{"name":"ถ่าน 9V","unit":"ก้อน","price":26.0},{"name":"ผ้าปิดจมูก","unit":"แพ็ค","price":36.0},{"name":"WAXY","unit":"กล่อง","price":95.0},{"name":"กระดานรองเขียน","unit":"อัน","price":20.0},{"name":"กระดาษ A4","unit":"รีม","price":76.0},{"name":"กระดาษ A3","unit":"รีม","price":149.0},{"name":"แผ่นเคลือบ A3","unit":"แผ่น","price":6.4},{"name":"แผ่นเคลือบ A4","unit":"แผ่น","price":2.8},{"name":"กระดาษCOPY สีดำ","unit":"แผ่น","price":1.08},{"name":"กระดาษCOPY สีน้ำเงิน","unit":"แผ่น","price":1.08},{"name":"กระดาษ POST  IT","unit":"อัน","price":13.0},{"name":"ซอง 11 รู","unit":"แพ็ค","price":13.0},{"name":"ซองใสแข็ง   A4","unit":"แผ่น","price":22.0},{"name":"ซองใสแข็ง   A3","unit":"แผ่น","price":24.0},{"name":"แท่นเทปเล็ก","unit":"อัน","price":33.0},{"name":"แท่นเทปใหญ่","unit":"อัน","price":50.0},{"name":"เทปกาว 2 หน้า แบบบาง","unit":"อัน","price":6.0},{"name":"เทปกาว 2 หน้า แบบหนา","unit":"อัน","price":132.0},{"name":"เทปใสเล็ก","unit":"อัน","price":16.0},{"name":"เทปเหลืองสำหรับตีเส้น","unit":"อัน","price":0.0},{"name":"เทปสีเหลือง 5 MM","unit":"อัน","price":18.0},{"name":"เทปใหญ่สีเขียว","unit":"อัน","price":23.0},{"name":"กาวน้ำเล็ก","unit":"ขวด","price":9.0},{"name":"กาวน้ำใหญ่","unit":"ขวด","price":22.0},{"name":"กาว UHU","unit":"อัน","price":72.0},{"name":"ที่ดึงMAX","unit":"อัน","price":52.0},{"name":"ตัวMAX","unit":"อัน","price":55.0},{"name":"ลูก MAX NO.10","unit":"กล่อง","price":5.0},{"name":"ลูก MAX NO.35","unit":"กล่อง","price":0.0},{"name":"ลวดเสียบกระดาษ","unit":"กล่อง","price":6.5},{"name":"คลิปดำ เบอร์ 108","unit":"กล่อง","price":29.04},{"name":"คลิปดำ เบอร์ 109","unit":"กล่อง","price":22.0},{"name":"คลิปดำ เบอร์ 110","unit":"กล่อง","price":14.0},{"name":"คลิปดำ เบอร์ 111","unit":"กล่อง","price":9.96},{"name":"คลิปดำ เบอร์ 112","unit":"กล่อง","price":6.0},{"name":"มีดคัตเตอร์เล็ก","unit":"อัน","price":22.0},{"name":"มีดคัตเตอร์ใหญ่","unit":"อัน","price":10.0},{"name":"ใบมีคัตเตอร์เล็ก","unit":"ซอง","price":34.0},{"name":"ใบมีคัตเตอร์ใหญ่","unit":"ซอง","price":5.8},{"name":"แท่นประทับตราสีน้ำเงิน","unit":"อัน","price":23.0},{"name":"แท่นประทับตราสีแดง","unit":"อัน","price":23.0},{"name":"หมึกเติมสีน้ำเงิน","unit":"ขวด","price":6.25},{"name":"ลิ้นแฟ้ม","unit":"อัน","price":0.64},{"name":"กรรไกร","unit":"อัน","price":40.0},{"name":"แกนหมึก","unit":"อัน","price":70.0},{"name":"หมึก Printer EPSON สีดำ","unit":"ขวด","price":221.5},{"name":"หมึก Printer EPSON สีเหลือง","unit":"ขวด","price":221.5},{"name":"หมึก Printer EPSON สีชมพู","unit":"ขวด","price":221.5},{"name":"หมึก Printer EPSON สีฟ้า","unit":"ขวด","price":221.5},{"name":"หมึก Printer EPSON สีดำ L3110","unit":"ขวด","price":235.0},{"name":"หมึก Printer EPSON สีเหลือง L3110","unit":"ขวด","price":235.0},{"name":"หมึก Printer EPSON สีชมพู L3110","unit":"ขวด","price":235.0},{"name":"หมึก Printer EPSON สีฟ้า L3110","unit":"ขวด","price":235.0},{"name":"หมึก HP 703 สีดำ","unit":"ตลับ","price":295.0},{"name":"หมึก EPSON 73N สีดำ","unit":"ตลับ","price":221.5},{"name":"หมึก Brother Lc57 สีดำ","unit":"ตลับ","price":630.0},{"name":"หมึก Brother Lc57 สีฟ้า","unit":"ตลับ","price":365.0},{"name":"หมึก Brother Lc57 สีชมพู","unit":"ตลับ","price":365.0},{"name":"หมึก Brother Lc57 สีเหลือง","unit":"ตลับ","price":365.0},{"name":"หมึก Brother Lc67สีดำ","unit":"ตลับ","price":630.0},{"name":"หมึก Brother Lc67 สีฟ้า","unit":"ตลับ","price":350.0},{"name":"หมึก Brother Lc67 สีชมพู","unit":"ตลับ","price":350.0},{"name":"หมึก Brother Lc67 สีเหลือง","unit":"ตลับ","price":350.0},{"name":"หมึก HP Laserjet Q2612A","unit":"กล่อง","price":1070.09},{"name":"หมึก Canon 790 สีดำ","unit":"กล่อง","price":260.75},{"name":"หมึก Canon 790 สีชมพู","unit":"กล่อง","price":260.75},{"name":"หมึก Canon 790 สีฟ้า","unit":"กล่อง","price":260.75},{"name":"หมึก Canon 790 สีเหลือง","unit":"กล่อง","price":260.75},{"name":"ขี้ผึ้งนับแบงค์","unit":"ตลับ","price":24.0},{"name":"ไม้บรรทัด","unit":"อัน","price":1.75},{"name":"ฟุตเหล็ก","unit":"อัน","price":16.0},{"name":"สมุดปกอ่อน","unit":"เล่ม","price":8.5},{"name":"แป้ง","unit":"กระปุก","price":55.0},{"name":"น้ำยา 3 M","unit":"ขวด","price":312.0},{"name":"นาฬิกาดิจิตอลเล็ก","unit":"อัน","price":199.0},{"name":"นาฬิกาแขวนผนัง","unit":"อัน","price":199.0},{"name":"แผ่นรองเขียน","unit":"อัน","price":19.0},{"name":"แฟ้มเอกสารพร้อมสันรูด","unit":"อัน","price":12.0},{"name":"เครื่องคิดเลข","unit":"เคริ่อง","price":454.0},{"name":"ตาไก่","unit":"กล่อง","price":19.0},{"name":"เม้าส์","unit":"อัน","price":166.0},{"name":"กระดาษทิชชู่","unit":"ม้วน","price":46.67},{"name":"ตัวตัดเทปกาว (สีแดง)","unit":"อัน","price":45.0},{"name":"ปลั๊กสามตา","unit":"อัน","price":450.0},{"name":"ปากกาสีน้ำเงิน","unit":"ด้าม","price":5.0},{"name":"คีย์บอร์ด","unit":"อัน","price":330.0}];
+  const defaultItemCatalog = itemCatalog.map(x=>({...x}));
+
+let selectedItemIndex = null;
+
+function openItemDropdown(){
+  renderItemDropdown(document.getElementById("itemSearchInput").value);
+  document.getElementById("itemDropdown").classList.remove("hidden");
+}
+function closeItemDropdown(){
+  document.getElementById("itemDropdown").classList.add("hidden");
+}
+function renderItemDropdown(keyword=""){
+  const box=document.getElementById("itemDropdown");
+  const q=String(keyword||"").trim().toLowerCase();
+  const matches=itemCatalog.map((it,i)=>({it,i})).filter(x=>!q || x.it.name.toLowerCase().includes(q));
+  if(!matches.length){box.innerHTML='<div class="p-3 text-sm text-gray-500">ไม่พบรายการที่ค้นหา</div>';return;}
+  box.innerHTML=matches.map(({it,i})=>`<div class="item-option" data-index="${i}">
+    <div class="item-option-name">${escapeHtml(it.name)}</div>
+    <div class="item-option-meta">หน่วย: ${escapeHtml(it.unit)} </div>
+  </div>`).join("");
+  box.querySelectorAll('.item-option').forEach(el=>el.addEventListener('click',()=>selectItem(Number(el.dataset.index))));
+}
+function selectItem(idx){
+  const item=itemCatalog[idx];
+  if(!item)return;
+  selectedItemIndex=idx;
+  document.getElementById("itemNameInput").value=String(idx);
+  document.getElementById("itemSearchInput").value=item.name;
+  document.getElementById("itemUnitInput").value=item.unit;
+  closeItemDropdown();
+  document.getElementById("itemQtyInput").focus();
+}
+function updateItemPrice(){
+  const idx=Number(document.getElementById("itemNameInput").value);
+  if(Number.isInteger(idx)&&itemCatalog[idx]) selectItem(idx);
+  else { selectedItemIndex=null; document.getElementById("itemUnitInput").value=""; }
+}
 function addItem(){
- const nameEl=document.getElementById("itemNameInput"),qtyEl=document.getElementById("itemQtyInput");
- const name=nameEl.value.trim(),qty=qtyEl.value.trim();
- if(!name||!qty||Number(qty)<=0){alert(lang[currentLang].fillItemAlert);return;}
- formItems.push({name,qty});
- nameEl.value="";qtyEl.value="";nameEl.focus();renderChips();
+  const qty=Number(document.getElementById("itemQtyInput").value);
+  const idx=selectedItemIndex;
+  if(!Number.isInteger(idx)||!itemCatalog[idx]||!qty||qty<=0){
+    alert("กรุณาเลือกรายการและกรอกจำนวน"); return;
+  }
+  const item=itemCatalog[idx];
+  formItems.push({name:item.name,qty,price:Number(item.price),unit:item.unit});
+  selectedItemIndex=null;
+  document.getElementById("itemNameInput").value="";
+  document.getElementById("itemSearchInput").value="";
+  document.getElementById("itemQtyInput").value="";
+  document.getElementById("itemUnitInput").value="";
+  renderChips();
 }
 function renderChips(){
- const box=document.getElementById("itemsChips");box.innerHTML="";
- formItems.forEach((it,idx)=>{
-   const chip=document.createElement("span");chip.className="chip";
-   chip.innerHTML=`${escapeHtml(it.name)} (${escapeHtml(it.qty)}) <button type="button">×</button>`;
-   chip.querySelector("button").onclick=()=>{formItems.splice(idx,1);renderChips()};
-   box.appendChild(chip);
- });
+  const box=document.getElementById("itemsChips");box.innerHTML="";
+  formItems.forEach((it,idx)=>{
+    const chip=document.createElement("span");chip.className="chip";
+    chip.innerHTML=`${escapeHtml(it.name)} (${escapeHtml(it.qty)} ${escapeHtml(it.unit||"")}) <button type="button">×</button>`;
+    chip.querySelector("button").onclick=()=>{formItems.splice(idx,1);renderChips()};
+    box.appendChild(chip);
+  });
 }
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const input=document.getElementById('itemSearchInput');
+  const toggle=document.getElementById('itemPickerToggle');
+  input.addEventListener('focus',openItemDropdown);
+  input.addEventListener('input',()=>{
+    selectedItemIndex=null;
+    document.getElementById('itemNameInput').value='';
+    document.getElementById('itemUnitInput').value='';
+    openItemDropdown();
+  });
+  toggle.addEventListener('click',()=>{
+    const box=document.getElementById('itemDropdown');
+    if(box.classList.contains('hidden')) openItemDropdown(); else closeItemDropdown();
+    input.focus();
+  });
+  document.addEventListener('click',e=>{if(!document.getElementById('itemPicker').contains(e.target)) closeItemDropdown();});
+});
+
+
+function catalogDocId(index, item){
+  return "item-" + String(index+1).padStart(3,"0");
+}
+
+async function loadCatalogFromFirebase(showStatus=false){
+  if(!firebaseReady || !db) return;
+  try{
+    if(showStatus) document.getElementById("catalogStatus").innerText="กำลังโหลดรายการ...";
+    const snap=await db.collection(catalogPath).orderBy("name").get();
+    if(!snap.empty){
+      const remote=[];
+      catalogDocIds={};
+      snap.forEach(d=>{
+        const x=d.data();
+        if(x.name){
+          remote.push({
+            name:String(x.name),
+            unit:String(x.unit||""),
+            price:Number(x.price)||0
+          });
+          catalogDocIds[String(x.name)]=d.id;
+        }
+      });
+
+      // Merge Firebase data with the built-in catalog.
+      // Firebase values override the same item; new Firebase items are appended.
+      const merged = defaultItemCatalog.map(x=>({...x}));
+      const indexByName = {};
+      merged.forEach((x,i)=>{
+        indexByName[String(x.name).trim().toLowerCase()] = i;
+      });
+
+      remote.forEach(x=>{
+        const key=String(x.name).trim().toLowerCase();
+        if(indexByName[key] !== undefined){
+          merged[indexByName[key]] = x;
+        }else{
+          indexByName[key]=merged.length;
+          merged.push(x);
+        }
+      });
+
+      itemCatalog=merged;
+      renderItemDropdown(document.getElementById("itemSearchInput").value);
+      if(showStatus) document.getElementById("catalogStatus").innerText=`โหลดรายการจากฐานข้อมูลแล้ว ${remote.length} รายการ และรวมรายการเริ่มต้นเรียบร้อย`;
+    }else if(showStatus){
+      document.getElementById("catalogStatus").innerText="ยังไม่มีรายการในฐานข้อมูล ใช้รายการเริ่มต้นในระบบ";
+    }
+    if(document.getElementById("itemManagerModal") && !document.getElementById("itemManagerModal").classList.contains("hidden")){
+      renderCatalogManager();
+    }
+  }catch(err){
+    if(showStatus) document.getElementById("catalogStatus").innerText="โหลดรายการราคาไม่สำเร็จ: "+(err.message||err);
+    console.error(err);
+  }
+}
+
+function openItemManager(){
+  if(!isAdmin){alert("เฉพาะ Admin เท่านั้น");return;}
+  document.getElementById("itemManagerModal").classList.remove("hidden");
+  document.getElementById("catalogSearch").value="";
+  renderCatalogManager();
+  loadCatalogFromFirebase(true);
+}
+
+function closeItemManager(){
+  document.getElementById("itemManagerModal").classList.add("hidden");
+}
+
+
+function renderCatalogManager(){
+  const body=document.getElementById("catalogBody");
+  if(!body)return;
+  const q=(document.getElementById("catalogSearch")?.value||"").trim().toLowerCase();
+  const rows=itemCatalog
+    .map((item,index)=>({item,index}))
+    .filter(x=>!q || x.item.name.toLowerCase().includes(q));
+  body.innerHTML=rows.length?rows.map(({item,index})=>`
+    <tr class="border-b">
+      <td class="p-3">${escapeHtml(item.name)}</td>
+      <td class="p-3">${escapeHtml(item.unit)}</td>
+      <td class="p-3 text-right">
+        <input id="price-${index}" type="number" min="0" step="0.01" value="${Number(item.price||0)}"
+          class="w-32 border rounded-lg p-2 text-right">
+      </td>
+      <td class="p-3 text-center">
+        <button onclick="saveCatalogPrice(${index})" class="bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm">บันทึกราคา</button>
+      </td>
+    </tr>`).join(""):'<tr><td colspan="4" class="p-6 text-center text-gray-500">ไม่พบรายการ</td></tr>';
+}
+
+async function saveCatalogPrice(index){
+  if(!isAdmin||!firebaseReady){alert("กรุณาเข้าสู่ Admin และเชื่อมต่อฐานข้อมูลก่อน");return;}
+  const item=itemCatalog[index];
+  if(!item)return;
+  const input=document.getElementById(`price-${index}`);
+  const price=Number(input?.value);
+  if(!Number.isFinite(price)||price<0){alert("กรุณาระบุราคาให้ถูกต้อง");return;}
+  try{
+    let docId=catalogDocIds[item.name];
+    if(docId){
+      await db.collection(catalogPath).doc(docId).set({
+        name:item.name, unit:item.unit, price,
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
+        updatedBy:auth.currentUser.uid
+      },{merge:true});
+    }else{
+      docId=catalogDocId(index,item);
+      await db.collection(catalogPath).doc(docId).set({
+        name:item.name, unit:item.unit, price,
+        createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
+        updatedBy:auth.currentUser.uid
+      },{merge:true});
+      catalogDocIds[item.name]=docId;
+    }
+    itemCatalog[index].price=price;
+    renderCatalogManager();
+    renderItemDropdown(document.getElementById("itemSearchInput").value);
+    document.getElementById("catalogStatus").innerText=`บันทึกราคา "${item.name}" เป็น ${formatMoney(price)} บาท/หน่วย แล้ว`;
+  }catch(err){
+    showError(err.code?`${err.code} - ${err.message}`:err.message);
+    alert("บันทึกราคาไม่สำเร็จ: "+(err.message||err));
+  }
+}
+
+async function seedCatalogToFirebase(){
+  if(!isAdmin||!firebaseReady){alert("กรุณาเข้าสู่ Admin และเชื่อมต่อฐานข้อมูลก่อน");return;}
+  if(!confirm(`นำเข้ารายการเริ่มต้น ${itemCatalog.length} รายการลง Firebase หรือไม่`))return;
+  try{
+    const batch=db.batch();
+    itemCatalog.forEach((item,index)=>{
+      const id=catalogDocIds[item.name]||catalogDocId(index,item);
+      const ref=db.collection(catalogPath).doc(id);
+      batch.set(ref,{
+        name:item.name, unit:item.unit, price:Number(item.price)||0,
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
+        updatedBy:auth.currentUser.uid
+      },{merge:true});
+      catalogDocIds[item.name]=id;
+    });
+    await batch.commit();
+    document.getElementById("catalogStatus").innerText=`นำเข้ารายการ ${itemCatalog.length} รายการเรียบร้อยแล้ว`;
+    await loadCatalogFromFirebase(false);
+    renderCatalogManager();
+  }catch(err){
+    showError(err.code?`${err.code} - ${err.message}`:err.message);
+    alert("นำเข้ารายการไม่สำเร็จ: "+(err.message||err));
+  }
+}
+
+document.addEventListener("input",e=>{
+  if(e.target && e.target.id==="catalogSearch") renderCatalogManager();
+});
 
 form.addEventListener("submit",async e=>{
  e.preventDefault();
@@ -268,6 +625,10 @@ form.addEventListener("submit",async e=>{
  const requesterName=document.getElementById("requesterName").value.trim();
  if(!department||!requesterName||formItems.length===0){alert(lang[currentLang].fillFormAlert);return;}
  try{
+   if(!firebaseReady){
+     alert("โหมดตัวอย่าง: รายการถูกคำนวณแล้ว แต่ยังไม่ได้บันทึกลงฐานข้อมูล เพราะ Firebase ยังเชื่อมต่อไม่ได้");
+     formItems=[]; renderChips(); form.reset(); return;
+   }
    if(editingId){
      if(!isAdmin){alert("เฉพาะ Admin เท่านั้น");return;}
      await db.collection(collectionPath).doc(editingId).update({department,requesterName,itemsList:formItems,lastEditedAt:firebase.firestore.FieldValue.serverTimestamp(),lastEditedBy:auth.currentUser.uid});
@@ -297,39 +658,109 @@ function cancelEdit(){
 }
 
 async function moveToTrash(id){
- if(!isAdmin){alert("ไม่มีสิทธิ์");return;}
- const ref=db.collection(collectionPath).doc(id);
- const snap=await ref.get();
- if(!snap.exists)return;
- const trashRef=db.collection(trashPath).doc(id);
- const data=snap.data();
- await trashRef.set({...data,originalId:id,deletedAt:firebase.firestore.FieldValue.serverTimestamp(),deletedBy:auth.currentUser.uid});
- await ref.delete();
+  if(!isAdmin) throw new Error("ไม่มีสิทธิ์");
+  if(!firebaseReady || !db) throw new Error("ฐานข้อมูลยังไม่พร้อม");
+
+  const ref = db.collection(collectionPath).doc(id);
+  const snap = await ref.get();
+
+  if(!snap.exists){
+    delete latestDocs[id];
+    return;
+  }
+
+  const data = snap.data();
+
+  // เก็บสำเนาไว้ในถังขยะก่อน แล้วจึงลบต้นฉบับ
+  // Rules ปัจจุบันของคุณอนุญาต read/write อยู่แล้ว
+  const trashRef = db.collection(trashPath).doc(id);
+
+  await trashRef.set({
+    ...data,
+    originalId: id,
+    deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    deletedBy: auth.currentUser ? auth.currentUser.uid : null
+  });
+
+  await ref.delete();
+
+  // ยืนยันว่าต้นฉบับถูกลบจริง
+  const verify = await ref.get();
+  if(verify.exists){
+    throw new Error("Firebase ยังไม่ลบรายการ กรุณาลองใหม่");
+  }
 }
+
 async function startDelete(id){
- if(!isAdmin)return;
- if(!confirm(lang[currentLang].confirmDeleteOne))return;
- try{await moveToTrash(id);if(editingId===id)cancelEdit();}
- catch(err){showError(err.code?`${err.code} - ${err.message}`:err.message);}
+  try{
+    if(!isAdmin){
+      alert("บัญชีนี้ยังไม่ได้เข้าสู่โหมด Admin");
+      return;
+    }
+    if(!firebaseReady || !db){
+      alert("Firebase ยังไม่พร้อม กรุณารอสักครู่แล้วลองใหม่");
+      return;
+    }
+    if(!id){
+      alert("ไม่พบ Document ID ของใบเบิก");
+      return;
+    }
+    if(!confirm("ยืนยันการลบใบเบิกนี้หรือไม่?\n\nเมื่อลบแล้ว รายการจะหายจาก 'รายการใบเบิกทั้งหมด'")) return;
+
+    const docId=String(id);
+    const ref=db.collection(collectionPath).doc(docId);
+
+    console.log("[ADMIN DELETE] collection =",collectionPath,"document =",docId);
+
+    // ลบจาก Firestore โดยตรง
+    await ref.delete();
+
+    // ลบออกจาก cache ของหน้าจอ
+    if(latestDocs && Object.prototype.hasOwnProperty.call(latestDocs,docId)){
+      delete latestDocs[docId];
+    }
+    renderRows();
+
+    // ยืนยันจาก Firestore
+    const verify=await ref.get();
+    if(verify.exists){
+      throw new Error("ลบจาก Firestore ไม่สำเร็จ: เอกสารยังคงอยู่");
+    }
+
+    alert("ลบรายการเรียบร้อยแล้ว");
+  }catch(err){
+    console.error("[ADMIN DELETE ERROR]",err);
+    alert("ลบรายการไม่สำเร็จ\n\n"+(err.code?err.code+" - ":"")+(err.message||err));
+  }
 }
 
 async function deleteAll(){
- if(!isAdmin)return;
- if(!confirm(lang[currentLang].confirmDeleteAll))return;
- try{
-   const snap=await db.collection(collectionPath).get();
-   const batch=db.batch();
-   snap.forEach(d=>{
-     const trashRef=db.collection(trashPath).doc(d.id);
-     batch.set(trashRef,{...d.data(),originalId:d.id,deletedAt:firebase.firestore.FieldValue.serverTimestamp(),deletedBy:auth.currentUser.uid});
-     batch.delete(d.ref);
-   });
-   await batch.commit();
- }catch(err){showError(err.code?`${err.code} - ${err.message}`:err.message);}
+  try{
+    if(!isAdmin){alert("บัญชีนี้ยังไม่ได้เข้าสู่โหมด Admin");return;}
+    if(!firebaseReady || !db){alert("Firebase ยังไม่พร้อม กรุณารอสักครู่");return;}
+    if(!confirm("ยืนยันลบใบเบิกทั้งหมดหรือไม่?\n\nการลบนี้จะลบออกจากรายการใบเบิกทั้งหมด")) return;
+
+    const snap=await db.collection(collectionPath).get();
+    if(snap.empty){alert("ไม่มีรายการให้ลบ");return;}
+
+    // Firestore batch รองรับสูงสุด 500 writes ต่อครั้ง
+    for(let i=0;i<snap.docs.length;i+=400){
+      const batch=db.batch();
+      snap.docs.slice(i,i+400).forEach(d=>batch.delete(d.ref));
+      await batch.commit();
+    }
+
+    latestDocs={};
+    renderRows();
+    alert("ลบรายการทั้งหมด "+snap.size+" รายการเรียบร้อยแล้ว");
+  }catch(err){
+    console.error("[ADMIN DELETE ALL ERROR]",err);
+    alert("ลบรายการทั้งหมดไม่สำเร็จ\n\n"+(err.code?err.code+" - ":"")+(err.message||err));
+  }
 }
 
 async function openTrash(){
- if(!isAdmin)return;
+ if(!isAdmin||!firebaseReady)return;
  document.getElementById("trashModal").classList.remove("hidden");
  const body=document.getElementById("trashBody");
  body.innerHTML='<div class="text-gray-500">กำลังโหลด...</div>';
@@ -355,7 +786,7 @@ async function openTrash(){
 }
 function closeTrash(){document.getElementById("trashModal").classList.add("hidden");}
 async function restoreItem(id){
- if(!isAdmin)return;
+ if(!isAdmin||!firebaseReady)return;
  if(!confirm("กู้คืนรายการนี้กลับเข้าสู่รายการปกติหรือไม่"))return;
  try{
    const trashRef=db.collection(trashPath).doc(id),snap=await trashRef.get();
@@ -369,7 +800,7 @@ async function restoreItem(id){
  }catch(err){showError(err.code?`${err.code} - ${err.message}`:err.message);}
 }
 async function permanentDelete(id){
- if(!isAdmin)return;
+ if(!isAdmin||!firebaseReady)return;
  if(!confirm("คำเตือน: ลบถาวรแล้วจะไม่สามารถกู้คืนจากถังขยะได้ ยืนยันหรือไม่"))return;
  try{await db.collection(trashPath).doc(id).delete();openTrash();}
  catch(err){showError(err.code?`${err.code} - ${err.message}`:err.message);}
@@ -383,6 +814,7 @@ function openAdminLogin(){
 }
 function closeAdminLogin(){document.getElementById("adminModal").classList.add("hidden");}
 async function adminLogin(){
+ if(!firebaseReady){alert("ระบบฐานข้อมูลยังเชื่อมต่อไม่เสร็จ กรุณารอสักครู่");return;}
  const code=document.getElementById("adminCode").value.trim();
  if(code.length!==6){alert("กรุณาใส่รหัส Admin 6 หลัก");return;}
  if(code!==ADMIN_CODE){alert("รหัส Admin ไม่ถูกต้อง");document.getElementById("adminCode").value="";return;}
@@ -398,6 +830,29 @@ function adminLogout(){
  cancelEdit();
  refreshAdminState(auth.currentUser);
  renderRows();
+}
+
+function downloadCSV(){
+  const rows=[["ชื่อผู้เบิก","แผนก","รายการ","จำนวน","ราคา/หน่วย","รวมรายการ","รวมคำขอ","สถานะ","เวลา"]];
+  Object.values(latestDocs).forEach(data=>{
+    const total=(Array.isArray(data.itemsList)?data.itemsList:[]).reduce((s,it)=>s+(Number(it.qty)||0)*(Number(it.price ?? (itemCatalog.find(c=>c.name===it.name)?.price||0))||0),0);
+    const time=data.timestamp?.toMillis?new Date(data.timestamp.toMillis()).toLocaleString("th-TH"):"-";
+    if(Array.isArray(data.itemsList)){
+      data.itemsList.forEach(it=>{
+        const unitPrice=Number(it.price ?? (itemCatalog.find(c=>c.name===it.name)?.price||0));
+        const line=(Number(it.qty)||0)*unitPrice;
+        rows.push([data.requesterName||"",data.department||"",it.name||"",it.qty||0,unitPrice,line,total,data.complete?"ครบ":"รอดำเนินการ",time]);
+      });
+    }
+  });
+  const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement("a");
+  link.href=url;
+  link.download="รายการเบิกอุปกรณ์_แยกตามแผนก.csv";
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 function setLang(l){
@@ -422,6 +877,70 @@ function setLang(l){
  document.getElementById('btn-th').classList.toggle('lang-active',l==='th');
  document.getElementById('btn-mm').classList.toggle('lang-active',l==='mm');
 }
+initFirebase();
+setLang(currentLang);
+
+document.addEventListener("DOMContentLoaded", ()=>{
+  const btn=document.getElementById("btn-add-new-item");
+  if(!btn) return;
+  btn.addEventListener("click", async ()=>{
+    if(typeof isAdmin!=="undefined" && !isAdmin){
+      alert("เฉพาะ Admin เท่านั้น");
+      return;
+    }
+    const nameEl=document.getElementById("newItemName");
+    const unitEl=document.getElementById("newItemUnit");
+    const priceEl=document.getElementById("newItemPrice");
+    const name=nameEl.value.trim();
+    const unit=unitEl.value.trim();
+    const price=Number(priceEl.value);
+
+    if(!name || !unit || priceEl.value==="" || !Number.isFinite(price) || price<0){
+      alert("กรุณากรอกชื่อรายการ หน่วย และราคาให้ครบ");
+      return;
+    }
+
+    try{
+      if(!firebaseReady || !db){
+        alert("ฐานข้อมูลยังไม่พร้อม กรุณารอสักครู่แล้วลองใหม่");
+        return;
+      }
+      const catalog=(typeof itemCatalog!=="undefined" && itemCatalog) ? itemCatalog : {};
+      const exists=Object.values(catalog).some(x=>String(x.name||"").trim().toLowerCase()===name.toLowerCase());
+      if(exists){
+        alert("มีรายการชื่อนี้อยู่แล้ว");
+        return;
+      }
+
+      const data={
+        name:name,
+        unit:unit,
+        price:price,
+        active:true,
+        createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+      };
+      const ref=await db.collection("supply-items").add(data);
+
+      if(typeof itemCatalog!=="undefined"){
+        itemCatalog.push({name,unit,price});
+      }
+      nameEl.value="";
+      unitEl.value="";
+      priceEl.value="";
+
+      if(typeof renderCatalogManager==="function") renderCatalogManager();
+      renderItemDropdown(document.getElementById("itemSearchInput").value);
+
+      document.getElementById("catalogStatus").innerText="เพิ่มรายการเรียบร้อย";
+      if(typeof loadCatalogFromFirebase==="function") await loadCatalogFromFirebase(false);
+      alert("เพิ่มรายการเรียบร้อย");
+    }catch(err){
+      console.error(err);
+      alert("เพิ่มรายการไม่สำเร็จ: "+(err.message||err));
+    }
+  });
+});
 </script>
 </body>
 </html>
