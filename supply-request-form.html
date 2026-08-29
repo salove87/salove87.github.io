@@ -491,7 +491,7 @@ button{touch-action:manipulation}
 
 <div class="flex justify-between gap-2 mb-4 flex-wrap">
   <div class="flex gap-2">
-    <button onclick="downloadCSV()" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm" id="btn-download">ดาวน์โหลด</button>
+    <button onclick="downloadCSV()" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm" id="btn-download">📊 ดาวน์โหลดรายงาน</button>
     <button onclick="openTrash()" class="hidden bg-orange-500 text-white px-4 py-2 rounded-lg text-sm" id="btn-trash">🗑️ ถังขยะ</button>
     <button onclick="openItemManager()" class="hidden bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm" id="btn-item-manager">⚙️ จัดการรายการ/ราคา</button>
   </div>
@@ -1221,28 +1221,122 @@ function adminLogout(){
 }
 
 function downloadCSV(){
-  const rows=[["ชื่อผู้เบิก","แผนก","รายการ","จำนวน","ราคา/หน่วย","รวมรายการ","รวมคำขอ","สถานะ","เวลา"]];
+  // รายงานจะมี 3 ส่วน:
+  // 1) รายละเอียดการเบิก
+  // 2) สรุปยอดค่าใช้จ่ายรายแผนก
+  // 3) สรุปยอดค่าใช้จ่ายแยกแผนก/เดือน
+  const details=[
+    ["รายละเอียดรายการเบิก"],
+    ["ชื่อผู้เบิก","แผนก","รายการ","จำนวน","ราคา/หน่วย (บาท)","รวมรายการ (บาท)","สถานะ","วันที่","เวลา"]
+  ];
+
+  const deptTotals={};
+  const monthDeptTotals={};
+  const monthTotals={};
+  const allDepts=new Set();
+
+  const getDate=(data)=>{
+    if(data.timestamp?.toMillis) return new Date(data.timestamp.toMillis());
+    if(data.timestamp?.seconds) return new Date(Number(data.timestamp.seconds)*1000);
+    if(data.createdAt?.toMillis) return new Date(data.createdAt.toMillis());
+    if(data.createdAt?.seconds) return new Date(Number(data.createdAt.seconds)*1000);
+    return null;
+  };
+
+  const getPrice=(it)=>{
+    const snapshotPrice=Number(it.price);
+    if(Number.isFinite(snapshotPrice) && snapshotPrice>0) return snapshotPrice;
+    const catalog=itemCatalog.find(c=>c.name===it.name);
+    return Number(catalog?.price)||0;
+  };
+
   Object.values(latestDocs).forEach(data=>{
-    const total=(Array.isArray(data.itemsList)?data.itemsList:[]).reduce((s,it)=>s+(Number(it.qty)||0)*(Number(it.price ?? (itemCatalog.find(c=>c.name===it.name)?.price||0))||0),0);
-    const time=data.timestamp?.toMillis?new Date(data.timestamp.toMillis()).toLocaleString("th-TH"):"-";
-    if(Array.isArray(data.itemsList)){
-      data.itemsList.forEach(it=>{
-        const unitPrice=Number(it.price ?? (itemCatalog.find(c=>c.name===it.name)?.price||0));
-        const line=(Number(it.qty)||0)*unitPrice;
-        rows.push([data.requesterName||"",data.department||"",it.name||"",it.qty||0,unitPrice,line,total,data.complete?"ครบ":"รอดำเนินการ",time]);
-      });
-    }
+    const items=Array.isArray(data.itemsList)?data.itemsList:[];
+    const dept=(data.department||"ไม่ระบุแผนก").trim()||"ไม่ระบุแผนก";
+    const d=getDate(data);
+    const dateText=d?d.toLocaleDateString("th-TH"):"-";
+    const timeText=d?d.toLocaleTimeString("th-TH"):"-";
+    const monthKey=d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`:"ไม่ระบุวันที่";
+    const monthText=d?d.toLocaleDateString("th-TH",{month:"long",year:"numeric"}):"ไม่ระบุวันที่";
+
+    allDepts.add(dept);
+    if(!deptTotals[dept]) deptTotals[dept]=0;
+    if(!monthDeptTotals[monthKey]) monthDeptTotals[monthKey]={label:monthText,total:0,depts:{}};
+    if(!monthDeptTotals[monthKey].depts[dept]) monthDeptTotals[monthKey].depts[dept]=0;
+    if(!monthTotals[monthKey]) monthTotals[monthKey]=0;
+
+    items.forEach(it=>{
+      const qty=Number(it.qty)||0;
+      const unitPrice=getPrice(it);
+      const total=qty*unitPrice;
+
+      deptTotals[dept]+=total;
+      monthDeptTotals[monthKey].depts[dept]+=total;
+      monthDeptTotals[monthKey].total+=total;
+      monthTotals[monthKey]+=total;
+
+      details.push([
+        data.requesterName||"",
+        dept,
+        it.name||"",
+        qty,
+        unitPrice.toFixed(2),
+        total.toFixed(2),
+        data.complete?"ครบ":"รอดำเนินการ",
+        dateText,
+        timeText
+      ]);
+    });
   });
-  const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\n");
+
+  const money=n=>Number(n||0).toFixed(2);
+  const summary=[
+    [],
+    ["สรุปยอดค่าใช้จ่ายแยกแผนก"],
+    ["แผนก","ยอดค่าใช้จ่ายรวม (บาท)"]
+  ];
+
+  Object.keys(deptTotals).sort((a,b)=>a.localeCompare(b,"th")).forEach(dept=>{
+    summary.push([dept,money(deptTotals[dept])]);
+  });
+
+  const grandTotal=Object.values(deptTotals).reduce((s,n)=>s+n,0);
+  summary.push(["รวมทั้งหมด",money(grandTotal)]);
+
+  const monthly=[
+    [],
+    ["สรุปยอดค่าใช้จ่ายแยกแผนก / เดือน"],
+    ["เดือน",...Array.from(allDepts).sort((a,b)=>a.localeCompare(b,"th")),"รวมทั้งเดือน"]
+  ];
+
+  Object.keys(monthDeptTotals).sort().forEach(monthKey=>{
+    const m=monthDeptTotals[monthKey];
+    const depts=Array.from(allDepts).sort((a,b)=>a.localeCompare(b,"th"));
+    let rowTotal=0;
+    const row=[m.label];
+    depts.forEach(dept=>{
+      const value=m.depts[dept]||0;
+      row.push(money(value));
+      rowTotal+=value;
+    });
+    row.push(money(rowTotal));
+    monthly.push(row);
+  });
+
+  monthly.push(["รวมทั้งหมด",...Array.from(allDepts).sort((a,b)=>a.localeCompare(b,"th")).map(dept=>money(deptTotals[dept]||0)),money(grandTotal)]);
+
+  const rows=[...details,...summary,...monthly];
+  const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\r\n");
   const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
   const url=URL.createObjectURL(blob);
   const link=document.createElement("a");
   link.href=url;
-  link.download="รายการเบิกอุปกรณ์_แยกตามแผนก.csv";
+  link.download=`รายงานค่าใช้จ่าย_แยกแผนก_รายเดือน_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(link);
   link.click();
-  URL.revokeObjectURL(url);
+  link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
-
 function setLang(l){
  currentLang=l;const t=lang[l];
  document.getElementById('title').innerText=t.title;
