@@ -27,6 +27,312 @@ body{font-family:'Noto Sans Thai','Noto Sans Myanmar',sans-serif;background:#f1f
 .item-option-name{font-weight:500}
 .item-option-meta{font-size:.75rem;color:#64748b;margin-top:2px}
 </style>
+
+<style id="responsive-ui-v1">
+/* ===== Responsive UI: Desktop + Mobile ===== */
+:root{
+  --ui-primary:#4f46e5;
+  --ui-primary-dark:#4338ca;
+  --ui-bg:#f5f7fb;
+  --ui-card:#ffffff;
+  --ui-border:#e5e7eb;
+  --ui-text:#172033;
+  --ui-muted:#64748b;
+}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  background:var(--ui-bg);
+  color:var(--ui-text);
+  font-family:Inter,"Noto Sans Thai","Segoe UI",Tahoma,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select{font:inherit}
+button{touch-action:manipulation}
+.card{
+  background:var(--ui-card);
+  border:1px solid var(--ui-border);
+  border-radius:20px;
+  box-shadow:0 8px 30px rgba(15,23,42,.06);
+}
+#request-form input,#request-form select{
+  min-height:46px;
+  box-sizing:border-box;
+  border-color:#dbe1ea;
+  transition:.18s ease;
+}
+#request-form input:focus,#request-form select:focus,
+#itemManagerModal input:focus,#itemManagerModal select:focus{
+  outline:none;
+  border-color:#818cf8;
+  box-shadow:0 0 0 3px rgba(99,102,241,.12);
+}
+#itemSearchInput{min-width:0}
+#itemDropdown{
+  max-height:340px;
+  border-radius:14px;
+  overflow:auto;
+  overscroll-behavior:contain;
+}
+#itemDropdown > *{
+  min-height:44px;
+  display:flex;
+  align-items:center;
+}
+#itemsChips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+#itemsChips > *{max-width:100%}
+
+/* Action toolbar */
+#btn-download,#btn-trash,#btn-item-manager,#btn-deleteall{
+  min-height:44px;
+  font-weight:600;
+  transition:transform .15s ease,box-shadow .15s ease;
+}
+#btn-download:hover,#btn-trash:hover,#btn-item-manager:hover,#btn-deleteall:hover{
+  transform:translateY(-1px);
+  box-shadow:0 5px 14px rgba(15,23,42,.12);
+}
+
+/* Request table - desktop */
+#tableBody tr{border-bottom:1px solid #edf0f4}
+#tableBody td{vertical-align:top}
+#tableBody td:last-child{white-space:nowrap}
+#tableBody .action-delete,
+#tableBody .action-edit,
+#tableBody button{
+  min-width:38px;
+  min-height:38px;
+}
+#catalogBody tr{border-bottom:1px solid #edf0f4}
+#catalogBody input{min-height:42px}
+
+/* Admin modal / catalog */
+#itemManagerModal > div{
+  scrollbar-width:thin;
+}
+#itemManagerModal table{min-width:680px}
+
+/* Better mobile controls */
+@media (max-width: 767px){
+  body{padding:12px !important}
+  body > .max-w-6xl{width:100%;max-width:none}
+
+  /* Header */
+  body > .max-w-6xl > .flex.justify-between.items-center.mb-6{
+    align-items:flex-start;
+    margin-bottom:14px !important;
+  }
+  #title{
+    font-size:1.25rem !important;
+    line-height:1.35;
+  }
+  #authStatus{display:none}
+  body > .max-w-6xl > .flex.justify-between.items-center.mb-6 > .flex{
+    flex-wrap:wrap;
+    justify-content:flex-end;
+    gap:6px !important;
+  }
+  #btn-admin,#btn-logout,#btn-th,#btn-mm{
+    min-height:40px;
+    padding:8px 10px !important;
+    font-size:12px !important;
+  }
+
+  .card{
+    border-radius:16px;
+    box-shadow:0 5px 20px rgba(15,23,42,.05);
+  }
+  .card.p-6{padding:16px !important}
+
+  /* Main form becomes single-column and touch friendly */
+  #request-form{gap:14px}
+  #request-form .flex.gap-2{
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) 78px;
+    gap:8px !important;
+  }
+  #request-form .flex.gap-2 > #itemPicker{grid-column:1 / -1}
+  #request-form .flex.gap-2 > #itemQtyInput{width:auto !important}
+  #request-form .flex.gap-2 > #itemUnitInput{width:auto !important}
+  #request-form .flex.gap-2 > #btn-add-item{
+    min-height:46px;
+    grid-column:1 / -1;
+  }
+  #itemSearchInput,#department,#requesterName{
+    font-size:16px !important; /* prevents iOS zoom */
+  }
+  #btn-submit{
+    min-height:50px;
+    font-size:16px;
+    font-weight:700;
+  }
+
+  /* Toolbar */
+  .max-w-6xl > .flex.justify-between.gap-2.mb-4{
+    display:grid !important;
+    grid-template-columns:1fr;
+    gap:8px !important;
+  }
+  .max-w-6xl > .flex.justify-between.gap-2.mb-4 > .flex{
+    display:grid !important;
+    grid-template-columns:1fr 1fr;
+    gap:8px !important;
+  }
+  #btn-item-manager{grid-column:1 / -1}
+  #btn-deleteall{width:100%}
+  #btn-download,#btn-trash,#btn-item-manager,#btn-deleteall{
+    min-height:46px;
+    width:100%;
+  }
+
+  /* Request list becomes card rows; no horizontal scrolling needed */
+  .card .overflow-x-auto{overflow:visible !important}
+  #tableBody tr{
+    display:block;
+    margin:0 0 10px;
+    padding:12px;
+    border:1px solid var(--ui-border);
+    border-radius:14px;
+    background:#fff;
+    box-shadow:0 3px 12px rgba(15,23,42,.04);
+  }
+  #tableBody tr:last-child{margin-bottom:0}
+  #tableBody td{
+    display:grid;
+    grid-template-columns:76px minmax(0,1fr);
+    gap:10px;
+    width:auto !important;
+    padding:7px 0 !important;
+    border:0 !important;
+    text-align:left !important;
+    overflow-wrap:anywhere;
+  }
+  #tableBody td::before{
+    font-size:12px;
+    font-weight:700;
+    color:#64748b;
+  }
+  #tableBody td:nth-child(1)::before{content:"ชื่อ"}
+  #tableBody td:nth-child(2)::before{content:"แผนก"}
+  #tableBody td:nth-child(3)::before{content:"รายการ"}
+  #tableBody td:nth-child(4)::before{content:"สถานะ"}
+  #tableBody td:nth-child(5)::before{content:"เวลา"}
+  #tableBody td:nth-child(6)::before{content:"จัดการ"}
+  #tableBody td:nth-child(6){
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    padding-top:10px !important;
+    margin-top:4px;
+    border-top:1px solid #eef1f5 !important;
+  }
+  #tableBody td:nth-child(6)::before{
+    display:block;
+    width:100%;
+    margin-bottom:2px;
+  }
+  #tableBody td:nth-child(6) button{
+    flex:0 0 42px;
+    min-width:42px;
+    min-height:42px;
+  }
+  #tableBody td:nth-child(3) > *{max-width:100%}
+
+  /* Catalog manager */
+  #itemManagerModal{
+    padding:8px !important;
+    align-items:flex-start !important;
+  }
+  #itemManagerModal > div{
+    width:100% !important;
+    max-width:none !important;
+    max-height:calc(100dvh - 16px) !important;
+    margin:0 !important;
+    border-radius:18px !important;
+    padding:16px !important;
+  }
+  #itemManagerModal .grid.md\\:grid-cols-4{
+    display:grid !important;
+    grid-template-columns:1fr !important;
+  }
+  #itemManagerModal table{
+    min-width:0 !important;
+    width:100% !important;
+  }
+  #itemManagerModal .overflow-x-auto{overflow-x:visible !important}
+
+  /* Catalog table becomes cards */
+  #catalogBody tr{
+    display:block;
+    margin:0 0 10px;
+    padding:10px;
+    border:1px solid var(--ui-border);
+    border-radius:14px;
+    background:#fff;
+  }
+  #catalogBody td{
+    display:grid;
+    grid-template-columns:82px minmax(0,1fr);
+    gap:8px;
+    padding:7px 4px !important;
+    border:0 !important;
+    text-align:left !important;
+  }
+  #catalogBody td::before{
+    font-size:12px;
+    font-weight:700;
+    color:#64748b;
+  }
+  #catalogBody td:nth-child(1)::before{content:"รายการ"}
+  #catalogBody td:nth-child(2)::before{content:"หน่วย"}
+  #catalogBody td:nth-child(3)::before{content:"ราคา/หน่วย"}
+  #catalogBody td:nth-child(4)::before{content:"จัดการ"}
+  #catalogBody td:nth-child(3) input{text-align:left !important}
+  #catalogBody td:nth-child(4){
+    display:flex;
+    gap:8px;
+    border-top:1px solid #eef1f5 !important;
+    margin-top:3px;
+  }
+
+  /* Admin login */
+  #adminModal > div{
+    width:calc(100vw - 24px) !important;
+    padding:20px !important;
+    border-radius:18px !important;
+  }
+
+  /* Improve empty/loading/error states */
+  #errorBanner{font-size:13px}
+}
+
+/* Very small phones */
+@media (max-width: 390px){
+  body{padding:8px !important}
+  #title{font-size:1.1rem !important}
+  #btn-admin,#btn-logout,#btn-th,#btn-mm{font-size:11px !important}
+  #tableBody td{grid-template-columns:68px minmax(0,1fr)}
+  #tableBody td:nth-child(6) button{flex-basis:40px;min-width:40px}
+}
+
+/* Tablet */
+@media (min-width:768px) and (max-width:1024px){
+  body{padding:18px !important}
+  .max-w-6xl{max-width:100% !important}
+  #request-form .flex.gap-2{flex-wrap:wrap}
+  #itemPicker{min-width:240px}
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto !important;transition:none !important}
+}
+</style>
+
 </head>
 <body class="p-6">
 <div class="max-w-6xl mx-auto">
