@@ -591,7 +591,17 @@ readonly>
   </div>
 
   <!-- PASSWORD MODAL -->
-  <div id="passwordModal" class="modal">
+  <div id="editLeaveModal" class="fixed inset-0 bg-black/50 z-[9999]" style="display:none;">
+  <div class="bg-white rounded-2xl shadow-2xl w-[min(92vw,520px)] mx-auto mt-[8vh] p-5">
+    <div class="flex items-center justify-between mb-3"><h3 class="text-lg font-extrabold">✏️ แก้ไขวันที่ลา</h3><button type="button" id="closeEditLeave" class="text-2xl leading-none">×</button></div>
+    <div id="editLeaveDetails" class="text-sm bg-slate-50 rounded-xl p-3 mb-4"></div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3"><label class="text-sm font-semibold">วันที่เริ่มลา<input id="editStartDate" type="date" class="mt-1 w-full border rounded-xl px-3 py-2"></label><label class="text-sm font-semibold">วันที่สิ้นสุดลา<input id="editEndDate" type="date" class="mt-1 w-full border rounded-xl px-3 py-2"></label></div>
+    <div id="editLeaveError" class="hidden mt-3 rounded-xl bg-red-50 text-red-700 border border-red-200 p-3 text-sm font-semibold"></div>
+    <div class="flex justify-end gap-2 mt-5"><button type="button" id="cancelEditLeave" class="px-4 py-2 rounded-xl border">ยกเลิก</button><button type="button" id="saveEditLeave" class="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold">บันทึกการแก้ไข</button></div>
+  </div>
+</div>
+
+<div id="passwordModal" class="modal">
     <div class="modal-content sheen">
       <h3 class="font-display text-lg mb-3 pt-1" style="font-weight:600;color:var(--ink);">🔒 ใส่รหัสผ่านฝ่ายบุคคลเพื่อยืนยันการดำเนินการ</h3>
       <div id="deleteTargetDetails" class="p-3 rounded-xl mb-3 hidden" style="background:#FFF7ED;border:1px solid #FED7AA;color:#7C2D12;"></div>
@@ -608,7 +618,7 @@ readonly>
   <!-- CANCEL / RESTORE VACATION SAFETY MODAL -->
   <div id="vacationActionModal" class="modal">
     <div class="modal-content sheen" style="max-width:520px;">
-      <h3 id="vacationActionTitle" class="font-display text-lg mb-3 pt-1" style="font-weight:700;color:var(--ink);">⚠️ ยืนยันการยกเลิกลาพักร้อน</h3>
+      <h3 id="vacationActionTitle" class="font-display text-lg mb-3 pt-1" style="font-weight:700;color:var(--ink);">⚠️ ยืนยันการยกเลิกใบลา</h3>
       <div id="vacationActionDetails" class="p-4 rounded-xl mb-4" style="background:#FFF7ED;border:1px solid #FED7AA;color:#7C2D12;"></div>
       <div class="mb-3">
         <label class="text-sm font-semibold" style="color:var(--ink);">พิมพ์รหัสพนักงานเพื่อยืนยัน</label>
@@ -1267,39 +1277,39 @@ autofillNameFromEmpId(savedId);
       return map[type] || 'background:#EEF0F3;color:#3B4250;';
     }
 
-    async function getVacationCompletionId(empId, range){
+    function getVacationCompletionId(empId, range){
+      // ใช้ cache ที่โหลดมาแล้ว แทนการยิง Firestore ซ้ำทีละพนักงาน
       const canonicalId = normalizeEmployeeId(empId);
       const key = `${canonicalId}|${range?.year || ''}`;
       if (vacationCompletionCache.has(key)) return vacationCompletionCache.get(key);
-      try {
-        const history = await driver.getEmployeeHistory(canonicalId);
-        const vacationRows = history
-          .filter(r => normalizeHistoryLeaveType(r.leaveType) === 'ลาพักร้อน' && r.leaveStatus !== 'cancelled')
-          .map(r => ({ row: r, days: leaveDaysWithinRange(r, range) }))
-          .filter(x => x.days > 0)
-          .sort((a,b) => {
-            const ds = String(a.row.startDate || '').localeCompare(String(b.row.startDate || ''));
-            if (ds !== 0) return ds;
-            const de = String(a.row.endDate || '').localeCompare(String(b.row.endDate || ''));
-            if (de !== 0) return de;
-            return String(a.row.createdAt || '').localeCompare(String(b.row.createdAt || ''));
-          });
-        let used = 0;
-        let completionId = null;
-        for (const item of vacationRows) {
-          const before = used;
-          used += item.days;
-          if (!completionId && before < MAX_VACATION_DAYS && used >= MAX_VACATION_DAYS) {
-            completionId = item.row.id || null;
-          }
+
+      const vacationRows = cache
+        .filter(r =>
+          normalizeEmployeeId(r.empId) === canonicalId &&
+          normalizeHistoryLeaveType(r.leaveType) === 'ลาพักร้อน' &&
+          r.leaveStatus !== 'cancelled'
+        )
+        .map(r => ({ row: r, days: leaveDaysWithinRange(r, range) }))
+        .filter(x => x.days > 0)
+        .sort((a,b) => {
+          const ds = String(a.row.startDate || '').localeCompare(String(b.row.startDate || ''));
+          if (ds !== 0) return ds;
+          const de = String(a.row.endDate || '').localeCompare(String(b.row.endDate || ''));
+          if (de !== 0) return de;
+          return String(a.row.createdAt || '').localeCompare(String(b.row.createdAt || ''));
+        });
+
+      let used = 0;
+      let completionId = null;
+      for (const item of vacationRows) {
+        const before = used;
+        used += item.days;
+        if (!completionId && before < MAX_VACATION_DAYS && used >= MAX_VACATION_DAYS) {
+          completionId = item.row.id || null;
         }
-        vacationCompletionCache.set(key, completionId);
-        return completionId;
-      } catch (err) {
-        console.warn('ตรวจสิทธิ์พักร้อนไม่สำเร็จ:', err);
-        vacationCompletionCache.set(key, null);
-        return null;
       }
+      vacationCompletionCache.set(key, completionId);
+      return completionId;
     }
 
     async function renderTable(){
@@ -1314,10 +1324,11 @@ autofillNameFromEmpId(savedId);
         }
       });
       for (const item of vacationEmployees.values()) {
-        const completionId = await getVacationCompletionId(item.empId, item.range);
+        const completionId = getVacationCompletionId(item.empId, item.range);
         if (completionId) vacationCompletionByRowId.set(completionId, true);
       }
 
+      const tableFragment = document.createDocumentFragment();
       cache.forEach(row => {
         const tr = document.createElement('tr');
 
@@ -1405,15 +1416,16 @@ autofillNameFromEmpId(savedId);
 
         const btnEdit = document.createElement('button'); btnEdit.className='icon-btn cursor-pointer'; btnEdit.style.cssText='background:var(--accent-soft);color:var(--accent-deep);margin-right:6px;'; btnEdit.textContent='✏️'; btnEdit.title='แก้ไข'; btnEdit.dataset.action='edit'; btnEdit.dataset.id=row.id;
         tdActions.appendChild(btnEdit);
-        const btnManage = document.createElement('button'); btnManage.className='icon-btn cursor-pointer'; btnManage.style.cssText='background:var(--danger-soft);color:var(--danger);'; btnManage.textContent='🗑️'; btnManage.title='จัดการใบลา'; btnManage.dataset.action='manage'; btnManage.dataset.id=row.id;
+        const btnManage = document.createElement('button'); btnManage.className='icon-btn cursor-pointer'; btnManage.style.cssText='background:var(--danger-soft);color:var(--danger);'; btnManage.textContent='🗑️'; btnManage.title='ยกเลิก/คืนสถานะใบลา'; btnManage.dataset.action='manage'; btnManage.dataset.id=row.id;
         tdActions.appendChild(btnManage);
 
         tr.appendChild(tdImg);
         cols2.forEach(x => { const td=document.createElement('td'); td.className=`p-3 ${x.c}`; td.textContent=x.t; tr.appendChild(td); });
         tr.appendChild(tdActions);
 
-        leaveTable.appendChild(tr);
+        tableFragment.appendChild(tr);
       });
+      leaveTable.appendChild(tableFragment);
     }
 
     const leaveActionMenuModal = document.getElementById('leaveActionMenuModal');
@@ -1423,13 +1435,12 @@ autofillNameFromEmpId(savedId);
     const deleteTargetDetails = document.getElementById('deleteTargetDetails');
     const deleteTargetLabel = document.getElementById('deleteTargetLabel');
     const deleteTargetEmpId = document.getElementById('deleteTargetEmpId');
-    let pendingDeleteRow = null;
+    let pendingDeleteRow = null; // เก็บไว้เพื่อความเข้ากันได้กับโค้ดเดิม แต่ไม่ใช้ลบถาวร
 
     function closeLeaveActionMenuFn(){ leaveActionMenuModal.style.display='none'; }
     closeLeaveActionMenu.onclick = closeLeaveActionMenuFn;
 
     function openLeaveActionMenu(row){
-      const isVacation = normalizeHistoryLeaveType(row.leaveType) === 'ลาพักร้อน';
       const cancelled = row.leaveStatus === 'cancelled';
       leaveActionDetails.innerHTML = `
         <div style="font-weight:800;font-size:16px;margin-bottom:8px;">${escapeHtml(row.empName || '-')}</div>
@@ -1438,30 +1449,14 @@ autofillNameFromEmpId(savedId);
         <div>วันที่: <strong>${escapeHtml(fmtDateDMY(row.startDate))}${row.endDate && row.endDate !== row.startDate ? ' - ' + escapeHtml(fmtDateDMY(row.endDate)) : ''}</strong></div>
         <div>จำนวน: <strong>${escapeHtml(row.leaveDays || '-')} วัน</strong></div>
         ${cancelled ? '<div style="margin-top:8px;color:#DC2626;font-weight:800;">🔴 สถานะ: ยกเลิก</div>' : ''}`;
-      let html='';
-      if(isVacation){
-        html += cancelled
-          ? '<button type="button" id="menuRestoreVacation" class="w-full px-4 py-3 rounded-xl text-left cursor-pointer" style="background:#F0FDF4;color:#166534;font-weight:700;border:1px solid #BBF7D0;">↪️ คืนสถานะลาพักร้อน</button>'
-          : '<button type="button" id="menuCancelVacation" class="w-full px-4 py-3 rounded-xl text-left cursor-pointer" style="background:#FEF2F2;color:#B91C1C;font-weight:700;border:1px solid #FECACA;">↩️ ยกเลิกลาพักร้อน</button>';
-      }
-      html += '<button type="button" id="menuDeleteLeave" class="w-full px-4 py-3 rounded-xl text-left cursor-pointer" style="background:#FEF2F2;color:#B91C1C;font-weight:700;border:1px solid #FECACA;">🗑️ ลบรายการถาวร</button>';
-      leaveActionButtons.innerHTML=html;
+      const actionLabel = cancelled ? '↪️ คืนสถานะใบลา' : '↩️ ยกเลิกใบลา';
+      const actionStyle = cancelled
+        ? 'background:#F0FDF4;color:#166534;font-weight:700;border:1px solid #BBF7D0;'
+        : 'background:#FEF2F2;color:#B91C1C;font-weight:700;border:1px solid #FECACA;';
+      leaveActionButtons.innerHTML = `<button type="button" id="menuEditLeaveDate" class="w-full px-4 py-3 rounded-xl text-left cursor-pointer" style="background:#EFF6FF;color:#1D4ED8;font-weight:700;border:1px solid #BFDBFE;">✏️ แก้ไขวันที่ลา</button><button type="button" id="menuToggleLeaveStatus" class="w-full px-4 py-3 rounded-xl text-left cursor-pointer mt-2" style="${actionStyle}">${actionLabel}</button>`;
       leaveActionMenuModal.style.display='block';
-      document.getElementById('menuCancelVacation')?.addEventListener('click',()=>{ closeLeaveActionMenuFn(); openVacationActionModal(row,'cancel'); });
-      document.getElementById('menuRestoreVacation')?.addEventListener('click',()=>{ closeLeaveActionMenuFn(); openVacationActionModal(row,'restore'); });
-      document.getElementById('menuDeleteLeave').addEventListener('click',()=>{
-        closeLeaveActionMenuFn();
-        pendingDeleteRow=row;
-        deleteTargetDetails.classList.remove('hidden');
-        deleteTargetLabel.classList.remove('hidden');
-        deleteTargetEmpId.classList.remove('hidden');
-        deleteTargetEmpId.value='';
-        deleteTargetDetails.innerHTML=`<strong>⚠️ ตรวจสอบก่อนลบ</strong><br>${escapeHtml(row.empName||'-')} · รหัส ${escapeHtml(row.empId||'-')}<br>${escapeHtml(normalizeHistoryLeaveType(row.leaveType)||row.leaveType||'-')} · ${escapeHtml(fmtDateDMY(row.startDate))} · ${escapeHtml(row.leaveDays||'-')} วัน`;
-        hrPasswordInput.value='';
-        confirmDelete.textContent='ลบถาวร';
-        passwordModal.style.display='block';
-        setTimeout(()=>deleteTargetEmpId.focus(),50);
-      });
+      document.getElementById('menuEditLeaveDate').addEventListener('click',()=>{ closeLeaveActionMenuFn(); openEditLeaveDateModal(row); });
+      document.getElementById('menuToggleLeaveStatus').addEventListener('click',()=>{ closeLeaveActionMenuFn(); openVacationActionModal(row, cancelled ? 'restore' : 'cancel'); });
     }
 
     const employeeHistoryModal = document.getElementById('employeeHistoryModal');
@@ -2112,18 +2107,32 @@ if(!ok){
       confirmVacationAction.textContent='ยืนยันยกเลิก';
     }
 
+    let pendingEditLeave = null;
+
+    function toInputDate(v){ if(!v) return ''; const d=new Date(v); return Number.isNaN(d.getTime())?'':new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+    function getSubmitDate(row){ return row.submittedAt || row.createdAt || row.requestDate || row.applyDate || row.leaveRequestDate || row.createdDate || null; }
+    function openEditLeaveDateModal(row){ pendingEditLeave=row; editLeaveError.classList.add('hidden'); editStartDate.value=toInputDate(row.startDate); editEndDate.value=toInputDate(row.endDate||row.startDate); const type=normalizeHistoryLeaveType(row.leaveType)||row.leaveType||'ใบลา'; const submit=getSubmitDate(row); editLeaveDetails.innerHTML=`<div><strong>${escapeHtml(row.empName||'-')}</strong> · รหัส ${escapeHtml(row.empId||'-')}</div><div>ประเภท: <strong>${escapeHtml(type)}</strong></div><div>วันที่ส่งใบลา: <strong>${submit?escapeHtml(fmtDateDMY(submit)):'ไม่พบวันที่ส่งใบลาในข้อมูล'}</strong></div><div class="mt-1">จำนวนวันใหม่จะคำนวณอัตโนมัติ</div>`; editLeaveModal.style.display='block'; }
+    function closeEditLeaveModal(){ editLeaveModal.style.display='none'; pendingEditLeave=null; }
+    function dateOnly(v){ if(!v) return null; const d=new Date(v); return Number.isNaN(d.getTime())?null:new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
+    function countCalendarDaysInclusive(a,b){ return Math.floor((b-a)/86400000)+1; }
+    closeEditLeave?.addEventListener('click',closeEditLeaveModal); cancelEditLeave?.addEventListener('click',closeEditLeaveModal);
+    saveEditLeave?.addEventListener('click',async()=>{ if(!pendingEditLeave)return; editLeaveError.classList.add('hidden'); const start=dateOnly(editStartDate.value), end=dateOnly(editEndDate.value), submit=dateOnly(getSubmitDate(pendingEditLeave)); if(!start||!end){editLeaveError.textContent='กรุณาระบุวันที่เริ่มลาและวันที่สิ้นสุดลา';editLeaveError.classList.remove('hidden');return;} if(end<start){editLeaveError.textContent='วันที่สิ้นสุดลาต้องไม่ก่อนวันที่เริ่มลา';editLeaveError.classList.remove('hidden');return;} if(!submit){editLeaveError.textContent='แก้ไขไม่ได้ เพราะไม่พบวันที่ส่งใบลา';editLeaveError.classList.remove('hidden');return;} if(start<=submit){editLeaveError.textContent=`แก้ไขไม่ได้: วันที่เริ่มลาต้องเป็นหลังวันที่ส่งใบลา (${fmtDateDMY(submit)})`;editLeaveError.classList.remove('hidden');return;} const newDays=countCalendarDaysInclusive(start,end), oldDays=Number(pendingEditLeave.leaveDays)||0, type=normalizeHistoryLeaveType(pendingEditLeave.leaveType)||pendingEditLeave.leaveType||'ใบลา'; if(!confirm(`ยืนยันแก้ไข${type}ของ ${pendingEditLeave.empName||''}\
+จาก ${fmtDateDMY(pendingEditLeave.startDate)} - ${fmtDateDMY(pendingEditLeave.endDate||pendingEditLeave.startDate)} (${oldDays} วัน)\
+เป็น ${fmtDateDMY(editStartDate.value)} - ${fmtDateDMY(editEndDate.value)} (${newDays} วัน)`))return; try{await updateDoc(doc(db,'leave_requests',pendingEditLeave.id),{startDate:editStartDate.value,endDate:editEndDate.value,leaveDays:newDays,updatedAt:new Date().toISOString()}); closeEditLeaveModal(); showToast(`✏️ แก้ไข${type}เรียบร้อยแล้ว`,'success'); if(typeof loadLeaves==='function')await loadLeaves(); else if(typeof loadAllLeaves==='function')await loadAllLeaves(); }catch(err){console.error(err);editLeaveError.textContent=`แก้ไขไม่ได้: ${err?.code||err?.message||'เกิดข้อผิดพลาด'}`;editLeaveError.classList.remove('hidden');} });
+
     function openVacationActionModal(row, mode){
-      pendingVacationAction = { id: row.id, mode };
+      pendingVacationAction = { id: row.id, mode, leaveType: normalizeHistoryLeaveType(row.leaveType) || row.leaveType || 'ใบลา' };
       const isRestore = mode === 'restore';
       const type = normalizeHistoryLeaveType(row.leaveType) || 'ลาพักร้อน';
-      vacationActionTitle.textContent = isRestore ? '↩️ ยืนยันการคืนสถานะลาพักร้อน' : '⚠️ ยืนยันการยกเลิกลาพักร้อน';
+      const actionLeaveType = pendingVacationAction.leaveType || 'ใบลา';
+      vacationActionTitle.textContent = isRestore ? `↩️ ยืนยันการคืนสถานะ${actionLeaveType}` : `⚠️ ยืนยันการยกเลิก${actionLeaveType}`;
       vacationActionDetails.innerHTML = `
         <div style="font-weight:800;font-size:16px;margin-bottom:8px;">${escapeHtml(row.empName || '-')}</div>
         <div>รหัสพนักงาน: <strong>${escapeHtml(row.empId || '-')}</strong></div>
         <div>ประเภท: <strong>${escapeHtml(type)}</strong></div>
         <div>วันที่: <strong>${escapeHtml(fmtDateDMY(row.startDate))}${row.endDate && row.endDate !== row.startDate ? ' - ' + escapeHtml(fmtDateDMY(row.endDate)) : ''}</strong></div>
         <div>จำนวน: <strong>${escapeHtml(row.leaveDays || '-')} วัน</strong></div>
-        ${isRestore ? '<div style="margin-top:10px;color:#166534;font-weight:700;">รายการนี้จะกลับมาเป็นใบลาปกติ และยังคงประวัติการดำเนินการไว้</div>' : '<div style="margin-top:10px;color:#B91C1C;font-weight:700;">รายการจะยังไม่ถูกลบ แต่จะเปลี่ยนสถานะเป็น “ยกเลิก” และไม่สามารถยกเลิกซ้ำได้ โดยสิทธิ์พักร้อนจะคืนกลับตามวันของใบนี้</div>'}
+        ${isRestore ? '<div style="margin-top:10px;color:#166534;font-weight:700;">รายการนี้จะกลับมาเป็นใบลาปกติ และยังคงประวัติการดำเนินการไว้</div>' : '<div style="margin-top:10px;color:#B91C1C;font-weight:700;">รายการจะยังไม่ถูกลบ แต่จะเปลี่ยนสถานะเป็น “ยกเลิก” และจะไม่นำวันลานี้ไปคำนวณสิทธิ์/สถิติที่เกี่ยวข้องจนกว่าจะคืนสถานะ</div>'}
       `;
       vacationActionEmpId.placeholder = `พิมพ์ ${row.empId || 'รหัสพนักงาน'} เพื่อยืนยัน`;
       vacationActionModal.style.display='block';
@@ -2151,10 +2160,10 @@ if(!ok){
         if(!ok){ showToast('❌ รหัสผ่าน HR ไม่ถูกต้อง','error'); return; }
         if(pendingVacationAction.mode === 'cancel'){
           await driver.update(row.id, { leaveStatus:'cancelled', cancelledAt:new Date().toISOString() });
-          showToast('↩️ ยกเลิกลาพักร้อนเรียบร้อยแล้ว','success');
+          showToast(`↩️ ยกเลิก${pendingVacationAction.leaveType || 'ใบลา'}เรียบร้อยแล้ว`,'success');
         } else {
           await driver.update(row.id, { leaveStatus:'active', restoredAt:new Date().toISOString() });
-          showToast('✅ คืนสถานะลาพักร้อนเรียบร้อยแล้ว','success');
+          showToast(`✅ คืนสถานะ${pendingVacationAction.leaveType || 'ใบลา'}เรียบร้อยแล้ว`,'success');
         }
         closeVacationActionModal();
       } catch(err){
@@ -2258,29 +2267,8 @@ const { ok, errors, warnings, value } =
 
       if(action==='delete'){
         const row = cache[idx];
-        if(driver.kind !== 'firestore'){ showToast('⚠️ ระบบลบข้อมูลต้องเปิดผ่าน HTTPS และ Firebase', 'warning'); return; }
-        pendingDeleteRow=row;
-        deleteTargetDetails.classList.remove('hidden');
-        deleteTargetLabel.classList.remove('hidden');
-        deleteTargetEmpId.classList.remove('hidden');
-        deleteTargetEmpId.value='';
-        deleteTargetDetails.innerHTML=`<strong>⚠️ ตรวจสอบก่อนลบ</strong><br>${escapeHtml(row.empName||'-')} · รหัส ${escapeHtml(row.empId||'-')}<br>${escapeHtml(normalizeHistoryLeaveType(row.leaveType)||row.leaveType||'-')} · ${escapeHtml(fmtDateDMY(row.startDate))} · ${escapeHtml(row.leaveDays||'-')} วัน`;
-        passwordModal.style.display='block'; hrPasswordInput.value='';
-        confirmDelete.onclick = async ()=>{
-          try{
-            confirmDelete.disabled=true; confirmDelete.textContent='กำลังลบ...';
-            const typedId=normalizeEmployeeId(deleteTargetEmpId.value);
-            if(typedId !== normalizeEmployeeId(row.empId)){ showToast('❌ รหัสพนักงานไม่ตรงกับใบลาที่เลือก','error'); return; }
-            const password=String(hrPasswordInput.value||'').trim();
-            if(!password){ showToast('❌ กรุณากรอกรหัสผ่าน HR','error'); return; }
-            const ok=await verifyHrPassword(password);
-            if(!ok){ showToast('❌ รหัสผ่าน HR ไม่ถูกต้อง','error'); return; }
-            await driver.remove(row.id);
-            passwordModal.style.display='none'; hrPasswordInput.value=''; deleteTargetEmpId.value=''; pendingDeleteRow=null;
-            showToast('🗑️ ลบข้อมูลเรียบร้อยแล้ว','success');
-          }catch(err){ showToast('❌ ลบไม่สำเร็จ: '+(err?.message||'เกิดข้อผิดพลาดจากระบบ'),'error'); }
-          finally{ confirmDelete.disabled=false; confirmDelete.textContent='ลบถาวร'; }
-        };
+        const cancelled = row.leaveStatus === 'cancelled';
+        openVacationActionModal(row, cancelled ? 'restore' : 'cancel');
         return;
       }
     });
