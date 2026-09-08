@@ -4,6 +4,625 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบจองและตารางรถบริษัท</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family:'Inter',sans-serif; background:#f3f4f6; }
+        .alert { transition:opacity .25s ease; }
+        .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex; justify-content:center; align-items:center; z-index:50; padding:1rem; }
+        .modal-content { background:#fff; padding:1.5rem; border-radius:.9rem; width:100%; max-width:520px; max-height:92vh; overflow-y:auto; box-shadow:0 20px 30px rgba(0,0,0,.18); }
+        .hidden { display:none !important; }
+        @media (max-width:640px) {
+            .booking-actions button { width:100%; margin:.25rem 0 0 !important; }
+        }
+    </style>
+</head>
+<body class="p-3 sm:p-8">
+    <main class="max-w-4xl mx-auto bg-white shadow-xl rounded-xl p-4 sm:p-7 md:p-10 mt-3 sm:mt-8">
+        <header class="mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-800">🚗 ระบบจองรถบริษัท</h1>
+                    <p class="text-gray-500 mt-2">จองครั้งเดียว ระบบจะเริ่มสถานะตามเวลาและให้ลงเลขไมล์เมื่อคืนรถ</p>
+                </div>
+                <button id="adminButton" type="button" class="px-4 py-2 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900">เข้าสู่ระบบแอดมิน</button>
+            </div>
+            <div class="flex flex-wrap gap-2 mt-4 text-sm">
+                <span id="authStatus" class="px-3 py-1.5 rounded-full bg-gray-100 text-gray-600">กำลังเชื่อมต่อ...</span>
+                <span id="adminStatus" class="px-3 py-1.5 rounded-full bg-indigo-100 text-indigo-700 hidden">โหมดแอดมิน</span>
+            </div>
+        </header>
+
+        <section id="activeBookingPanel" class="hidden mb-7 p-5 bg-green-50 border-l-4 border-green-600 rounded-xl">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <p class="text-sm font-semibold text-green-700">รถที่คุณกำลังใช้งาน</p>
+                    <h2 id="activeCarName" class="text-xl font-bold text-gray-800 mt-1"></h2>
+                    <p id="activeBookingInfo" class="text-sm text-gray-600 mt-1"></p>
+                </div>
+                <button id="activeReturnButton" type="button" class="w-full sm:w-auto px-5 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700">คืนรถ / ลงเลขไมล์</button>
+            </div>
+        </section>
+
+        <form id="bookingForm" class="space-y-6 mb-9 pb-8 border-b border-gray-200">
+            <h2 class="text-xl sm:text-2xl font-bold text-indigo-700">จองรถ</h2>
+            <div class="bg-indigo-50 p-4 sm:p-6 rounded-lg border-l-4 border-indigo-600">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label for="startTime" class="block text-sm font-medium text-gray-700 mb-1">วันที่และเวลาเริ่มใช้รถ *</label>
+                        <input type="datetime-local" id="startTime" required class="w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label for="endTime" class="block text-sm font-medium text-gray-700 mb-1">วันที่และเวลาคืนรถ *</label>
+                        <input type="datetime-local" id="endTime" required class="w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label for="bookerName" class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้จอง *</label>
+                        <input type="text" id="bookerName" required maxlength="120" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="ชื่อ-นามสกุล">
+                    </div>
+                    <div>
+                        <label for="bookerDepartment" class="block text-sm font-medium text-gray-700 mb-1">แผนกผู้จอง *</label>
+                        <input type="text" id="bookerDepartment" required maxlength="120" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="แผนก/ฝ่าย">
+                    </div>
+                </div>
+                <div class="mt-5">
+                    <label for="purpose" class="block text-sm font-medium text-gray-700 mb-1">สถานที่หรือจุดประสงค์ *</label>
+                    <textarea id="purpose" rows="2" required maxlength="500" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="เช่น ไปประชุมลูกค้าที่บางนา"></textarea>
+                </div>
+            </div>
+
+            <fieldset class="bg-yellow-50 p-4 sm:p-6 rounded-lg border-l-4 border-yellow-500">
+                <legend class="text-lg font-semibold text-yellow-800 mb-3">เลือกรถ</legend>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <label class="flex items-center p-4 bg-white border border-gray-300 rounded-lg cursor-pointer">
+                        <input type="radio" name="carType" value="almera" required class="text-indigo-600">
+                        <span class="ml-3 font-bold text-gray-700">Nissan Almera</span>
+                    </label>
+                    <label class="flex items-center p-4 bg-white border border-gray-300 rounded-lg cursor-pointer">
+                        <input type="radio" name="carType" value="ev" class="text-indigo-600">
+                        <span class="ml-3 font-bold text-gray-700">รถ EV (ไฟฟ้า)</span>
+                    </label>
+                </div>
+            </fieldset>
+
+            <div id="alertMessage" class="alert p-4 rounded hidden" role="alert">
+                <p id="alertTitle" class="font-bold"></p>
+                <p id="alertText" class="mt-1"></p>
+            </div>
+
+            <button type="submit" id="submitButton" class="w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow hover:bg-indigo-700">ยืนยันการจอง</button>
+        </form>
+
+        <section>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-800">ตารางการจองรถรวม</h2>
+                <p class="text-xs text-gray-500">สถานะจะเปลี่ยนอัตโนมัติตามเวลาจอง</p>
+            </div>
+            <div id="companyBookingsList" class="space-y-4">
+                <p id="publicLoadingIndicator" class="text-gray-500 text-center p-4 bg-gray-50 rounded-lg">กำลังโหลดรายการจอง...</p>
+            </div>
+        </section>
+    </main>
+
+    <div id="editModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+        <div class="modal-content">
+            <h3 id="editTitle" class="text-xl font-bold text-gray-800 mb-4">แก้ไขรายการจอง</h3>
+            <form id="editBookingForm" class="space-y-4">
+                <input type="hidden" id="editBookingId">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label for="editStartTime" class="block text-sm mb-1">เริ่มใช้รถ</label><input type="datetime-local" id="editStartTime" required class="w-full p-2 border rounded-lg"></div>
+                    <div><label for="editEndTime" class="block text-sm mb-1">คืนรถ</label><input type="datetime-local" id="editEndTime" required class="w-full p-2 border rounded-lg"></div>
+                </div>
+                <div><label for="editPurpose" class="block text-sm mb-1">สถานที่หรือจุดประสงค์</label><textarea id="editPurpose" rows="2" maxlength="500" required class="w-full p-2 border rounded-lg"></textarea></div>
+                <div class="flex justify-end gap-3"><button type="button" data-close="editModal" class="px-4 py-2 bg-gray-200 rounded-lg">ปิด</button><button type="submit" id="saveEditBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">บันทึก</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div id="returnModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="returnTitle">
+        <div class="modal-content">
+            <h3 id="returnTitle" class="text-xl font-bold text-gray-800">คืนรถและลงเลขไมล์</h3>
+            <p id="returnBookingInfo" class="text-sm text-gray-500 mt-1 mb-4"></p>
+            <div id="returnLoading" class="p-4 bg-gray-50 rounded-lg text-center text-gray-500">กำลังดึงเลขไมล์ล่าสุด...</div>
+            <form id="returnForm" class="space-y-4 hidden">
+                <input type="hidden" id="returnBookingId">
+                <div class="p-4 bg-teal-50 rounded-lg border-l-4 border-teal-600">
+                    <p class="text-sm text-teal-700">เลขไมล์เริ่มต้นจากรายการก่อนหน้า</p>
+                    <p id="startOdometerDisplay" class="text-3xl font-bold text-teal-800 mt-1"></p>
+                    <p id="previousMileageInfo" class="text-xs text-teal-700 mt-2"></p>
+                    <button id="mileageMismatchButton" type="button" class="mt-3 text-xs px-3 py-2 bg-amber-100 text-amber-800 rounded-lg">เลขไมล์ไม่ตรงกับหน้าปัด</button>
+                </div>
+                <div id="mileageMismatchWarning" class="hidden p-3 bg-amber-50 text-amber-800 rounded-lg text-sm">หยุดการบันทึกชั่วคราว กรุณาให้แอดมินตรวจสอบเลขไมล์ของผู้ใช้ก่อนหน้า</div>
+                <div>
+                    <label for="odometerIn" class="block text-sm font-semibold text-gray-700 mb-1">เลขไมล์ขาเข้า (กรอกเฉพาะช่องนี้) *</label>
+                    <input type="number" id="odometerIn" min="0" step="1" inputmode="numeric" required class="w-full p-3 text-xl border-2 border-teal-400 rounded-lg" placeholder="เช่น 3090">
+                    <p id="distancePreview" class="text-sm text-gray-500 mt-2">ระยะทาง: — กม.</p>
+                </div>
+                <div class="flex justify-end gap-3"><button type="button" data-close="returnModal" class="px-4 py-2 bg-gray-200 rounded-lg">ปิด</button><button type="submit" id="confirmReturnBtn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg">ยืนยันคืนรถ</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div id="cancelModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="cancelTitle">
+        <div class="modal-content">
+            <h3 id="cancelTitle" class="text-xl font-bold text-gray-800">ยกเลิกรายการจอง</h3>
+            <p id="cancelBookingInfo" class="text-sm text-gray-500 mt-1"></p>
+            <div id="adminReasonContainer" class="mt-4 hidden">
+                <label for="cancellationReason" class="block text-sm font-semibold text-gray-700 mb-1">เหตุผลที่แอดมินยกเลิก *</label>
+                <textarea id="cancellationReason" rows="3" maxlength="300" class="w-full p-3 border rounded-lg" placeholder="ระบุเหตุผลเพื่อเก็บในประวัติ"></textarea>
+            </div>
+            <p class="mt-4 p-3 bg-amber-50 text-amber-800 rounded-lg text-sm">รายการจะไม่ถูกลบถาวร และระบบจะเก็บผู้ยกเลิก วันเวลา และเหตุผลไว้ตรวจสอบ</p>
+            <div class="flex justify-end gap-3 mt-5"><button type="button" data-close="cancelModal" class="px-4 py-2 bg-gray-200 rounded-lg">ไม่ยกเลิก</button><button type="button" id="confirmCancelBtn" class="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg">ยืนยันยกเลิก</button></div>
+        </div>
+    </div>
+
+    <div id="adminModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
+        <div class="modal-content">
+            <h3 id="adminTitle" class="text-xl font-bold text-gray-800">เข้าสู่ระบบแอดมิน</h3>
+            <p class="text-sm text-gray-500 mt-1 mb-4">สำหรับยกเลิกรถที่กำลังใช้งานหรือเกินเวลาคืน</p>
+            <form id="adminLoginForm" class="space-y-4">
+                <div><label for="adminEmail" class="block text-sm mb-1">อีเมลแอดมิน</label><input type="email" id="adminEmail" required autocomplete="username" class="w-full p-3 border rounded-lg"></div>
+                <div><label for="adminPassword" class="block text-sm mb-1">รหัสผ่าน</label><input type="password" id="adminPassword" required autocomplete="current-password" class="w-full p-3 border rounded-lg"></div>
+                <p id="adminLoginError" class="hidden text-sm text-red-600" role="alert"></p>
+                <div class="flex justify-end gap-3"><button type="button" data-close="adminModal" class="px-4 py-2 bg-gray-200 rounded-lg">ปิด</button><button type="submit" id="adminLoginSubmit" class="px-4 py-2 bg-gray-800 text-white font-semibold rounded-lg">เข้าสู่ระบบ</button></div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, onSnapshot, serverTimestamp, addDoc, updateDoc, setDoc, doc, getDoc, getDocs, Timestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const BOOKING_FIREBASE_CONFIG = {
+            apiKey:"AIzaSyAgTPzz6xqCOVYgWUK0z8-978qKUoDvTy8",
+            authDomain:"onlinecarbooking-b623d.firebaseapp.com",
+            projectId:"onlinecarbooking-b623d",
+            storageBucket:"onlinecarbooking-b623d.firebasestorage.app",
+            messagingSenderId:"39587745476",
+            appId:"1:39587745476:web:30be6ad23ac47bc3c5c391",
+            measurementId:"G-KCPHGGCJ56"
+        };
+
+        const MILEAGE_FIREBASE_CONFIG = {
+            apiKey:"AIzaSyDKfJvn9yh-g1J5OMA9EBLEyp740b-NyH4",
+            authDomain:"vehicle-mileage-31238.firebaseapp.com",
+            projectId:"vehicle-mileage-31238",
+            storageBucket:"vehicle-mileage-31238.firebasestorage.app",
+            messagingSenderId:"968556830605",
+            appId:"1:968556830605:web:4708cecdbfc44737c267c4",
+            measurementId:"G-42QZMXH8VF"
+        };
+
+        let finalConfig = BOOKING_FIREBASE_CONFIG;
+        if(typeof __firebase_config !== 'undefined'){
+            try{
+                const runtimeConfig = JSON.parse(__firebase_config);
+                if(runtimeConfig && Object.keys(runtimeConfig).length) finalConfig = runtimeConfig;
+            }catch(error){ console.warn('ใช้ Firebase Config หลัก เนื่องจาก Runtime Config ไม่ถูกต้อง'); }
+        }
+        const appId = typeof __app_id !== 'undefined' ? __app_id : finalConfig.projectId;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const bookingPath = ['artifacts',appId,'public','data','company_bookings'];
+        const mileagePath = ['artifacts','default-app-id','public','data','vehicle_logs'];
+        const defaultOdometers = { almera:77634, ev:3045 };
+        const vehicleNames = { almera:'Nissan Almera', ev:'รถ EV (ไฟฟ้า)' };
+        const mileageVehicleNames = { almera:'Nissan Almera', ev:'EV' };
+
+        let db, auth, userId = null;
+        let adminDb, adminAuth, adminUserId = null, isAdmin = false;
+        let mileageDb, mileageAuth, mileageUserId = null, mileageReady = null;
+        let bookings = [], unsubscribeBookings = null, signingIn = false;
+        let currentReturn = null, currentCancel = null, cancelRequiresAdmin = false;
+        setLogLevel('error');
+
+        const $ = id => document.getElementById(id);
+        const escapeHTML = value => String(value ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+        const toDate = value => { if(!value) return null; if(typeof value.toDate === 'function') return value.toDate(); const date = new Date(value); return Number.isNaN(date.getTime()) ? null : date; };
+        const startDateOf = booking => toDate(booking.startAt || booking.startTime);
+        const endDateOf = booking => toDate(booking.endAt || booking.endTime);
+        const isMine = booking => !!userId && booking.userId === userId;
+        const bookingCollection = () => collection(db,...bookingPath);
+
+        function getUsageStatus(booking){
+            if(booking.status === 'cancelled') return { key:'cancelled', label:'ยกเลิกแล้ว', color:'red' };
+            if(booking.status === 'completed' || booking.returnedAt) return { key:'completed', label:'คืนรถแล้ว', color:'gray' };
+            const now = Date.now();
+            const start = startDateOf(booking)?.getTime();
+            const end = endDateOf(booking)?.getTime();
+            if(!Number.isFinite(start) || !Number.isFinite(end)) return { key:'invalid', label:'ข้อมูลเวลาไม่ถูกต้อง', color:'red' };
+            if(now < start) return { key:'upcoming', label:'รอใช้งาน', color:'blue' };
+            if(now <= end) return { key:'active', label:'กำลังใช้งาน', color:'green' };
+            return { key:'overdue', label:'เกินเวลาคืน', color:'amber' };
+        }
+
+        function formatDateTime(value){
+            const date = toDate(value);
+            if(!date) return 'ไม่ระบุ';
+            return date.toLocaleString('th-TH',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Bangkok'}) + ' น.';
+        }
+
+        function toLocalInput(value){
+            const date = toDate(value);
+            if(!date) return '';
+            const shifted = new Date(date.getTime() - date.getTimezoneOffset()*60000);
+            return shifted.toISOString().slice(0,16);
+        }
+
+        function showAlert(message,type='success'){
+            const box = $('alertMessage');
+            box.className = 'alert p-4 rounded border-l-4';
+            const themes = {
+                success:['bg-green-100','border-green-500','text-green-800','สำเร็จ'],
+                error:['bg-red-100','border-red-500','text-red-800','เกิดข้อผิดพลาด'],
+                info:['bg-blue-100','border-blue-500','text-blue-800','ข้อมูล']
+            };
+            const theme = themes[type] || themes.info;
+            box.classList.add(...theme.slice(0,3));
+            $('alertTitle').textContent = theme[3];
+            $('alertText').textContent = message;
+            box.classList.remove('hidden');
+            window.setTimeout(()=>box.classList.add('hidden'),6000);
+        }
+
+        function validateDates(startValue,endValue,allowPast=false){
+            const start = new Date(startValue);
+            const end = new Date(endValue);
+            if(Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) { showAlert('กรุณาระบุวันและเวลาให้ครบ','error'); return false; }
+            if(!allowPast && start.getTime() < Date.now()-60000) { showAlert('เวลาเริ่มใช้รถต้องเป็นเวลาปัจจุบันหรืออนาคต','error'); return false; }
+            if(end <= start) { showAlert('เวลาคืนรถต้องอยู่หลังเวลาเริ่มใช้รถ','error'); return false; }
+            return true;
+        }
+
+        const overlaps = (aStart,aEnd,bStart,bEnd) => new Date(aStart).getTime() < new Date(bEnd).getTime() && new Date(aEnd).getTime() > new Date(bStart).getTime();
+
+        function hasConflict(newStart,newEnd,carType,excludeId=null){
+            return bookings.find(booking => {
+                if(booking.id === excludeId || booking.carType !== carType) return false;
+                const status = getUsageStatus(booking).key;
+                if(['cancelled','completed','invalid'].includes(status)) return false;
+                return overlaps(newStart,newEnd,startDateOf(booking),endDateOf(booking));
+            });
+        }
+
+        function statusClass(color){
+            return {
+                blue:'bg-blue-100 text-blue-800 border-blue-500',
+                green:'bg-green-100 text-green-800 border-green-500',
+                amber:'bg-amber-100 text-amber-800 border-amber-500',
+                gray:'bg-gray-100 text-gray-700 border-gray-400',
+                red:'bg-red-100 text-red-800 border-red-500'
+            }[color] || 'bg-gray-100 text-gray-700 border-gray-400';
+        }
+
+        function renderBookings(){
+            const list = $('companyBookingsList');
+            const order = { active:0, overdue:1, upcoming:2, completed:3, cancelled:4, invalid:5 };
+            const sorted = bookings.slice().sort((a,b)=>{
+                const statusDiff = order[getUsageStatus(a).key] - order[getUsageStatus(b).key];
+                return statusDiff || (startDateOf(a)?.getTime() || 0) - (startDateOf(b)?.getTime() || 0);
+            });
+
+            const myActive = sorted.find(booking => isMine(booking) && ['active','overdue'].includes(getUsageStatus(booking).key));
+            if(myActive){
+                $('activeBookingPanel').classList.remove('hidden');
+                $('activeCarName').textContent = vehicleNames[myActive.carType] || myActive.carType;
+                $('activeBookingInfo').textContent = `${formatDateTime(myActive.startAt || myActive.startTime)} – ${formatDateTime(myActive.endAt || myActive.endTime)}`;
+                $('activeReturnButton').dataset.id = myActive.id;
+            }else{
+                $('activeBookingPanel').classList.add('hidden');
+                $('activeReturnButton').dataset.id = '';
+            }
+
+            if(!sorted.length){ list.innerHTML = '<p class="text-gray-500 text-center p-4 bg-gray-50 rounded-lg">ยังไม่มีรายการจองในระบบ</p>'; return; }
+            list.innerHTML = '';
+            sorted.forEach(booking => {
+                const status = getUsageStatus(booking);
+                const mine = isMine(booking);
+                const carName = vehicleNames[booking.carType] || booking.carType || 'ไม่ระบุรถ';
+                let actions = '';
+                if(status.key === 'upcoming' && mine){
+                    actions += `<button type="button" data-id="${escapeHTML(booking.id)}" class="edit-booking-btn px-3 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold">แก้ไข</button>`;
+                    actions += `<button type="button" data-id="${escapeHTML(booking.id)}" class="cancel-booking-btn px-3 py-2 bg-red-500 text-white rounded-lg text-xs font-semibold">ยกเลิก</button>`;
+                }
+                if(['active','overdue'].includes(status.key) && mine){
+                    actions += `<button type="button" data-id="${escapeHTML(booking.id)}" class="return-booking-btn px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold">คืนรถ / ลงเลขไมล์</button>`;
+                }
+                if(isAdmin && ['upcoming','active','overdue'].includes(status.key)){
+                    actions += `<button type="button" data-id="${escapeHTML(booking.id)}" class="admin-cancel-btn px-3 py-2 bg-gray-800 text-white rounded-lg text-xs font-semibold">แอดมินยกเลิก</button>`;
+                }
+                const distanceLine = status.key === 'completed' && Number.isFinite(Number(booking.distance)) ? `<p class="text-sm mt-2 text-gray-700"><strong>ระยะทาง:</strong> ${Number(booking.distance).toLocaleString('th-TH')} กม. · ไมล์เข้า ${Number(booking.odometerIn).toLocaleString('th-TH')}</p>` : '';
+                const cancellationLine = status.key === 'cancelled' ? `<p class="text-sm mt-2 text-red-700"><strong>เหตุผล:</strong> ${escapeHTML(booking.cancellationReason || 'ไม่ระบุ')}</p>` : '';
+                const item = document.createElement('article');
+                item.className = `p-4 border-l-4 rounded-lg shadow-sm ${statusClass(status.color)}`;
+                item.innerHTML = `<div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3"><div><div class="flex flex-wrap items-center gap-2"><h3 class="text-lg font-bold">${escapeHTML(carName)}</h3>${mine ? '<span class="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700">รายการของฉัน</span>' : ''}<span class="text-xs px-2 py-1 rounded-full bg-white/70 font-semibold">${escapeHTML(status.label)}</span></div><p class="text-sm mt-2"><strong>ผู้จอง:</strong> ${escapeHTML(booking.bookerName || '-')} · ${escapeHTML(booking.bookerDepartment || '-')}</p><p class="text-sm mt-1"><strong>สถานที่/จุดประสงค์:</strong> ${escapeHTML(booking.purpose || '-')}</p><p class="text-xs mt-2">${escapeHTML(formatDateTime(booking.startAt || booking.startTime))} ถึง ${escapeHTML(formatDateTime(booking.endAt || booking.endTime))}</p>${distanceLine}${cancellationLine}</div><div class="booking-actions flex flex-wrap justify-end gap-2">${actions}</div></div>`;
+                list.appendChild(item);
+            });
+            list.querySelectorAll('.edit-booking-btn').forEach(button=>button.addEventListener('click',()=>openEdit(button.dataset.id)));
+            list.querySelectorAll('.return-booking-btn').forEach(button=>button.addEventListener('click',()=>openReturn(button.dataset.id)));
+            list.querySelectorAll('.cancel-booking-btn').forEach(button=>button.addEventListener('click',()=>openCancel(button.dataset.id,false)));
+            list.querySelectorAll('.admin-cancel-btn').forEach(button=>button.addEventListener('click',()=>openCancel(button.dataset.id,true)));
+        }
+
+        function listenForBookings(){
+            if(unsubscribeBookings) unsubscribeBookings();
+            unsubscribeBookings = onSnapshot(query(bookingCollection()),snapshot=>{
+                bookings = snapshot.docs.map(item=>({id:item.id,...item.data()}));
+                renderBookings();
+            },error=>{
+                $('companyBookingsList').innerHTML = `<p class="p-4 bg-red-50 text-red-700 rounded-lg">โหลดรายการไม่ได้: ${escapeHTML(error.message)}</p>`;
+            });
+        }
+
+        async function refreshAdminState(user){
+            isAdmin = false;
+            adminUserId = null;
+            if(user){
+                try{
+                    const snapshot = await getDoc(doc(adminDb,'admins',user.uid));
+                    isAdmin = snapshot.exists() && snapshot.data().active === true;
+                    if(isAdmin) adminUserId = user.uid;
+                }catch(error){ console.error('Admin check failed',error); }
+            }
+            $('adminStatus').classList.toggle('hidden',!isAdmin);
+            $('adminButton').textContent = isAdmin ? 'ออกจากโหมดแอดมิน' : 'เข้าสู่ระบบแอดมิน';
+            $('adminStatus').textContent = isAdmin ? `แอดมิน: ${user.email || 'เข้าสู่ระบบแล้ว'}` : 'โหมดแอดมิน';
+            renderBookings();
+        }
+
+        async function initializeRegularAuth(){
+            if(signingIn) return;
+            signingIn = true;
+            try{
+                if(initialAuthToken) await signInWithCustomToken(auth,initialAuthToken);
+                else await signInAnonymously(auth);
+            }catch(error){ $('authStatus').textContent = 'เชื่อมต่อบัญชีผู้ใช้ไม่สำเร็จ'; console.error(error); }
+            finally{ signingIn = false; }
+        }
+
+        async function initializeMileage(){
+            try{
+                const mileageApp = initializeApp(MILEAGE_FIREBASE_CONFIG,'vehicle-mileage-integration');
+                mileageDb = getFirestore(mileageApp);
+                mileageAuth = getAuth(mileageApp);
+                const credential = await signInAnonymously(mileageAuth);
+                mileageUserId = credential.user.uid;
+            }catch(error){ console.error('Mileage database initialization failed',error); throw error; }
+        }
+
+        async function getLastMileage(carType){
+            await mileageReady;
+            const snapshot = await getDocs(collection(mileageDb,...mileagePath));
+            const vehicle = mileageVehicleNames[carType];
+            const candidates = snapshot.docs.map(item=>({id:item.id,...item.data()})).filter(item=>item.vehicle === vehicle && item.status !== 'voided' && Number.isFinite(Number(item.odometerIn)));
+            candidates.sort((a,b)=>Number(b.odometerIn)-Number(a.odometerIn));
+            const latest = candidates[0];
+            return {
+                odometer:latest ? Number(latest.odometerIn) : defaultOdometers[carType] || 0,
+                easyPass:latest && Number.isFinite(Number(latest.easyPass)) ? Number(latest.easyPass) : 0,
+                previousUser:latest?.userName || 'ค่าเริ่มต้นของระบบ',
+                previousTime:latest ? formatDateTime(latest.timestamp || latest.clientTimestamp) : 'ยังไม่มีรายการก่อนหน้า'
+            };
+        }
+
+        function openEdit(id){
+            const booking = bookings.find(item=>item.id===id);
+            if(!booking || !isMine(booking) || getUsageStatus(booking).key !== 'upcoming'){ showAlert('แก้ไขได้เฉพาะรายการของคุณที่ยังไม่ถึงเวลา','error'); return; }
+            $('editBookingId').value = id;
+            $('editStartTime').value = toLocalInput(booking.startAt || booking.startTime);
+            $('editEndTime').value = toLocalInput(booking.endAt || booking.endTime);
+            $('editPurpose').value = booking.purpose || '';
+            $('editModal').classList.remove('hidden');
+        }
+
+        async function openReturn(id){
+            const booking = bookings.find(item=>item.id===id);
+            const status = booking ? getUsageStatus(booking).key : 'invalid';
+            if(!booking || !isMine(booking) || !['active','overdue'].includes(status)){ showAlert('รายการนี้ยังคืนรถไม่ได้หรือไม่ใช่รายการของคุณ','error'); return; }
+            currentReturn = null;
+            $('returnBookingId').value = id;
+            $('returnBookingInfo').textContent = `${vehicleNames[booking.carType]} · ${booking.bookerName}`;
+            $('returnLoading').classList.remove('hidden');
+            $('returnForm').classList.add('hidden');
+            $('returnModal').classList.remove('hidden');
+            $('mileageMismatchWarning').classList.add('hidden');
+            $('odometerIn').disabled = false;
+            $('confirmReturnBtn').disabled = false;
+            $('odometerIn').value = '';
+            $('distancePreview').textContent = 'ระยะทาง: — กม.';
+            try{
+                const latestMileage = await getLastMileage(booking.carType);
+                currentReturn = { booking, ...latestMileage, mismatch:false };
+                $('startOdometerDisplay').textContent = `${latestMileage.odometer.toLocaleString('th-TH')} กม.`;
+                $('previousMileageInfo').textContent = `ผู้บันทึกก่อนหน้า: ${latestMileage.previousUser} · ${latestMileage.previousTime}`;
+                $('odometerIn').min = String(latestMileage.odometer);
+                $('odometerIn').placeholder = `ไม่น้อยกว่า ${latestMileage.odometer.toLocaleString('th-TH')}`;
+                $('returnLoading').classList.add('hidden');
+                $('returnForm').classList.remove('hidden');
+            }catch(error){
+                $('returnLoading').textContent = `ดึงเลขไมล์ล่าสุดไม่ได้: ${error.message}`;
+            }
+        }
+
+        function openCancel(id,adminMode){
+            const booking = bookings.find(item=>item.id===id);
+            if(!booking) return;
+            const status = getUsageStatus(booking).key;
+            if(adminMode && !isAdmin){ showAlert('เฉพาะแอดมินเท่านั้นที่ยกเลิกรถที่กำลังใช้งานได้','error'); return; }
+            if(!adminMode && (!isMine(booking) || status !== 'upcoming')){ showAlert('ผู้ใช้ยกเลิกได้เฉพาะรายการของตนเองก่อนถึงเวลา','error'); return; }
+            currentCancel = booking;
+            cancelRequiresAdmin = adminMode;
+            $('cancelBookingInfo').textContent = `${vehicleNames[booking.carType]} · ${booking.bookerName} · ${formatDateTime(booking.startAt || booking.startTime)}`;
+            $('adminReasonContainer').classList.toggle('hidden',!adminMode);
+            $('cancellationReason').value = '';
+            $('cancelTitle').textContent = adminMode ? 'แอดมินยกเลิกการใช้งานรถ' : 'ยกเลิกรายการจอง';
+            $('cancelModal').classList.remove('hidden');
+        }
+
+        $('bookingForm').addEventListener('submit',async event=>{
+            event.preventDefault();
+            if(!db || !userId){ showAlert('ระบบยังเชื่อมต่อไม่เสร็จ กรุณารอสักครู่','error'); return; }
+            const startTime = $('startTime').value;
+            const endTime = $('endTime').value;
+            const carType = document.querySelector('input[name="carType"]:checked')?.value;
+            if(!validateDates(startTime,endTime) || !carType) { if(!carType) showAlert('กรุณาเลือกรถ','error'); return; }
+            const conflict = hasConflict(startTime,endTime,carType);
+            if(conflict){ showAlert(`รถคันนี้ถูกจองโดย ${conflict.bookerName} ในช่วงเวลาที่เลือก กรุณาเลือกเวลาอื่น`,'error'); return; }
+            const button = $('submitButton');
+            button.disabled = true; button.textContent = 'กำลังบันทึก...';
+            try{
+                await addDoc(bookingCollection(),{
+                    startTime,endTime,startAt:Timestamp.fromDate(new Date(startTime)),endAt:Timestamp.fromDate(new Date(endTime)),
+                    carType,purpose:$('purpose').value.trim(),bookerName:$('bookerName').value.trim(),bookerDepartment:$('bookerDepartment').value.trim(),
+                    status:'booked',bookingDate:serverTimestamp(),userId
+                });
+                showAlert('จองรถสำเร็จ สถานะจะเปลี่ยนเป็นกำลังใช้งานอัตโนมัติเมื่อถึงเวลา','success');
+                event.currentTarget.reset();
+            }catch(error){ showAlert(`บันทึกการจองไม่ได้: ${error.message}`,'error'); }
+            finally{ button.disabled = false; button.textContent = 'ยืนยันการจอง'; }
+        });
+
+        $('editBookingForm').addEventListener('submit',async event=>{
+            event.preventDefault();
+            const id = $('editBookingId').value;
+            const booking = bookings.find(item=>item.id===id);
+            const startTime = $('editStartTime').value;
+            const endTime = $('editEndTime').value;
+            if(!booking || !isMine(booking) || getUsageStatus(booking).key !== 'upcoming'){ showAlert('รายการนี้แก้ไขไม่ได้แล้ว','error'); return; }
+            if(!validateDates(startTime,endTime)) return;
+            const conflict = hasConflict(startTime,endTime,booking.carType,id);
+            if(conflict){ showAlert('ช่วงเวลาใหม่ซ้ำกับรายการจองอื่น','error'); return; }
+            const button = $('saveEditBtn'); button.disabled = true;
+            try{
+                await updateDoc(doc(db,...bookingPath,id),{
+                    startTime,endTime,startAt:Timestamp.fromDate(new Date(startTime)),endAt:Timestamp.fromDate(new Date(endTime)),purpose:$('editPurpose').value.trim(),updatedAt:serverTimestamp(),updatedBy:userId
+                });
+                $('editModal').classList.add('hidden'); showAlert('แก้ไขการจองแล้ว','success');
+            }catch(error){ showAlert(`แก้ไขไม่ได้: ${error.message}`,'error'); }
+            finally{ button.disabled = false; }
+        });
+
+        $('odometerIn').addEventListener('input',()=>{
+            if(!currentReturn) return;
+            const value = Number($('odometerIn').value);
+            if(!$('odometerIn').value || !Number.isInteger(value) || value < currentReturn.odometer){
+                $('distancePreview').textContent = `เลขไมล์ต้องไม่น้อยกว่า ${currentReturn.odometer.toLocaleString('th-TH')} กม.`;
+                $('confirmReturnBtn').disabled = true;
+            }else{
+                $('distancePreview').textContent = `ระยะทาง: ${(value-currentReturn.odometer).toLocaleString('th-TH')} กม.`;
+                $('confirmReturnBtn').disabled = currentReturn.mismatch;
+            }
+        });
+
+        $('mileageMismatchButton').addEventListener('click',()=>{
+            if(!currentReturn) return;
+            currentReturn.mismatch = !currentReturn.mismatch;
+            $('mileageMismatchWarning').classList.toggle('hidden',!currentReturn.mismatch);
+            $('odometerIn').disabled = currentReturn.mismatch;
+            $('confirmReturnBtn').disabled = currentReturn.mismatch;
+            $('mileageMismatchButton').textContent = currentReturn.mismatch ? 'เลขไมล์ตรงแล้ว — กลับไปกรอก' : 'เลขไมล์ไม่ตรงกับหน้าปัด';
+        });
+
+        $('returnForm').addEventListener('submit',async event=>{
+            event.preventDefault();
+            if(!currentReturn || currentReturn.mismatch) return;
+            const odometerIn = Number($('odometerIn').value);
+            if(!Number.isInteger(odometerIn) || odometerIn < currentReturn.odometer){ showAlert('เลขไมล์ขาเข้าไม่ถูกต้อง','error'); return; }
+            const booking = currentReturn.booking;
+            const button = $('confirmReturnBtn'); button.disabled = true; button.textContent = 'กำลังบันทึก...';
+            try{
+                await mileageReady;
+                const mileageRef = doc(mileageDb,...mileagePath,booking.id);
+                const existingMileage = await getDoc(mileageRef);
+                if(!existingMileage.exists()){
+                    await setDoc(mileageRef,{
+                        vehicle:mileageVehicleNames[booking.carType],userName:booking.bookerName,department:booking.bookerDepartment,location:booking.purpose,
+                        easyPass:currentReturn.easyPass,odometerOut:currentReturn.odometer,odometerIn,distance:odometerIn-currentReturn.odometer,
+                        status:'active',bookingId:booking.id,timestamp:serverTimestamp(),clientTimestamp:new Date().toISOString(),userId:mileageUserId
+                    });
+                }
+                await updateDoc(doc(db,...bookingPath,booking.id),{
+                    status:'completed',odometerOut:currentReturn.odometer,odometerIn,distance:odometerIn-currentReturn.odometer,
+                    returnedAt:serverTimestamp(),returnedBy:userId
+                });
+                $('returnModal').classList.add('hidden'); showAlert('คืนรถและบันทึกเลขไมล์เรียบร้อยแล้ว','success'); currentReturn = null;
+            }catch(error){ showAlert(`คืนรถไม่สำเร็จ: ${error.message}`,'error'); }
+            finally{ button.disabled = false; button.textContent = 'ยืนยันคืนรถ'; }
+        });
+
+        $('confirmCancelBtn').addEventListener('click',async()=>{
+            if(!currentCancel) return;
+            const currentStatus = getUsageStatus(currentCancel).key;
+            if(['active','overdue'].includes(currentStatus) && !isAdmin){ showAlert('เฉพาะแอดมินเท่านั้นที่ยกเลิกรถที่กำลังใช้งานได้','error'); return; }
+            if(cancelRequiresAdmin && !isAdmin){ showAlert('สิทธิ์แอดมินหมดอายุ กรุณาเข้าสู่ระบบใหม่','error'); return; }
+            const reason = cancelRequiresAdmin ? $('cancellationReason').value.trim() : 'ยกเลิกโดยผู้จองก่อนถึงเวลา';
+            if(cancelRequiresAdmin && !reason){ showAlert('กรุณาระบุเหตุผลที่ยกเลิก','error'); return; }
+            const button = $('confirmCancelBtn'); button.disabled = true;
+            try{
+                const cancellationDb = cancelRequiresAdmin ? adminDb : db;
+                const cancelledBy = cancelRequiresAdmin ? adminUserId : userId;
+                await updateDoc(doc(cancellationDb,...bookingPath,currentCancel.id),{
+                    status:'cancelled',cancelledAt:serverTimestamp(),cancelledBy,cancelledByRole:cancelRequiresAdmin?'admin':'booker',cancellationReason:reason
+                });
+                $('cancelModal').classList.add('hidden'); showAlert('ยกเลิกรายการแล้วและเก็บประวัติเรียบร้อย','success'); currentCancel = null;
+            }catch(error){ showAlert(`ยกเลิกไม่ได้: ${error.message}`,'error'); }
+            finally{ button.disabled = false; }
+        });
+
+        $('adminButton').addEventListener('click',async()=>{
+            if(isAdmin){ await signOut(adminAuth); }
+            else { $('adminLoginError').classList.add('hidden'); $('adminModal').classList.remove('hidden'); }
+        });
+
+        $('adminLoginForm').addEventListener('submit',async event=>{
+            event.preventDefault();
+            const button = $('adminLoginSubmit'); button.disabled = true;
+            $('adminLoginError').classList.add('hidden');
+            try{
+                const credential = await signInWithEmailAndPassword(adminAuth,$('adminEmail').value.trim(),$('adminPassword').value);
+                const adminDoc = await getDoc(doc(adminDb,'admins',credential.user.uid));
+                if(!adminDoc.exists() || adminDoc.data().active !== true) throw new Error('บัญชีนี้ไม่ได้รับสิทธิ์แอดมิน');
+                isAdmin = true; await refreshAdminState(credential.user); $('adminModal').classList.add('hidden');
+            }catch(error){
+                $('adminLoginError').textContent = error.message;
+                $('adminLoginError').classList.remove('hidden');
+                try{ await signOut(adminAuth); }catch(e){ console.error(e); }
+            }finally{ button.disabled = false; }
+        });
+
+        $('activeReturnButton').addEventListener('click',()=>{ const id=$('activeReturnButton').dataset.id; if(id) openReturn(id); });
+        document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>$(button.dataset.close).classList.add('hidden')));
+        document.querySelectorAll('.modal-overlay').forEach(modal=>modal.addEventListener('click',event=>{ if(event.target===modal) modal.classList.add('hidden'); }));
+
+        async function start(){
+            try{
+                const app = initializeApp(finalConfig);
+                const adminApp = initializeApp(finalConfig,'booking-admin-auth');
+                db = getFirestore(app); auth = getAuth(app);
+                adminDb = getFirestore(adminApp); adminAuth = getAuth(adminApp);
+                mileageReady = initializeMileage();
+                onAuthStateChanged(auth,async user=>{
+                    if(!user){ userId=null; await initializeRegularAuth(); return; }
+                    userId = user.uid;
+                    $('authStatus').textContent = 'เชื่อมต่อระบบแล้ว';
+                    listenForBookings();
+                });
+                onAuthStateChanged(adminAuth,user=>refreshAdminState(user));
+                if(!auth.currentUser) await initializeRegularAuth();
+            }catch(error){ $('authStatus').textContent = `เชื่อมต่อระบบไม่ได้: ${error.message}`; $('submitButton').disabled = true; }
+        }
+
+        window.setInterval(()=>{ if(bookings.length) renderBookings(); },15000);
+        start();
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจองและตารางรถบริษัท</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
