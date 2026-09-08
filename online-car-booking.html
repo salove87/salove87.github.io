@@ -7,102 +7,366 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family:'Inter',sans-serif; background:#f3f4f6; }
+        :root {
+            --ink:#172033;
+            --muted:#667085;
+            --line:#e5e9f2;
+            --brand:#4f46e5;
+            --brand-dark:#312e81;
+            --brand-soft:#eef2ff;
+            --success:#059669;
+        }
+        * { box-sizing:border-box; }
+        body {
+            min-height:100vh;
+            margin:0;
+            font-family:'Inter',sans-serif;
+            color:var(--ink);
+            background:
+                radial-gradient(circle at 8% 0%,rgba(99,102,241,.14),transparent 30rem),
+                radial-gradient(circle at 94% 6%,rgba(14,165,233,.12),transparent 28rem),
+                #f6f8fc;
+        }
+        button,input,textarea { font:inherit; }
+        button { transition:transform .18s ease,box-shadow .18s ease,background .18s ease; }
+        button:not(:disabled):active { transform:translateY(1px); }
+        .page-wrap { width:min(1180px,calc(100% - 32px)); margin:28px auto 56px; }
+        .hero {
+            position:relative;
+            overflow:hidden;
+            padding:30px;
+            border-radius:26px;
+            color:#fff;
+            background:linear-gradient(125deg,#111827 0%,#312e81 52%,#4f46e5 100%);
+            box-shadow:0 24px 60px rgba(30,41,59,.20);
+        }
+        .hero::after {
+            content:'';
+            position:absolute;
+            width:280px;
+            height:280px;
+            right:-90px;
+            top:-130px;
+            border-radius:999px;
+            background:rgba(255,255,255,.09);
+        }
+        .hero-content { position:relative; z-index:1; }
+        .brand-row { display:flex; align-items:flex-start; justify-content:space-between; gap:24px; }
+        .brand-lockup { display:flex; align-items:center; gap:16px; }
+        .brand-mark {
+            display:grid;
+            place-items:center;
+            flex:0 0 auto;
+            width:56px;
+            height:56px;
+            border-radius:18px;
+            color:#312e81;
+            background:#fff;
+            box-shadow:0 10px 28px rgba(0,0,0,.16);
+            font-size:28px;
+        }
+        .eyebrow { margin:0 0 5px; color:#c7d2fe; font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
+        .hero h1 { margin:0; font-size:clamp(25px,4vw,38px); line-height:1.15; font-weight:800; }
+        .hero-subtitle { max-width:680px; margin:9px 0 0; color:#e0e7ff; font-size:15px; }
+        .glass-button {
+            flex:0 0 auto;
+            padding:11px 16px;
+            border:1px solid rgba(255,255,255,.35);
+            border-radius:12px;
+            color:#fff;
+            background:rgba(255,255,255,.13);
+            backdrop-filter:blur(8px);
+            font-weight:700;
+        }
+        .glass-button:hover { background:rgba(255,255,255,.22); box-shadow:0 10px 24px rgba(0,0,0,.14); }
+        .status-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:20px; }
+        .status-pill { padding:7px 11px; border-radius:999px; font-size:12px; font-weight:700; }
+        .status-user { color:#e0e7ff; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18); }
+        .status-admin { color:#312e81; background:#fff; }
+        .admin-banner {
+            margin-top:18px;
+            padding:12px 14px;
+            border:1px solid rgba(255,255,255,.24);
+            border-radius:14px;
+            color:#fff;
+            background:rgba(16,185,129,.20);
+            font-size:13px;
+            font-weight:600;
+        }
+        .progress-panel {
+            display:grid;
+            grid-template-columns:repeat(3,1fr);
+            gap:14px;
+            margin:20px 0;
+            padding:16px;
+            border:1px solid var(--line);
+            border-radius:20px;
+            background:rgba(255,255,255,.92);
+            box-shadow:0 12px 34px rgba(31,41,55,.07);
+        }
+        .progress-step { display:flex; align-items:center; gap:11px; min-width:0; padding:8px 10px; }
+        .step-index {
+            display:grid;
+            place-items:center;
+            flex:0 0 auto;
+            width:34px;
+            height:34px;
+            border-radius:11px;
+            color:var(--brand);
+            background:var(--brand-soft);
+            font-size:13px;
+            font-weight:800;
+        }
+        .progress-step strong { display:block; font-size:13px; }
+        .progress-step span:last-child { display:block; margin-top:2px; color:var(--muted); font-size:11px; }
+        .app-grid { display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:20px; align-items:start; }
+        .surface {
+            border:1px solid var(--line);
+            border-radius:22px;
+            background:#fff;
+            box-shadow:0 16px 44px rgba(31,41,55,.08);
+        }
+        .booking-surface { padding:26px; }
+        .surface-title { display:flex; align-items:center; gap:12px; margin-bottom:22px; }
+        .surface-title-icon {
+            display:grid;
+            place-items:center;
+            width:42px;
+            height:42px;
+            border-radius:13px;
+            color:#fff;
+            background:linear-gradient(135deg,#4f46e5,#7c3aed);
+            font-size:20px;
+        }
+        .surface-title h2 { margin:0; color:var(--ink); font-size:22px; font-weight:800; }
+        .surface-title p { margin:3px 0 0; color:var(--muted); font-size:12px; }
+        .form-block { padding:20px; border:1px solid #e8eaf2; border-radius:17px; background:#fbfcff; }
+        .form-block + .form-block { margin-top:15px; }
+        .form-block-title { display:flex; align-items:center; gap:9px; margin:0 0 16px; font-size:14px; font-weight:800; }
+        .form-block-number {
+            display:grid;
+            place-items:center;
+            width:27px;
+            height:27px;
+            border-radius:9px;
+            color:#fff;
+            background:var(--brand);
+            font-size:12px;
+        }
+        #bookingForm label { color:#344054; font-size:13px; font-weight:650; }
+        #bookingForm input[type='text'],#bookingForm input[type='datetime-local'],#bookingForm textarea {
+            width:100%;
+            margin-top:7px;
+            padding:12px 13px;
+            border:1px solid #d8deea;
+            border-radius:12px;
+            color:var(--ink);
+            background:#fff;
+            outline:none;
+            transition:border .18s ease,box-shadow .18s ease;
+        }
+        #bookingForm input:focus,#bookingForm textarea:focus { border-color:#818cf8; box-shadow:0 0 0 4px rgba(99,102,241,.12); }
+        .vehicle-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+        .vehicle-card {
+            display:flex;
+            align-items:center;
+            gap:12px;
+            min-height:78px;
+            padding:14px;
+            border:1.5px solid #dfe3ec;
+            border-radius:15px;
+            background:#fff;
+            cursor:pointer;
+            transition:border .18s ease,box-shadow .18s ease,transform .18s ease;
+        }
+        .vehicle-card:hover { border-color:#a5b4fc; box-shadow:0 9px 22px rgba(79,70,229,.10); transform:translateY(-1px); }
+        .vehicle-card:has(input:checked) { border-color:var(--brand); background:var(--brand-soft); box-shadow:0 0 0 3px rgba(79,70,229,.10); }
+        .vehicle-icon { display:grid; place-items:center; width:42px; height:42px; border-radius:12px; background:#f2f4f7; font-size:22px; }
+        .vehicle-card strong { display:block; color:var(--ink); font-size:14px; }
+        .vehicle-card small { display:block; margin-top:3px; color:var(--muted); font-size:11px; }
+        .vehicle-card input { width:18px; height:18px; accent-color:var(--brand); }
+        .submit-button {
+            width:100%;
+            margin-top:18px;
+            padding:14px 18px;
+            border:0;
+            border-radius:14px;
+            color:#fff;
+            background:linear-gradient(135deg,#4f46e5,#4338ca);
+            box-shadow:0 12px 25px rgba(79,70,229,.24);
+            font-weight:800;
+        }
+        .submit-button:hover { box-shadow:0 15px 30px rgba(79,70,229,.32); transform:translateY(-1px); }
+        .guide-card { position:sticky; top:18px; padding:22px; }
+        .guide-card h2 { margin:0; font-size:17px; font-weight:800; }
+        .guide-intro { margin:6px 0 18px; color:var(--muted); font-size:12px; }
+        .guide-list { display:grid; gap:14px; }
+        .guide-item { display:grid; grid-template-columns:34px 1fr; gap:11px; align-items:start; }
+        .guide-item-number { display:grid; place-items:center; width:32px; height:32px; border-radius:10px; color:var(--brand); background:var(--brand-soft); font-size:12px; font-weight:800; }
+        .guide-item strong { display:block; font-size:13px; }
+        .guide-item p { margin:3px 0 0; color:var(--muted); font-size:11px; line-height:1.55; }
+        .no-pickup-note { margin-top:18px; padding:13px; border-radius:13px; color:#065f46; background:#ecfdf5; font-size:12px; font-weight:700; }
+        .active-booking-card {
+            margin:20px 0;
+            padding:22px;
+            border:1px solid #a7f3d0;
+            border-radius:20px;
+            color:#064e3b;
+            background:linear-gradient(135deg,#ecfdf5,#f0fdfa);
+            box-shadow:0 14px 30px rgba(5,150,105,.10);
+        }
+        .bookings-surface { margin-top:20px; padding:26px; }
+        .bookings-header { display:flex; align-items:end; justify-content:space-between; gap:14px; margin-bottom:18px; }
+        .bookings-header h2 { margin:0; font-size:22px; font-weight:800; }
+        .bookings-header p { margin:4px 0 0; color:var(--muted); font-size:12px; }
+        .booking-card { border:1px solid var(--line); border-left-width:5px; border-radius:16px; box-shadow:none; }
+        .booking-card:hover { box-shadow:0 10px 25px rgba(31,41,55,.08); }
         .alert { transition:opacity .25s ease; }
-        .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex; justify-content:center; align-items:center; z-index:50; padding:1rem; }
-        .modal-content { background:#fff; padding:1.5rem; border-radius:.9rem; width:100%; max-width:520px; max-height:92vh; overflow-y:auto; box-shadow:0 20px 30px rgba(0,0,0,.18); }
+        .modal-overlay { position:fixed; inset:0; background:rgba(15,23,42,.62); display:flex; justify-content:center; align-items:center; z-index:50; padding:1rem; backdrop-filter:blur(5px); }
+        .modal-content { background:#fff; padding:1.5rem; border-radius:20px; width:100%; max-width:520px; max-height:92vh; overflow-y:auto; box-shadow:0 28px 70px rgba(0,0,0,.25); }
         .hidden { display:none !important; }
+        .admin-mode .hero { box-shadow:0 0 0 3px rgba(16,185,129,.34),0 24px 60px rgba(30,41,59,.20); }
+        @media (max-width:900px) {
+            .app-grid { grid-template-columns:1fr; }
+            .guide-card { position:static; }
+        }
         @media (max-width:640px) {
+            .page-wrap { width:min(100% - 20px,1180px); margin:10px auto 32px; }
+            .hero { padding:21px; border-radius:20px; }
+            .brand-row { flex-direction:column; }
+            .brand-lockup { align-items:flex-start; }
+            .brand-mark { width:48px; height:48px; border-radius:15px; font-size:24px; }
+            .glass-button { width:100%; }
+            .progress-panel { grid-template-columns:1fr; gap:4px; padding:11px; }
+            .progress-step { padding:7px; }
+            .booking-surface,.bookings-surface { padding:17px; border-radius:18px; }
+            .form-block { padding:15px; }
+            .vehicle-grid { grid-template-columns:1fr; }
+            .bookings-header { align-items:flex-start; flex-direction:column; }
             .booking-actions button { width:100%; margin:.25rem 0 0 !important; }
         }
     </style>
 </head>
-<body class="p-3 sm:p-8">
-    <main class="max-w-4xl mx-auto bg-white shadow-xl rounded-xl p-4 sm:p-7 md:p-10 mt-3 sm:mt-8">
-        <header class="mb-6">
-            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                <div>
-                    <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-800">🚗 ระบบจองรถบริษัท</h1>
-                    <p class="text-gray-500 mt-2">จองครั้งเดียว ระบบจะเริ่มสถานะตามเวลาและให้ลงเลขไมล์เมื่อคืนรถ</p>
+<body>
+    <div class="page-wrap">
+        <header class="hero">
+            <div class="hero-content">
+                <div class="brand-row">
+                    <div class="brand-lockup">
+                        <div class="brand-mark" aria-hidden="true">🚗</div>
+                        <div>
+                            <p class="eyebrow">Company Car Booking</p>
+                            <h1>ระบบจองรถบริษัท</h1>
+                            <p class="hero-subtitle">จองครั้งเดียว ระบบจะเริ่มสถานะตามเวลา และให้ลงเลขไมล์เมื่อคืนรถ</p>
+                        </div>
+                    </div>
+                    <button id="adminButton" type="button" class="glass-button">เข้าสู่ระบบแอดมิน</button>
                 </div>
-                <button id="adminButton" type="button" class="px-4 py-2 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900">เข้าสู่ระบบแอดมิน</button>
-            </div>
-            <div class="flex flex-wrap gap-2 mt-4 text-sm">
-                <span id="authStatus" class="px-3 py-1.5 rounded-full bg-gray-100 text-gray-600">กำลังเชื่อมต่อ...</span>
-                <span id="adminStatus" class="px-3 py-1.5 rounded-full bg-indigo-100 text-indigo-700 hidden">โหมดแอดมิน</span>
+                <div class="status-row">
+                    <span id="authStatus" class="status-pill status-user">กำลังเชื่อมต่อ...</span>
+                    <span id="adminStatus" class="status-pill status-admin hidden">โหมดแอดมิน</span>
+                </div>
+                <div id="adminNotice" class="admin-banner hidden">✓ โหมดผู้ดูแลระบบเปิดอยู่ — คุณสามารถจัดการและยกเลิกรถที่กำลังใช้งานได้ โดยระบบจะเก็บเหตุผลไว้ในประวัติ</div>
             </div>
         </header>
 
-        <section id="activeBookingPanel" class="hidden mb-7 p-5 bg-green-50 border-l-4 border-green-600 rounded-xl">
+        <section class="progress-panel" aria-label="ขั้นตอนการใช้ระบบ">
+            <div class="progress-step"><span class="step-index">1</span><div><strong>จองรถ</strong><span>เลือกเวลา ผู้ใช้ และรถ</span></div></div>
+            <div class="progress-step"><span class="step-index">2</span><div><strong>เริ่มอัตโนมัติ</strong><span>ถึงเวลาแล้วสถานะเปลี่ยนเอง</span></div></div>
+            <div class="progress-step"><span class="step-index">3</span><div><strong>คืนรถ</strong><span>กรอกเฉพาะเลขไมล์ขาเข้า</span></div></div>
+        </section>
+
+        <section id="activeBookingPanel" class="active-booking-card hidden">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <p class="text-sm font-semibold text-green-700">รถที่คุณกำลังใช้งาน</p>
-                    <h2 id="activeCarName" class="text-xl font-bold text-gray-800 mt-1"></h2>
-                    <p id="activeBookingInfo" class="text-sm text-gray-600 mt-1"></p>
+                    <p class="text-sm font-bold text-emerald-700">● รถที่คุณกำลังใช้งาน</p>
+                    <h2 id="activeCarName" class="text-2xl font-extrabold mt-1"></h2>
+                    <p id="activeBookingInfo" class="text-sm text-emerald-800 mt-1"></p>
                 </div>
-                <button id="activeReturnButton" type="button" class="w-full sm:w-auto px-5 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700">คืนรถ / ลงเลขไมล์</button>
+                <button id="activeReturnButton" type="button" class="w-full sm:w-auto px-5 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-200">คืนรถ / ลงเลขไมล์</button>
             </div>
         </section>
 
-        <form id="bookingForm" class="space-y-6 mb-9 pb-8 border-b border-gray-200">
-            <h2 class="text-xl sm:text-2xl font-bold text-indigo-700">จองรถ</h2>
-            <div class="bg-indigo-50 p-4 sm:p-6 rounded-lg border-l-4 border-indigo-600">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div>
-                        <label for="startTime" class="block text-sm font-medium text-gray-700 mb-1">วันที่และเวลาเริ่มใช้รถ *</label>
-                        <input type="datetime-local" id="startTime" required class="w-full p-3 border border-gray-300 rounded-lg">
-                    </div>
-                    <div>
-                        <label for="endTime" class="block text-sm font-medium text-gray-700 mb-1">วันที่และเวลาคืนรถ *</label>
-                        <input type="datetime-local" id="endTime" required class="w-full p-3 border border-gray-300 rounded-lg">
-                    </div>
-                    <div>
-                        <label for="bookerName" class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้จอง *</label>
-                        <input type="text" id="bookerName" required maxlength="120" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="ชื่อ-นามสกุล">
-                    </div>
-                    <div>
-                        <label for="bookerDepartment" class="block text-sm font-medium text-gray-700 mb-1">แผนกผู้จอง *</label>
-                        <input type="text" id="bookerDepartment" required maxlength="120" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="แผนก/ฝ่าย">
-                    </div>
+        <div class="app-grid">
+            <main class="surface booking-surface">
+                <div class="surface-title">
+                    <span class="surface-title-icon" aria-hidden="true">✦</span>
+                    <div><h2>จองรถ</h2><p>กรอกข้อมูลให้ครบแล้วกดยืนยันเพียงครั้งเดียว</p></div>
                 </div>
-                <div class="mt-5">
-                    <label for="purpose" class="block text-sm font-medium text-gray-700 mb-1">สถานที่หรือจุดประสงค์ *</label>
-                    <textarea id="purpose" rows="2" required maxlength="500" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="เช่น ไปประชุมลูกค้าที่บางนา"></textarea>
+                <form id="bookingForm">
+                    <section class="form-block">
+                        <h3 class="form-block-title"><span class="form-block-number">1</span>วันและเวลาที่ต้องการใช้รถ</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <label for="startTime">วันที่และเวลาเริ่มใช้รถ *
+                                <input type="datetime-local" id="startTime" required>
+                            </label>
+                            <label for="endTime">วันที่และเวลาคืนรถ *
+                                <input type="datetime-local" id="endTime" required>
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="form-block">
+                        <h3 class="form-block-title"><span class="form-block-number">2</span>ผู้จองและจุดหมาย</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <label for="bookerName">ชื่อผู้จอง / ผู้ขับรถ *
+                                <input type="text" id="bookerName" required maxlength="120" placeholder="ชื่อ-นามสกุล">
+                            </label>
+                            <label for="bookerDepartment">แผนกผู้จอง *
+                                <input type="text" id="bookerDepartment" required maxlength="120" placeholder="แผนก/ฝ่าย">
+                            </label>
+                        </div>
+                        <label for="purpose" class="block mt-4">สถานที่หรือจุดประสงค์ *
+                            <textarea id="purpose" rows="2" required maxlength="500" placeholder="เช่น ไปประชุมลูกค้าที่บางนา"></textarea>
+                        </label>
+                    </section>
+
+                    <fieldset class="form-block">
+                        <legend class="form-block-title"><span class="form-block-number">3</span>เลือกรถ</legend>
+                        <div class="vehicle-grid">
+                            <label class="vehicle-card">
+                                <input type="radio" name="carType" value="almera" required>
+                                <span class="vehicle-icon" aria-hidden="true">🚘</span>
+                                <span><strong>Nissan Almera</strong><small>รถยนต์ทั่วไป</small></span>
+                            </label>
+                            <label class="vehicle-card">
+                                <input type="radio" name="carType" value="ev">
+                                <span class="vehicle-icon" aria-hidden="true">⚡</span>
+                                <span><strong>รถ EV (ไฟฟ้า)</strong><small>รถยนต์พลังงานไฟฟ้า</small></span>
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <div id="alertMessage" class="alert p-4 rounded-xl hidden mt-4" role="alert">
+                        <p id="alertTitle" class="font-bold"></p>
+                        <p id="alertText" class="mt-1"></p>
+                    </div>
+                    <button type="submit" id="submitButton" class="submit-button">ยืนยันการจองรถ</button>
+                </form>
+            </main>
+
+            <aside class="surface guide-card">
+                <h2>หลังจองแล้วทำอย่างไร?</h2>
+                <p class="guide-intro">ระบบทำงานตามเวลาให้โดยอัตโนมัติ</p>
+                <div class="guide-list">
+                    <div class="guide-item"><span class="guide-item-number">1</span><div><strong>ตรวจรายการจอง</strong><p>รายการจะแสดงในตารางรวมพร้อมสถานะ “รอใช้งาน”</p></div></div>
+                    <div class="guide-item"><span class="guide-item-number">2</span><div><strong>ถึงเวลาเริ่ม</strong><p>สถานะเปลี่ยนเป็น “กำลังใช้งาน” โดยไม่ต้องกดรับรถ</p></div></div>
+                    <div class="guide-item"><span class="guide-item-number">3</span><div><strong>ใช้เสร็จแล้วคืนรถ</strong><p>ปุ่มคืนรถจะปรากฏ ให้กรอกเฉพาะเลขไมล์ขาเข้า</p></div></div>
                 </div>
+                <div class="no-pickup-note">✓ ไม่ต้องกด “เริ่มใช้รถ” เพิ่มอีกขั้นตอน</div>
+            </aside>
+        </div>
+
+        <section class="surface bookings-surface">
+            <div class="bookings-header">
+                <div><h2>ตารางการจองรถรวม</h2><p>เรียงรายการที่กำลังใช้งานและใกล้ถึงเวลาก่อน</p></div>
+                <span class="status-pill bg-indigo-50 text-indigo-700">สถานะเปลี่ยนอัตโนมัติ</span>
             </div>
-
-            <fieldset class="bg-yellow-50 p-4 sm:p-6 rounded-lg border-l-4 border-yellow-500">
-                <legend class="text-lg font-semibold text-yellow-800 mb-3">เลือกรถ</legend>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <label class="flex items-center p-4 bg-white border border-gray-300 rounded-lg cursor-pointer">
-                        <input type="radio" name="carType" value="almera" required class="text-indigo-600">
-                        <span class="ml-3 font-bold text-gray-700">Nissan Almera</span>
-                    </label>
-                    <label class="flex items-center p-4 bg-white border border-gray-300 rounded-lg cursor-pointer">
-                        <input type="radio" name="carType" value="ev" class="text-indigo-600">
-                        <span class="ml-3 font-bold text-gray-700">รถ EV (ไฟฟ้า)</span>
-                    </label>
-                </div>
-            </fieldset>
-
-            <div id="alertMessage" class="alert p-4 rounded hidden" role="alert">
-                <p id="alertTitle" class="font-bold"></p>
-                <p id="alertText" class="mt-1"></p>
-            </div>
-
-            <button type="submit" id="submitButton" class="w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow hover:bg-indigo-700">ยืนยันการจอง</button>
-        </form>
-
-        <section>
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-                <h2 class="text-xl sm:text-2xl font-bold text-gray-800">ตารางการจองรถรวม</h2>
-                <p class="text-xs text-gray-500">สถานะจะเปลี่ยนอัตโนมัติตามเวลาจอง</p>
-            </div>
-            <div id="companyBookingsList" class="space-y-4">
-                <p id="publicLoadingIndicator" class="text-gray-500 text-center p-4 bg-gray-50 rounded-lg">กำลังโหลดรายการจอง...</p>
+            <div id="companyBookingsList" class="space-y-3">
+                <p id="publicLoadingIndicator" class="text-gray-500 text-center p-5 bg-gray-50 rounded-xl">กำลังโหลดรายการจอง...</p>
             </div>
         </section>
-    </main>
+    </div>
 
     <div id="editModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="editTitle">
         <div class="modal-content">
@@ -334,7 +598,7 @@
                 const distanceLine = status.key === 'completed' && Number.isFinite(Number(booking.distance)) ? `<p class="text-sm mt-2 text-gray-700"><strong>ระยะทาง:</strong> ${Number(booking.distance).toLocaleString('th-TH')} กม. · ไมล์เข้า ${Number(booking.odometerIn).toLocaleString('th-TH')}</p>` : '';
                 const cancellationLine = status.key === 'cancelled' ? `<p class="text-sm mt-2 text-red-700"><strong>เหตุผล:</strong> ${escapeHTML(booking.cancellationReason || 'ไม่ระบุ')}</p>` : '';
                 const item = document.createElement('article');
-                item.className = `p-4 border-l-4 rounded-lg shadow-sm ${statusClass(status.color)}`;
+                item.className = `booking-card p-4 ${statusClass(status.color)}`;
                 item.innerHTML = `<div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3"><div><div class="flex flex-wrap items-center gap-2"><h3 class="text-lg font-bold">${escapeHTML(carName)}</h3>${mine ? '<span class="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700">รายการของฉัน</span>' : ''}<span class="text-xs px-2 py-1 rounded-full bg-white/70 font-semibold">${escapeHTML(status.label)}</span></div><p class="text-sm mt-2"><strong>ผู้จอง:</strong> ${escapeHTML(booking.bookerName || '-')} · ${escapeHTML(booking.bookerDepartment || '-')}</p><p class="text-sm mt-1"><strong>สถานที่/จุดประสงค์:</strong> ${escapeHTML(booking.purpose || '-')}</p><p class="text-xs mt-2">${escapeHTML(formatDateTime(booking.startAt || booking.startTime))} ถึง ${escapeHTML(formatDateTime(booking.endAt || booking.endTime))}</p>${distanceLine}${cancellationLine}</div><div class="booking-actions flex flex-wrap justify-end gap-2">${actions}</div></div>`;
                 list.appendChild(item);
             });
@@ -365,6 +629,8 @@
                 }catch(error){ console.error('Admin check failed',error); }
             }
             $('adminStatus').classList.toggle('hidden',!isAdmin);
+            $('adminNotice').classList.toggle('hidden',!isAdmin);
+            document.body.classList.toggle('admin-mode',isAdmin);
             $('adminButton').textContent = isAdmin ? 'ออกจากโหมดแอดมิน' : 'เข้าสู่ระบบแอดมิน';
             $('adminStatus').textContent = isAdmin ? `แอดมิน: ${user.email || 'เข้าสู่ระบบแล้ว'}` : 'โหมดแอดมิน';
             renderBookings();
@@ -479,7 +745,7 @@
                 showAlert('จองรถสำเร็จ สถานะจะเปลี่ยนเป็นกำลังใช้งานอัตโนมัติเมื่อถึงเวลา','success');
                 event.currentTarget.reset();
             }catch(error){ showAlert(`บันทึกการจองไม่ได้: ${error.message}`,'error'); }
-            finally{ button.disabled = false; button.textContent = 'ยืนยันการจอง'; }
+            finally{ button.disabled = false; button.textContent = 'ยืนยันการจองรถ'; }
         });
 
         $('editBookingForm').addEventListener('submit',async event=>{
@@ -582,7 +848,10 @@
                 const credential = await signInWithEmailAndPassword(adminAuth,$('adminEmail').value.trim(),$('adminPassword').value);
                 const adminDoc = await getDoc(doc(adminDb,'admins',credential.user.uid));
                 if(!adminDoc.exists() || adminDoc.data().active !== true) throw new Error('บัญชีนี้ไม่ได้รับสิทธิ์แอดมิน');
-                isAdmin = true; await refreshAdminState(credential.user); $('adminModal').classList.add('hidden');
+                isAdmin = true;
+                await refreshAdminState(credential.user);
+                $('adminLoginForm').reset();
+                $('adminModal').classList.add('hidden');
             }catch(error){
                 $('adminLoginError').textContent = error.message;
                 $('adminLoginError').classList.remove('hidden');
@@ -617,460 +886,3 @@
     </script>
 </body>
 </html>
-<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบจองและตารางรถบริษัท</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .alert{ transition: opacity .3s ease-in-out; opacity: 0 }
-        .text-truncate{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
-        .modal-overlay{ position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,.5); display:flex; justify-content:center; align-items:center; z-index:50 }
-        .modal-content{ background:white; padding:1.5rem; border-radius:.75rem; max-width:90%; width:500px; box-shadow:0 10px 15px rgba(0,0,0,.1) }
-        #deleteConfirmContainer{ transition: all .3s ease-in-out; transform: translateY(20px) }
-    </style>
-</head>
-<body class="p-4 sm:p-8">
-    <div class="max-w-4xl mx-auto bg-white shadow-2xl rounded-xl p-6 md:p-10 lg:p-12 mt-8">
-        <header class="mb-8 text-center">
-            <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-800 mb-2">🚗 ระบบจองรถบริษัท</h1>
-            <p id="userIdDisplay" class="text-sm text-gray-500 mb-4 break-words">User ID: กำลังโหลด...</p>
-            <p class="text-gray-500">กรุณาจองรถด้านล่าง และตรวจสอบตารางการจองรวม</p>
-        </header>
-
-        <form id="bookingForm" class="space-y-6 mb-10 pb-8 border-b border-gray-200">
-            <h2 class="text-2xl font-bold text-indigo-700 mb-4">1. แบบฟอร์มจองรถ</h2>
-            <div class="bg-indigo-50 p-6 rounded-lg border-l-4 border-indigo-600">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label for="startTime" class="block text-sm font-medium text-gray-700 mb-1">วันที่และเวลาเริ่มใช้รถ <span class="text-red-500">*</span></label>
-                        <input type="datetime-local" id="startTime" name="startTime" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm">
-                    </div>
-                    <div>
-                        <label for="endTime" class="block text-sm font-medium text-gray-700 mb-1">วันที่และเวลาสิ้นสุด <span class="text-red-500">*</span></label>
-                        <input type="datetime-local" id="endTime" name="endTime" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm">
-                    </div>
-                </div>
-                <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label for="bookerName" class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้จอง <span class="text-red-500">*</span></label>
-                        <input type="text" id="bookerName" name="bookerName" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm" placeholder="ชื่อ-นามสกุล">
-                    </div>
-                    <div>
-                        <label for="bookerDepartment" class="block text-sm font-medium text-gray-700 mb-1">แผนกผู้จอง <span class="text-red-500">*</span></label>
-                        <input type="text" id="bookerDepartment" name="bookerDepartment" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm" placeholder="แผนก/ฝ่าย">
-                    </div>
-                </div>
-                <div class="mt-6">
-                    <label for="purpose" class="block text-sm font-medium text-gray-700 mb-1">จุดประสงค์การจอง <span class="text-red-500">*</span></label>
-                    <textarea id="purpose" name="purpose" rows="2" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm" placeholder="เช่น เดินทางไปประชุมลูกค้าที่..."></textarea>
-                </div>
-            </div>
-
-            <div class="bg-yellow-50 p-6 rounded-lg border-l-4 border-yellow-600">
-                <h2 class="text-xl font-semibold text-yellow-700 mb-4">2. เลือกประเภทรถ</h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <label class="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-white transition duration-150">
-                        <input type="radio" name="carType" value="almera" class="text-indigo-600 focus:ring-indigo-500" required>
-                        <span class="ml-3 text-lg font-bold text-gray-700">Nissan Almera</span>
-                    </label>
-                    <label class="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-white transition duration-150">
-                        <input type="radio" name="carType" value="ev" class="text-indigo-600 focus:ring-indigo-500">
-                        <span class="ml-3 text-lg font-bold text-gray-700">รถ EV (ไฟฟ้า)</span>
-                    </label>
-                </div>
-            </div>
-
-            <div id="alertMessage" class="alert p-4 rounded transition-opacity duration-300 ease-in-out hidden" role="alert">
-                <p class="font-bold" id="alertTitle"></p>
-                <p id="alertText"></p>
-            </div>
-
-            <div class="pt-4">
-                <button type="submit" id="submitButton" class="w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50 transition duration-150 ease-in-out transform hover:scale-[1.01]">ยืนยันการจอง</button>
-            </div>
-        </form>
-
-        <div class="mt-8 mb-10 p-4 bg-blue-50 border-l-4 border-blue-500 rounded-xl shadow-inner">
-            <h3 class="font-semibold text-blue-800 mb-2">ลิงก์สำหรับบันทึกระยะทาง (Mileage Log)</h3>
-            <p class="text-sm text-blue-700 mb-3">เมื่อใช้รถเสร็จสิ้นแล้ว โปรดคลิกที่นี่เพื่อบันทึกระยะทางในระบบภายนอก:</p>
-            <a href="https://onlineutility.app/vehicle-mileage-log.html" target="_blank" class="inline-flex items-center justify-center w-full sm:w-auto py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-150">ไปยังแบบฟอร์มบันทึกระยะทาง <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg></a>
-        </div>
-
-        <section class="mt-10 pt-6 border-t border-gray-200">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">ตารางการจองรถรวมของบริษัท</h2>
-
-            <div id="deleteConfirmContainer" class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg shadow-lg mb-4 hidden">
-                <p class="font-bold">ยืนยันการยกเลิกการจอง</p>
-                <p class="text-sm mt-1 mb-3">คุณแน่ใจหรือไม่ว่าต้องการยกเลิกการจองนี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้</p>
-                <div class="flex justify-end space-x-3">
-                    <button type="button" id="cancelDeleteBtn" class="py-1 px-3 bg-gray-400 text-white text-sm font-semibold rounded-lg hover:bg-gray-500 transition duration-150">ยกเลิก</button>
-                    <button type="button" id="confirmDeleteBtn" data-booking-id="" class="py-1 px-3 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition duration-150">ยืนยันการลบ</button>
-                </div>
-            </div>
-
-            <div id="companyBookingsList" class="space-y-4">
-                <p class="text-gray-500 text-center p-4 bg-gray-50 rounded-lg" id="publicLoadingIndicator">กำลังโหลดตารางการจองทั้งหมด...</p>
-            </div>
-        </section>
-        <footer class="mt-8 text-center text-sm text-gray-400 border-t pt-4"></footer>
-    </div>
-
-    <div id="editModal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">แก้ไขรายการจอง <span id="editCarName" class="text-indigo-600"></span></h3>
-            <form id="editBookingForm" class="space-y-4">
-                <input type="hidden" id="editBookingId">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="editStartTime" class="block text-sm font-medium text-gray-700 mb-1">เริ่มใช้รถ</label>
-                        <input type="datetime-local" id="editStartTime" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                    </div>
-                    <div>
-                        <label for="editEndTime" class="block text-sm font-medium text-gray-700 mb-1">สิ้นสุด</label>
-                        <input type="datetime-local" id="editEndTime" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="editBookerName" class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้จอง</label>
-                        <input type="text" id="editBookerName" readonly class="w-full p-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600">
-                    </div>
-                    <div>
-                        <label for="editBookerDepartment" class="block text-sm font-medium text-gray-700 mb-1">แผนก</label>
-                        <input type="text" id="editBookerDepartment" readonly class="w-full p-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600">
-                    </div>
-                </div>
-                <div>
-                    <label for="editPurpose" class="block text-sm font-medium text-gray-700 mb-1">จุดประสงค์</label>
-                    <textarea id="editPurpose" rows="2" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"></textarea>
-                </div>
-                <div class="flex justify-end space-x-3 pt-2">
-                    <button type="button" id="closeModalBtn" class="py-2 px-4 bg-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-400 transition duration-150">ยกเลิก</button>
-                    <button type="submit" id="saveEditBtn" class="py-2 px-4 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition duration-150">บันทึกการแก้ไข</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, query, onSnapshot, serverTimestamp, addDoc, updateDoc, deleteDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        const USER_FIREBASE_CONFIG = {
-            apiKey: "AIzaSyAgTPzz6xqCOVYgWUK0z8-978qKUoDvTy8",
-            authDomain: "onlinecarbooking-b623d.firebaseapp.com",
-            projectId: "onlinecarbooking-b623d",
-            storageBucket: "onlinecarbooking-b623d.firebasestorage.app",
-            messagingSenderId: "39587745476",
-            appId: "1:39587745476:web:30be6ad23ac47bc3c5c391",
-            measurementId: "G-KCPHGGCJ56"
-        };
-
-        const finalConfig = (typeof __firebase_config !== 'undefined' && Object.keys(JSON.parse(__firebase_config)).length > 0) ? JSON.parse(__firebase_config) : USER_FIREBASE_CONFIG;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : finalConfig.projectId || 'default-app-id';
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        setLogLevel('Debug');
-
-        let app, db, auth, userId = null;
-        let latestPublicBookings = [];
-
-        function getUsageStatus(startTimeISO, endTimeISO) {
-            const now = new Date().getTime();
-            const start = new Date(startTimeISO).getTime();
-            const end = new Date(endTimeISO).getTime();
-
-            if (now < start) return { status: 'ยังไม่ได้ใช้งาน', color: 'blue' };
-            if (now >= start && now <= end) return { status: 'กำลังใช้', color: 'green' };
-            return { status: 'เสร็จสิ้น', color: 'gray' };
-        }
-
-        function formatDateTime(isoString, includeTime = true) {
-            if (!isoString) return 'N/A';
-            try {
-                if (typeof isoString === 'object' && typeof isoString.toDate === 'function') {
-                    isoString = isoString.toDate().toISOString();
-                }
-                const date = new Date(isoString);
-                const options = { year: 'numeric', month: 'short', day: 'numeric' };
-                if (includeTime) { options.hour = '2-digit'; options.minute = '2-digit'; options.hour12 = false; }
-                return date.toLocaleDateString('th-TH', options) + (includeTime ? ' น.' : '');
-            } catch (e) {
-                console.error('Date formatting error:', e);
-                return 'รูปแบบวันที่ไม่ถูกต้อง';
-            }
-        }
-
-        // Sorting per user request
-        function sortBookingsByStatus(bookings) {
-            const hasAnyInUse = bookings.some(b => getUsageStatus(b.startTime, b.endTime).status === 'กำลังใช้');
-            const preferredOrder = hasAnyInUse ? ['กำลังใช้', 'ยังไม่ได้ใช้งาน', 'เสร็จสิ้น'] : ['ยังไม่ได้ใช้งาน', 'กำลังใช้', 'เสร็จสิ้น'];
-            const indexOfStatus = status => { const idx = preferredOrder.indexOf(status); return idx === -1 ? preferredOrder.length : idx; };
-            return bookings.slice().sort((a, b) => {
-                const statusA = getUsageStatus(a.startTime, a.endTime).status;
-                const statusB = getUsageStatus(b.startTime, b.endTime).status;
-                const idxA = indexOfStatus(statusA);
-                const idxB = indexOfStatus(statusB);
-                if (idxA !== idxB) return idxA - idxB;
-                return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
-            });
-        }
-
-        function renderPublicBookings(bookings) {
-            const bookingsList = document.getElementById('companyBookingsList');
-            if (!bookingsList) return;
-            bookingsList.innerHTML = '';
-            latestPublicBookings = bookings;
-
-            if (bookings.length === 0) {
-                bookingsList.innerHTML = `<p class="text-gray-500 text-center p-4 bg-gray-50 rounded-lg">ยังไม่มีรายการจองในระบบ</p>`;
-                return;
-            }
-
-            const sorted = sortBookingsByStatus(bookings);
-
-            const statusClasses = {
-                'blue': 'bg-blue-100 text-blue-800 border-blue-500',
-                'green': 'bg-green-100 text-green-800 border-green-500',
-                'gray': 'bg-gray-100 text-gray-800 border-gray-500'
-            };
-
-            sorted.forEach(booking => {
-                const { status, color } = getUsageStatus(booking.startTime, booking.endTime);
-                const isMine = booking.userId === userId;
-                const carName = booking.carType === 'almera' ? 'Nissan Almera' : 'รถ EV (ไฟฟ้า)';
-
-                const borderColor = isMine ? 'border-purple-600' : statusClasses[color].replace('bg-', 'border-');
-                const backgroundColor = isMine ? 'bg-purple-50' : statusClasses[color].replace('border-l-4 border-', 'bg-');
-
-                const bookingItem = document.createElement('div');
-                bookingItem.className = `p-4 border-l-4 rounded-lg shadow-md ${backgroundColor} ${borderColor}`;
-
-                let actionButtonsHtml = '';
-                if (color === 'blue') {
-                    actionButtonsHtml = `
-                        <button type="button" data-id="${booking.id}" data-carType="${booking.carType}" data-start="${booking.startTime}" data-end="${booking.endTime}" data-purpose="${booking.purpose}" data-name="${booking.bookerName}" data-dept="${booking.bookerDepartment}" class="ml-3 text-xs py-1 px-2 bg-indigo-500 text-white font-semibold rounded-lg hover:bg-indigo-600 transition duration-150 edit-booking-btn">แก้ไข</button>
-                        <button type="button" data-id="${booking.id}" class="ml-1 text-xs py-1 px-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition duration-150 delete-booking-btn">ลบ</button>
-                    `;
-                }
-
-                bookingItem.innerHTML = `
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="text-lg font-bold">${carName}</span>
-                        <div class="flex items-center">
-                            <span class="text-sm font-semibold py-1 px-3 rounded-full ${statusClasses[color].replace('border-', 'ring-1 ring-')}" style="border:none;">สถานะ: ${status}</span>
-                            ${actionButtonsHtml}
-                        </div>
-                    </div>
-                    <p class="text-sm mb-1 text-gray-700"><strong>ผู้จอง:</strong> <span class="font-semibold text-gray-800">${booking.bookerName || 'N/A'}</span> <span class="text-gray-500 mx-2">|</span> <strong>แผนก:</strong> <span class="font-semibold text-gray-800">${booking.bookerDepartment || 'N/A'}</span></p>
-                    <p class="text-sm mb-1 text-truncate"><strong>วัตถุประสงค์:</strong> ${booking.purpose}</p>
-                    <p class="text-xs mt-2 text-gray-600"><span class="font-medium">เริ่ม:</span> ${formatDateTime(booking.startTime)} <span class="mx-2 text-gray-500">ถึง</span> <span class="font-medium">สิ้นสุด:</span> ${formatDateTime(booking.endTime)} <span class="mx-2 text-gray-400">|</span> <span class="font-medium">จองเมื่อ:</span> ${formatDateTime(booking.bookingDate, true)}</p>
-                `;
-
-                bookingsList.appendChild(bookingItem);
-            });
-
-            document.querySelectorAll('.edit-booking-btn').forEach(button => button.addEventListener('click', openEditModal));
-            document.querySelectorAll('.delete-booking-btn').forEach(button => button.addEventListener('click', showDeleteConfirm));
-        }
-
-        const setupPublicFirestoreListener = () => {
-            if (!db) return;
-            const publicBookingsCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'company_bookings');
-            const q = query(publicBookingsCollectionRef);
-            const loadingIndicator = document.getElementById('publicLoadingIndicator');
-            const bookingsList = document.getElementById('companyBookingsList');
-
-            onSnapshot(q, (snapshot) => {
-                const bookings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                // Keep raw sort; renderPublicBookings will apply status sorting
-                if (loadingIndicator) loadingIndicator.classList.add('hidden');
-                renderPublicBookings(bookings);
-            }, (error) => {
-                console.error('Firestore Public onSnapshot Error:', error);
-                if (bookingsList) bookingsList.innerHTML = `<p class="text-red-500 text-center p-4 bg-red-50 rounded-lg">เกิดข้อผิดพลาดในการโหลดตารางการจองรวม: ${error.message}</p>`;
-            });
-        };
-
-        function showAlert(message, type = 'success') {
-            const alertMessage = document.getElementById('alertMessage');
-            const alertText = document.getElementById('alertText');
-            const alertTitle = document.getElementById('alertTitle');
-            alertText.textContent = message;
-            alertMessage.className = `alert p-4 rounded transition-opacity duration-300 ease-in-out`;
-            if (type === 'success') { alertMessage.classList.add('bg-green-100', 'border-l-4', 'border-green-500', 'text-green-700'); alertTitle.textContent = 'การจองสำเร็จ!'; }
-            else if (type === 'error') { alertMessage.classList.add('bg-red-100', 'border-l-4', 'border-red-500', 'text-red-700'); alertTitle.textContent = 'ข้อผิดพลาดในการจอง!'; }
-            else { alertMessage.classList.add('bg-blue-100', 'border-l-4', 'border-blue-500', 'text-blue-700'); alertTitle.textContent = 'ข้อมูลการจอง'; }
-            alertMessage.classList.remove('hidden');
-            setTimeout(() => alertMessage.style.opacity = '1', 10);
-            setTimeout(() => { alertMessage.style.opacity = '0'; setTimeout(() => alertMessage.classList.add('hidden'), 300); }, 5000);
-        }
-
-        function validateDates(start, end) {
-            const now = new Date(new Date().getTime() - 60000);
-            const startTime = new Date(start);
-            const endTime = new Date(end);
-            if (startTime < now) { showAlert('วันที่และเวลาเริ่มใช้รถต้องเป็นเวลาในอนาคต (ยกเว้น 1 นาทีที่ผ่านมา)', 'error'); return false; }
-            if (endTime <= startTime) { showAlert('วันที่และเวลาสิ้นสุดต้องอยู่หลังจากวันที่และเวลาเริ่มใช้รถ', 'error'); return false; }
-            return true;
-        }
-
-        function isTimeConflicting(newStart, newEnd, existingStart, existingEnd) {
-            const newStartTime = new Date(newStart).getTime();
-            const newEndTime = new Date(newEnd).getTime();
-            const existingStartTime = new Date(existingStart).getTime();
-            const existingEndTime = new Date(existingEnd).getTime();
-            return (newStartTime < existingEndTime && newEndTime > existingStartTime);
-        }
-
-        async function checkForConflict(newStart, newEnd, carType) {
-            const publicCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'company_bookings');
-            try {
-                const snapshot = await getDocs(query(publicCollectionRef));
-                const existingBookings = snapshot.docs.map(doc => doc.data());
-                const conflictingBooking = existingBookings.find(booking => {
-                    const status = getUsageStatus(booking.startTime, booking.endTime).status;
-                    if (booking.carType === carType && (status === 'ยังไม่ได้ใช้งาน' || status === 'กำลังใช้')) {
-                        return isTimeConflicting(newStart, newEnd, booking.startTime, booking.endTime);
-                    }
-                    return false;
-                });
-                if (conflictingBooking) {
-                    const carName = conflictingBooking.carType === 'almera' ? 'Nissan Almera' : 'รถ EV (ไฟฟ้า)';
-                    const conflictDetails = `จองซ้ำซ้อน ไม่สามารถทำรายการได้! รถ ${carName} ถูกจองแล้วโดย ${conflictingBooking.bookerName} (แผนก ${conflictingBooking.bookerDepartment}) ในช่วงเวลา ${formatDateTime(conflictingBooking.startTime)} ถึง ${formatDateTime(conflictingBooking.endTime)} กรุณาเลือกเวลาอื่น`;
-                    showAlert(conflictDetails, 'error');
-                    return true;
-                }
-                return false;
-            } catch (error) {
-                console.error('Error during conflict check:', error);
-                showAlert(`เกิดข้อผิดพลาดในการตรวจสอบการจองซ้ำซ้อน: ${error.message}`, 'error');
-                return true;
-            }
-        }
-
-        const editModal = document.getElementById('editModal');
-        const editBookingForm = document.getElementById('editBookingForm');
-
-        function openEditModal(event) {
-            const button = event.currentTarget;
-            const bookingId = button.getAttribute('data-id');
-            const carType = button.getAttribute('data-carType');
-            const startTime = button.getAttribute('data-start');
-            const endTime = button.getAttribute('data-end');
-            const purpose = button.getAttribute('data-purpose');
-            const bookerName = button.getAttribute('data-name');
-            const bookerDepartment = button.getAttribute('data-dept');
-            document.getElementById('editBookingId').value = bookingId;
-            document.getElementById('editCarName').textContent = carType === 'almera' ? 'Nissan Almera' : 'รถ EV (ไฟฟ้า)';
-            document.getElementById('editStartTime').value = startTime.substring(0,16);
-            document.getElementById('editEndTime').value = endTime.substring(0,16);
-            document.getElementById('editPurpose').value = purpose;
-            document.getElementById('editBookerName').value = bookerName;
-            document.getElementById('editBookerDepartment').value = bookerDepartment;
-            editModal.classList.remove('hidden');
-        }
-
-        function closeEditModal(){ editModal.classList.add('hidden'); }
-
-        editBookingForm.addEventListener('submit', async function(e){
-            e.preventDefault();
-            const bookingId = document.getElementById('editBookingId').value;
-            const newStartTime = document.getElementById('editStartTime').value;
-            const newEndTime = document.getElementById('editEndTime').value;
-            const newPurpose = document.getElementById('editPurpose').value;
-            const saveEditBtn = document.getElementById('saveEditBtn');
-            if (!validateDates(newStartTime, newEndTime)) return;
-            saveEditBtn.disabled = true; saveEditBtn.textContent = 'กำลังบันทึก...';
-            const publicCollectionPath = 'artifacts/' + appId + '/public/data/company_bookings';
-            try{
-                const existingBooking = latestPublicBookings.find(b => b.id === bookingId);
-                if (!existingBooking) { showAlert('ไม่พบรายการจองนี้ในระบบ', 'error'); return; }
-                const bookingsExcludingCurrent = latestPublicBookings.filter(b => b.id !== bookingId);
-                const isConflicting = bookingsExcludingCurrent.some(booking => {
-                    const status = getUsageStatus(booking.startTime, booking.endTime).status;
-                    if (booking.carType === existingBooking.carType && (status === 'ยังไม่ได้ใช้งาน' || status === 'กำลังใช้')) {
-                        return isTimeConflicting(newStartTime, newEndTime, booking.startTime, booking.endTime);
-                    }
-                    return false;
-                });
-                if (isConflicting) { showAlert('การแก้ไขนี้ซ้ำซ้อนกับรายการจองอื่น กรุณาตรวจสอบตารางเวลา', 'error'); return; }
-                const updatedData = { startTime: newStartTime, endTime: newEndTime, purpose: newPurpose, carType: existingBooking.carType, bookerName: existingBooking.bookerName, bookerDepartment: existingBooking.bookerDepartment, userId: existingBooking.userId };
-                await updateDoc(doc(db, publicCollectionPath, bookingId), updatedData);
-                showAlert('แก้ไขการจองสำเร็จ!', 'success'); closeEditModal();
-            } catch(error){ console.error('Error updating document: ', error); showAlert(`เกิดข้อผิดพลาดในการบันทึกการแก้ไข: ${error.message} (อาจเกิดจากข้อจำกัดสิทธิ์การแก้ไข)`, 'error'); }
-            finally{ saveEditBtn.disabled = false; saveEditBtn.textContent = 'บันทึกการแก้ไข'; }
-        });
-
-        const deleteConfirmContainer = document.getElementById('deleteConfirmContainer');
-        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
-
-        function showDeleteConfirm(event){ const bookingId = event.currentTarget.getAttribute('data-id'); confirmDeleteBtn.setAttribute('data-booking-id', bookingId); deleteConfirmContainer.classList.remove('hidden'); deleteConfirmContainer.style.opacity = '1'; deleteConfirmContainer.style.transform = 'translateY(0)'; }
-        function hideDeleteConfirm(){ deleteConfirmContainer.style.opacity = '0'; deleteConfirmContainer.style.transform = 'translateY(20px)'; setTimeout(()=> deleteConfirmContainer.classList.add('hidden'), 300); }
-        document.getElementById('cancelDeleteBtn').addEventListener('click', hideDeleteConfirm);
-
-        confirmDeleteBtn.addEventListener('click', async function(e){
-            const bookingId = e.currentTarget.getAttribute('data-booking-id');
-            confirmDeleteBtn.disabled = true; confirmDeleteBtn.textContent = 'กำลังลบ...';
-            const publicCollectionPath = 'artifacts/' + appId + '/public/data/company_bookings';
-            try{ await deleteDoc(doc(db, publicCollectionPath, bookingId)); showAlert('ยกเลิกการจองสำเร็จ! รายการถูกลบออกจากตารางรวมแล้ว', 'success'); hideDeleteConfirm(); }
-            catch(error){ console.error('Error deleting document: ', error); showAlert(`เกิดข้อผิดพลาดในการลบ: ${error.message} (อาจเกิดจากข้อจำกัดสิทธิ์)`, 'error'); }
-            finally{ confirmDeleteBtn.disabled = false; confirmDeleteBtn.textContent = 'ยืนยันการลบ'; }
-        });
-
-        const USER_FIREBASE_CONFIG_DATA = USER_FIREBASE_CONFIG; // reuse
-        const finalConfigForInit = (typeof __firebase_config !== 'undefined' && Object.keys(JSON.parse(__firebase_config)).length > 0) ? JSON.parse(__firebase_config) : USER_FIREBASE_CONFIG_DATA;
-
-        if (finalConfigForInit.projectId && finalConfigForInit.projectId !== 'YOUR_PROJECT_ID_HERE') {
-            app = initializeApp(finalConfigForInit);
-            db = getFirestore(app);
-            auth = getAuth(app);
-            const initializeAuth = async () => { try{ if (initialAuthToken) await signInWithCustomToken(auth, initialAuthToken); else await signInAnonymously(auth); } catch(e){ console.error('Firebase Auth Error:', e); } };
-            onAuthStateChanged(auth, (user) => { if (user) { userId = user.uid; document.getElementById('userIdDisplay').textContent = `User ID: ${userId}`; setupPublicFirestoreListener(); } else { if (!userId) initializeAuth(); } });
-        } else {
-            document.getElementById('userIdDisplay').textContent = "User ID: ไม่สามารถระบุได้ (ขาด Firebase Config)";
-            document.getElementById('publicLoadingIndicator').textContent = "ไม่สามารถเชื่อมต่อ Firebase ได้ กรุณาใส่ config ในโค้ด";
-            const submitBtn = document.getElementById('submitButton'); if(submitBtn) submitBtn.disabled = true;
-        }
-
-        setInterval(()=>{ if (latestPublicBookings.length>0) renderPublicBookings(latestPublicBookings); }, 10000);
-
-        document.addEventListener('DOMContentLoaded', ()=>{
-            const form = document.getElementById('bookingForm');
-            form.addEventListener('submit', async function(e){
-                e.preventDefault(); if (!db || !userId) { showAlert('ระบบยังไม่พร้อมใช้งาน (User ID ไม่พร้อม) กรุณารอสักครู่ หรือตรวจสอบ Firebase Config', 'error'); return; }
-                const startTimeISO = document.getElementById('startTime').value; const endTimeISO = document.getElementById('endTime').value; const carType = document.querySelector('input[name="carType"]:checked')?.value || 'almera'; const submitButton = e.submitter;
-                if (!validateDates(startTimeISO, endTimeISO)) return;
-                if (await checkForConflict(startTimeISO, endTimeISO, carType)) return;
-                const formData = { startTime: startTimeISO, endTime: endTimeISO, carType: carType, purpose: document.getElementById('purpose').value, bookerName: document.getElementById('bookerName').value, bookerDepartment: document.getElementById('bookerDepartment').value, bookingDate: serverTimestamp(), userId: userId };
-                submitButton.disabled = true; submitButton.textContent = 'กำลังบันทึก...'; submitButton.classList.remove('bg-indigo-600', 'hover:bg-indigo-700'); submitButton.classList.add('bg-gray-400', 'cursor-not-allowed');
-                try{
-                    const privateCollectionRef = collection(db, 'artifacts', appId, 'users', userId, 'bookings');
-                    const publicCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'company_bookings');
-                    await addDoc(privateCollectionRef, formData);
-                    await addDoc(publicCollectionRef, formData);
-                    showAlert('การจองรถสำเร็จ! ข้อมูลได้ปรากฏในตารางรวมแล้ว', 'success'); form.reset();
-                } catch(error){ console.error('Error adding document: ', error); showAlert(`เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${error.message}`, 'error'); }
-                finally{ submitButton.disabled = false; submitButton.textContent = 'ยืนยันการจอง'; submitButton.classList.remove('bg-gray-400', 'cursor-not-allowed'); submitButton.classList.add('bg-indigo-600', 'hover:bg-indigo-700'); }
-            });
-        });
-
-        // Modal close handlers
-        document.getElementById('closeModalBtn').addEventListener('click', closeEditModal);
-        editModal.addEventListener('click', (e)=>{ if (e.target.id === 'editModal') closeEditModal(); });
-
-    </script>
-</body>
-</html>
-
-
-
-
