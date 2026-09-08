@@ -221,6 +221,76 @@
         .bookings-header p { margin:4px 0 0; color:var(--muted); font-size:12px; }
         .booking-card { border:1px solid var(--line); border-left-width:5px; border-radius:16px; box-shadow:none; }
         .booking-card:hover { box-shadow:0 10px 25px rgba(31,41,55,.08); }
+        .booking-success-content {
+            position:relative;
+            overflow:hidden;
+            max-width:620px;
+            padding:38px 34px 30px;
+            border:1px solid rgba(255,255,255,.72);
+            text-align:center;
+            background:
+                radial-gradient(circle at 50% 0%,rgba(16,185,129,.14),transparent 18rem),
+                #fff;
+        }
+        .booking-success-content.animate-in { animation:success-pop .42s cubic-bezier(.2,.8,.2,1) both; }
+        .success-kicker { margin:0 0 7px; color:#047857; font-size:12px; font-weight:800; letter-spacing:.11em; text-transform:uppercase; }
+        .booking-success-content h3 { margin:0; color:#102a24; font-size:clamp(28px,6vw,40px); line-height:1.12; font-weight:900; }
+        .success-subtitle { max-width:430px; margin:9px auto 0; color:var(--muted); font-size:14px; }
+        .success-check {
+            position:relative;
+            display:grid;
+            place-items:center;
+            width:92px;
+            height:92px;
+            margin:0 auto 20px;
+            border-radius:999px;
+            color:#fff;
+            background:linear-gradient(145deg,#34d399,#059669);
+            box-shadow:0 18px 38px rgba(5,150,105,.28),0 0 0 12px rgba(16,185,129,.09);
+        }
+        .success-check svg { width:47px; height:52px; }
+        .success-check path { fill:none; stroke:currentColor; stroke-width:7; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:72; stroke-dashoffset:72; }
+        .animate-in .success-check path { animation:check-draw .48s .22s ease-out forwards; }
+        .success-summary {
+            display:grid;
+            grid-template-columns:1.15fr 1fr 1fr;
+            gap:10px;
+            margin:24px 0 16px;
+            text-align:left;
+        }
+        .success-summary-item { padding:14px; border:1px solid #dfe7e4; border-radius:14px; background:rgba(248,250,252,.88); }
+        .success-summary-item span { display:block; margin-bottom:5px; color:var(--muted); font-size:10px; font-weight:700; letter-spacing:.04em; }
+        .success-summary-item strong { display:block; color:#173b33; font-size:13px; line-height:1.4; }
+        .success-auto-note { display:flex; align-items:flex-start; gap:10px; padding:13px 14px; border-radius:13px; color:#065f46; background:#ecfdf5; text-align:left; font-size:12px; line-height:1.55; }
+        .success-auto-note b { display:grid; place-items:center; flex:0 0 auto; width:23px; height:23px; border-radius:8px; color:#fff; background:#10b981; }
+        .success-close-button {
+            width:100%;
+            margin-top:18px;
+            padding:14px 18px;
+            border:0;
+            border-radius:14px;
+            color:#fff;
+            background:linear-gradient(135deg,#059669,#047857);
+            box-shadow:0 12px 25px rgba(5,150,105,.22);
+            font-weight:800;
+        }
+        .success-close-button:hover { transform:translateY(-1px); box-shadow:0 16px 32px rgba(5,150,105,.28); }
+        .confetti { position:absolute; inset:0; pointer-events:none; }
+        .confetti-bit { position:absolute; top:-18px; width:9px; height:18px; border-radius:3px; opacity:0; }
+        .confetti-bit:nth-child(1) { left:9%; background:#f59e0b; transform:rotate(18deg); }
+        .confetti-bit:nth-child(2) { left:21%; background:#8b5cf6; transform:rotate(-25deg); }
+        .confetti-bit:nth-child(3) { left:34%; background:#06b6d4; transform:rotate(42deg); }
+        .confetti-bit:nth-child(4) { left:49%; background:#f43f5e; transform:rotate(-18deg); }
+        .confetti-bit:nth-child(5) { left:64%; background:#10b981; transform:rotate(30deg); }
+        .confetti-bit:nth-child(6) { left:78%; background:#f59e0b; transform:rotate(-38deg); }
+        .confetti-bit:nth-child(7) { left:91%; background:#6366f1; transform:rotate(24deg); }
+        .animate-in .confetti-bit { animation:confetti-fall 1.05s ease-out both; }
+        .animate-in .confetti-bit:nth-child(2),.animate-in .confetti-bit:nth-child(6) { animation-delay:.08s; }
+        .animate-in .confetti-bit:nth-child(3),.animate-in .confetti-bit:nth-child(5) { animation-delay:.16s; }
+        .animate-in .confetti-bit:nth-child(4) { animation-delay:.23s; }
+        @keyframes success-pop { from { opacity:0; transform:translateY(24px) scale(.94); } to { opacity:1; transform:translateY(0) scale(1); } }
+        @keyframes check-draw { to { stroke-dashoffset:0; } }
+        @keyframes confetti-fall { 0% { opacity:0; transform:translateY(-12px) rotate(0); } 18% { opacity:1; } 100% { opacity:0; transform:translateY(240px) rotate(260deg); } }
         .alert { transition:opacity .25s ease; }
         .modal-overlay { position:fixed; inset:0; background:rgba(15,23,42,.62); display:flex; justify-content:center; align-items:center; z-index:50; padding:1rem; backdrop-filter:blur(5px); }
         .modal-content { background:#fff; padding:1.5rem; border-radius:20px; width:100%; max-width:520px; max-height:92vh; overflow-y:auto; box-shadow:0 28px 70px rgba(0,0,0,.25); }
@@ -243,7 +313,15 @@
             .form-block { padding:15px; }
             .vehicle-grid { grid-template-columns:1fr; }
             .bookings-header { align-items:flex-start; flex-direction:column; }
+            .booking-success-content { padding:32px 18px 22px; }
+            .success-check { width:78px; height:78px; }
+            .success-summary { grid-template-columns:1fr; gap:7px; }
+            .success-summary-item { padding:11px 13px; }
             .booking-actions button { width:100%; margin:.25rem 0 0 !important; }
+        }
+        @media (prefers-reduced-motion:reduce) {
+            .booking-success-content.animate-in,.animate-in .success-check path,.animate-in .confetti-bit { animation:none; }
+            .success-check path { stroke-dashoffset:0; }
         }
     </style>
 </head>
@@ -359,13 +437,35 @@
 
         <section class="surface bookings-surface">
             <div class="bookings-header">
-                <div><h2>ตารางการจองรถรวม</h2><p>เรียงรายการที่กำลังใช้งานและใกล้ถึงเวลาก่อน</p></div>
+                <div><h2>ตารางการจองรถรวม</h2><p>รายการที่จองล่าสุดอยู่ด้านบน ไล่ลงไปตามลำดับ</p></div>
                 <span class="status-pill bg-indigo-50 text-indigo-700">สถานะเปลี่ยนอัตโนมัติ</span>
             </div>
             <div id="companyBookingsList" class="space-y-3">
                 <p id="publicLoadingIndicator" class="text-gray-500 text-center p-5 bg-gray-50 rounded-xl">กำลังโหลดรายการจอง...</p>
             </div>
         </section>
+    </div>
+
+    <div id="bookingSuccessModal" class="modal-overlay hidden" role="alertdialog" aria-modal="true" aria-labelledby="bookingSuccessTitle" aria-describedby="bookingSuccessDescription">
+        <div id="bookingSuccessContent" class="modal-content booking-success-content">
+            <div class="confetti" aria-hidden="true">
+                <i class="confetti-bit"></i><i class="confetti-bit"></i><i class="confetti-bit"></i><i class="confetti-bit"></i>
+                <i class="confetti-bit"></i><i class="confetti-bit"></i><i class="confetti-bit"></i>
+            </div>
+            <div class="success-check" aria-hidden="true">
+                <svg viewBox="0 0 64 64"><path d="M15 34l11 11 24-27"></path></svg>
+            </div>
+            <p class="success-kicker">Booking confirmed</p>
+            <h3 id="bookingSuccessTitle">จองรถสำเร็จ!</h3>
+            <p id="bookingSuccessDescription" class="success-subtitle">ระบบบันทึกรายการของคุณเรียบร้อยแล้ว</p>
+            <div class="success-summary">
+                <div class="success-summary-item"><span>รถที่จอง</span><strong id="successCarName">—</strong></div>
+                <div class="success-summary-item"><span>เริ่มใช้รถ</span><strong id="successStartTime">—</strong></div>
+                <div class="success-summary-item"><span>คืนรถ</span><strong id="successEndTime">—</strong></div>
+            </div>
+            <div class="success-auto-note"><b aria-hidden="true">✓</b><span><strong>ไม่ต้องกดเริ่มใช้รถ</strong><br>เมื่อถึงเวลา ระบบจะเปลี่ยนสถานะเป็น “กำลังใช้งาน” ให้อัตโนมัติ</span></div>
+            <button id="successCloseButton" type="button" data-close="bookingSuccessModal" class="success-close-button">รับทราบ</button>
+        </div>
     </div>
 
     <div id="editModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="editTitle">
@@ -529,6 +629,19 @@
             window.setTimeout(()=>box.classList.add('hidden'),6000);
         }
 
+        function showBookingSuccess({carType,startTime,endTime}){
+            $('successCarName').textContent = vehicleNames[carType] || carType || 'ไม่ระบุรถ';
+            $('successStartTime').textContent = formatDateTime(startTime);
+            $('successEndTime').textContent = formatDateTime(endTime);
+            const modal = $('bookingSuccessModal');
+            const content = $('bookingSuccessContent');
+            content.classList.remove('animate-in');
+            modal.classList.remove('hidden');
+            void content.offsetWidth;
+            content.classList.add('animate-in');
+            window.setTimeout(()=>$('successCloseButton').focus(),120);
+        }
+
         function validateDates(startValue,endValue,allowPast=false){
             const start = new Date(startValue);
             const end = new Date(endValue);
@@ -561,11 +674,12 @@
 
         function renderBookings(){
             const list = $('companyBookingsList');
-            const order = { active:0, overdue:1, upcoming:2, completed:3, cancelled:4, invalid:5 };
-            const sorted = bookings.slice().sort((a,b)=>{
-                const statusDiff = order[getUsageStatus(a).key] - order[getUsageStatus(b).key];
-                return statusDiff || (startDateOf(a)?.getTime() || 0) - (startDateOf(b)?.getTime() || 0);
-            });
+            const sortTime = booking => {
+                if(booking._pendingWrite) return Number.MAX_SAFE_INTEGER;
+                const created = toDate(booking.bookingDate || booking.createdAt);
+                return created?.getTime() || startDateOf(booking)?.getTime() || 0;
+            };
+            const sorted = bookings.slice().sort((a,b)=>sortTime(b)-sortTime(a));
 
             const myActive = sorted.find(booking => isMine(booking) && ['active','overdue'].includes(getUsageStatus(booking).key));
             if(myActive){
@@ -611,7 +725,7 @@
         function listenForBookings(){
             if(unsubscribeBookings) unsubscribeBookings();
             unsubscribeBookings = onSnapshot(query(bookingCollection()),snapshot=>{
-                bookings = snapshot.docs.map(item=>({id:item.id,...item.data()}));
+                bookings = snapshot.docs.map(item=>({id:item.id,...item.data(),_pendingWrite:item.metadata.hasPendingWrites}));
                 renderBookings();
             },error=>{
                 $('companyBookingsList').innerHTML = `<p class="p-4 bg-red-50 text-red-700 rounded-lg">โหลดรายการไม่ได้: ${escapeHTML(error.message)}</p>`;
@@ -742,7 +856,7 @@
                     carType,purpose:$('purpose').value.trim(),bookerName:$('bookerName').value.trim(),bookerDepartment:$('bookerDepartment').value.trim(),
                     status:'booked',bookingDate:serverTimestamp(),userId
                 });
-                showAlert('จองรถสำเร็จ สถานะจะเปลี่ยนเป็นกำลังใช้งานอัตโนมัติเมื่อถึงเวลา','success');
+                showBookingSuccess({carType,startTime,endTime});
                 event.currentTarget.reset();
             }catch(error){ showAlert(`บันทึกการจองไม่ได้: ${error.message}`,'error'); }
             finally{ button.disabled = false; button.textContent = 'ยืนยันการจองรถ'; }
