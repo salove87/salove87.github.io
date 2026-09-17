@@ -557,7 +557,7 @@ readonly>
       <div id="historyTableWrap" class="overflow-x-auto rounded-xl border" style="border-color:var(--line);max-height:430px;">
         <table id="historyTable" class="w-full text-sm text-left">
           <thead style="background:var(--accent-deep);color:#fff;position:sticky;top:0;">
-            <tr><th class="p-3">วันที่</th><th class="p-3">ประเภท</th><th class="p-3 text-center">จำนวน</th><th class="p-3">เหตุผล</th><th class="p-3">ผู้อนุมัติ</th></tr>
+            <tr><th class="p-3">วันที่</th><th class="p-3">ประเภท</th><th class="p-3 text-center">จำนวน</th><th class="p-3">เหตุผล</th><th class="p-3">ผู้อนุมัติ</th><th class="p-3 text-center no-print">จัดการ</th></tr>
           </thead>
           <tbody id="historyTableBody"></tbody>
         </table>
@@ -1996,7 +1996,7 @@ autofillNameFromEmpId(savedId);
     async function openEmployeeHistory(empIdValue){
       const id=normalizeEmployeeId(empIdValue); if(!id) return;
       try{
-        historyTableBody.innerHTML='<tr><td colspan="5" class="p-5 text-center">กำลังโหลดประวัติ...</td></tr>';
+        historyTableBody.innerHTML='<tr><td colspan="6" class="p-5 text-center">กำลังโหลดประวัติ...</td></tr>';
         employeeHistoryModal.style.display='block';
         const rows=await driver.getEmployeeHistory(id);
         rows.sort((a,b)=>(b.startDate||'').localeCompare(a.startDate||''));
@@ -2068,7 +2068,8 @@ autofillNameFromEmpId(savedId);
         }).join('');
 
         const historyPayStatus = calculatePayStatuses(rows);
-        historyTableBody.innerHTML=rows.length?rows.map(r=>{ const st=historyPayStatus.get(r.id); const cancelled=r.leaveStatus==='cancelled' ? `<div style="margin-top:4px;font-size:11px;font-weight:800;color:#DC2626;">ยกเลิก</div>` : ''; return `<tr style="border-bottom:1px solid var(--line);"><td class="p-3 mono">${fmtDateDMY(r.startDate)}${r.endDate&&r.endDate!==r.startDate?' - '+fmtDateDMY(r.endDate):''}</td><td class="p-3"><span class="chip" style="${leaveTypeChipStyle(normalizeHistoryLeaveType(r.leaveType))}">${normalizeHistoryLeaveType(r.leaveType)||'-'}</span>${cancelled}${st?statusHtml(st):''}</td><td class="p-3 text-center mono">${r.leaveDays||'-'}${r.halfDayPeriod?' ('+r.halfDayPeriod+')':''}</td><td class="p-3">${r.reason||'-'}</td><td class="p-3">${r.approver||'-'}</td></tr>`; }).join(''):'<tr><td colspan="5" class="p-5 text-center" style="color:var(--ink-soft);">ยังไม่มีประวัติการลา</td></tr>';
+        historyTableBody.innerHTML=rows.length?rows.map(r=>{ const st=historyPayStatus.get(r.id); const cancelled=r.leaveStatus==='cancelled' ? `<div style="margin-top:4px;font-size:11px;font-weight:800;color:#DC2626;">ยกเลิก</div>` : ''; return `<tr style="border-bottom:1px solid var(--line);"><td class="p-3 mono">${fmtDateDMY(r.startDate)}${r.endDate&&r.endDate!==r.startDate?' - '+fmtDateDMY(r.endDate):''}</td><td class="p-3"><span class="chip" style="${leaveTypeChipStyle(normalizeHistoryLeaveType(r.leaveType))}">${normalizeHistoryLeaveType(r.leaveType)||'-'}</span>${cancelled}${st?statusHtml(st):''}</td><td class="p-3 text-center mono">${r.leaveDays||'-'}${r.halfDayPeriod?' ('+r.halfDayPeriod+')':''}</td><td class="p-3">${r.reason||'-'}</td><td class="p-3">${r.approver||'-'}</td><td class="p-3 text-center no-print"><button type="button" class="history-manage-btn px-3 py-2 rounded-lg" data-leave-id="${escapeHtml(r.id||'')}" style="background:#EEF2FF;color:#1D4ED8;font-weight:700;white-space:nowrap;">⚙️ จัดการ</button></td></tr>`; }).join(''):'<tr><td colspan="6" class="p-5 text-center" style="color:var(--ink-soft);">ยังไม่มีประวัติการลา</td></tr>';
+        historyTableBody.querySelectorAll('.history-manage-btn').forEach(btn=>btn.addEventListener('click',()=>{ const row=rows.find(x=>String(x.id)===String(btn.dataset.leaveId)); if(row) openLeaveActionMenu(row); }));
       }catch(err){ console.error(err); historyTableBody.innerHTML=`<tr><td colspan="5" class="p-5 text-center" style="color:var(--danger);">โหลดประวัติไม่สำเร็จ: ${explainFirestoreError(err)}</td></tr>`; }
     }
     closeHistoryModal.onclick=()=>employeeHistoryModal.style.display='none';
