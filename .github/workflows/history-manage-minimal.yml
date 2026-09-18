@@ -1,0 +1,55 @@
+name: Patch history manage minimal
+on:
+  workflow_dispatch:
+  push:
+    branches: [history-manage-minimal]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: history-manage-minimal
+      - name: Patch only employee history
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('leave-form-nano.html')
+          b=p.read_bytes()
+          def one(old,new,label):
+              global b
+              old=old.encode(); new=new.encode()
+              n=b.count(old)
+              if n!=1: raise SystemExit(f'{label}: expected 1, found {n}')
+              b=b.replace(old,new,1)
+          one('<tr><th class="p-3">วันที่</th><th class="p-3">ประเภท</th><th class="p-3 text-center">จำนวน</th><th class="p-3">เหตุผล</th><th class="p-3">ผู้อนุมัติ</th></tr>', '<tr><th class="p-3">วันที่</th><th class="p-3">ประเภท</th><th class="p-3 text-center">จำนวน</th><th class="p-3">เหตุผล</th><th class="p-3">ผู้อนุมัติ</th><th class="p-3 text-center no-print">จัดการ</th></tr>', 'header')
+          one('const historyTableBody=document.getElementById(\'historyTableBody\');', '''const historyTableBody=document.getElementById('historyTableBody');
+    let employeeHistoryActionRows=[];
+    const historyManageObserver=new MutationObserver(()=>{
+      const trs=[...historyTableBody.querySelectorAll('tr')];
+      if(!employeeHistoryActionRows.length || trs.length!==employeeHistoryActionRows.length) return;
+      trs.forEach((tr,i)=>{
+        if(tr.querySelector('[data-history-manage]')) return;
+        const r=employeeHistoryActionRows[i];
+        const td=document.createElement('td'); td.className='p-3 text-center no-print';
+        const btn=document.createElement('button'); btn.type='button'; btn.dataset.historyManage='1';
+        btn.className='px-3 py-1.5 rounded-lg border bg-white hover:bg-slate-50 text-sm font-medium';
+        btn.textContent=r.leaveStatus==='cancelled'?'↩️ คืนสถานะ':'⚙️ จัดการ';
+        btn.addEventListener('click',()=>openLeaveActionMenu(r)); td.appendChild(btn); tr.appendChild(td);
+      });
+    });
+    historyManageObserver.observe(historyTableBody,{childList:true});''', 'history body setup')
+          one('const rows=await driver.getEmployeeHistory(id);', 'const rows=await driver.getEmployeeHistory(id); employeeHistoryActionRows=rows;', 'history rows')
+          p.write_bytes(b)
+          PY
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add leave-form-nano.html
+          git diff --cached --check
+          git commit -m "Add manage action to employee leave history"
+          git push origin history-manage-minimal
