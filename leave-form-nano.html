@@ -632,6 +632,15 @@ readonly>
     <div class="flex items-center justify-between mb-3"><h3 class="text-lg font-extrabold">✏️ แก้ไขวันที่ลา</h3><button type="button" id="closeEditLeave" class="text-2xl leading-none">×</button></div>
     <div id="editLeaveDetails" class="text-sm bg-slate-50 rounded-xl p-3 mb-4"></div>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3"><label class="text-sm font-semibold">วันที่เริ่มลา<input id="editStartDate" type="date" class="mt-1 w-full border rounded-xl px-3 py-2"></label><label class="text-sm font-semibold">วันที่สิ้นสุดลา<input id="editEndDate" type="date" class="mt-1 w-full border rounded-xl px-3 py-2"></label></div>
+    <label class="block mt-3 text-sm font-semibold">รูปแบบการลา
+      <select id="editLeaveDayMode" class="mt-1 w-full border rounded-xl px-3 py-2 bg-white">
+        <option value="">เลือกรูปแบบการลา</option>
+        <option value="full">เต็มวัน</option>
+        <option value="morning">ครึ่งวันเช้า (0.5 วัน)</option>
+        <option value="afternoon">ครึ่งวันบ่าย (0.5 วัน)</option>
+      </select>
+    </label>
+    <p id="editLeaveDayHint" class="mt-2 text-xs text-slate-500">ระบบจะคำนวณจำนวนวันใหม่อัตโนมัติ</p>
     <div id="editLeaveError" class="hidden mt-3 rounded-xl bg-red-50 text-red-700 border border-red-200 p-3 text-sm font-semibold"></div>
     <div class="flex justify-end gap-2 mt-5"><button type="button" id="cancelEditLeave" class="px-4 py-2 rounded-xl border">ยกเลิก</button><button type="button" id="saveEditLeave" class="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold">บันทึกการแก้ไข</button></div>
   </div>
@@ -2249,17 +2258,48 @@ if(!ok){
     }
 
     let pendingEditLeave = null;
+    const editLeaveDayMode = document.getElementById('editLeaveDayMode');
+    const editLeaveDayHint = document.getElementById('editLeaveDayHint');
 
-    function toInputDate(v){ if(!v) return ''; const d=new Date(v); return Number.isNaN(d.getTime())?'':new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+    function editDateValueToDate(v){
+      if(!v) return null;
+      try{
+        if(typeof v.toDate==='function') return v.toDate();
+        if(Number.isFinite(v.seconds)) return new Date(v.seconds*1000+Math.floor(Number(v.nanoseconds||0)/1000000));
+        const d=new Date(v);
+        return Number.isNaN(d.getTime())?null:d;
+      }catch{return null;}
+    }
+    function toInputDate(v){ const d=editDateValueToDate(v); return !d?'':new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+    function formatEditDate(v){ const d=editDateValueToDate(v); return d?d.toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'Asia/Bangkok'}):''; }
     function getSubmitDate(row){ return row.submittedAt || row.createdAt || row.requestDate || row.applyDate || row.leaveRequestDate || row.createdDate || null; }
-    function openEditLeaveDateModal(row){ pendingEditLeave=row; editLeaveError.classList.add('hidden'); editStartDate.value=toInputDate(row.startDate); editEndDate.value=toInputDate(row.endDate||row.startDate); const type=normalizeHistoryLeaveType(row.leaveType)||row.leaveType||'ใบลา'; const submit=getSubmitDate(row); editLeaveDetails.innerHTML=`<div><strong>${escapeHtml(row.empName||'-')}</strong> · รหัส ${escapeHtml(row.empId||'-')}</div><div>ประเภท: <strong>${escapeHtml(type)}</strong></div><div>วันที่ส่งใบลา: <strong>${submit?escapeHtml(fmtDateDMY(submit)):'ไม่พบวันที่ส่งใบลาในข้อมูล'}</strong></div><div class="mt-1">จำนวนวันใหม่จะคำนวณอัตโนมัติ</div>`; editLeaveModal.style.display='block'; }
-    function closeEditLeaveModal(){ editLeaveModal.style.display='none'; pendingEditLeave=null; }
-    function dateOnly(v){ if(!v) return null; const d=new Date(v); return Number.isNaN(d.getTime())?null:new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
+    function editDayModeFromRow(row){
+      if(numericDays(row?.leaveDays)!==0.5) return 'full';
+      const period=String(row?.halfDayPeriod||'');
+      if(period.includes('เช้า')) return 'morning';
+      if(period.includes('บ่าย')) return 'afternoon';
+      return '';
+    }
+    function applyEditLeaveDayMode(){
+      const isHalfDay=editLeaveDayMode.value==='morning'||editLeaveDayMode.value==='afternoon';
+      if(isHalfDay && editStartDate.value) editEndDate.value=editStartDate.value;
+      editEndDate.disabled=isHalfDay;
+      editEndDate.style.cursor=isHalfDay?'not-allowed':'';
+      editEndDate.style.opacity=isHalfDay?'0.65':'';
+      editLeaveDayHint.textContent=isHalfDay
+        ? 'ครึ่งวันนับเป็น 0.5 วัน และใช้วันที่เริ่มลากับวันที่สิ้นสุดลาเป็นวันเดียวกัน'
+        : 'ระบบจะคำนวณจำนวนวันใหม่จากวันที่เริ่มลาและวันที่สิ้นสุดลา';
+    }
+    function openEditLeaveDateModal(row){ pendingEditLeave=row; editLeaveError.classList.add('hidden'); editStartDate.value=toInputDate(row.startDate); editEndDate.value=toInputDate(row.endDate||row.startDate); editLeaveDayMode.value=editDayModeFromRow(row); applyEditLeaveDayMode(); const type=normalizeHistoryLeaveType(row.leaveType)||row.leaveType||'ใบลา'; const submit=getSubmitDate(row), submitText=formatEditDate(submit); editLeaveDetails.innerHTML=`<div><strong>${escapeHtml(row.empName||'-')}</strong> · รหัส ${escapeHtml(row.empId||'-')}</div><div>ประเภท: <strong>${escapeHtml(type)}</strong></div><div>วันที่ส่งใบลา: <strong>${submitText?escapeHtml(submitText):'ไม่พบวันที่ส่งใบลาในข้อมูล'}</strong></div><div class="mt-1">แก้วันที่และเลือกรูปแบบเต็มวันหรือครึ่งวันได้</div>`; editLeaveModal.style.display='block'; }
+    function closeEditLeaveModal(){ editLeaveModal.style.display='none'; editEndDate.disabled=false; pendingEditLeave=null; }
+    function dateOnly(v){ const d=editDateValueToDate(v); return !d?null:new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
     function countCalendarDaysInclusive(a,b){ return Math.floor((b-a)/86400000)+1; }
+    editLeaveDayMode?.addEventListener('change',applyEditLeaveDayMode);
+    editStartDate?.addEventListener('change',()=>{ if(editLeaveDayMode.value==='morning'||editLeaveDayMode.value==='afternoon'){ editEndDate.value=editStartDate.value; } });
     closeEditLeave?.addEventListener('click',closeEditLeaveModal); cancelEditLeave?.addEventListener('click',closeEditLeaveModal);
-    saveEditLeave?.addEventListener('click',async()=>{ if(!pendingEditLeave)return; editLeaveError.classList.add('hidden'); const start=dateOnly(editStartDate.value), end=dateOnly(editEndDate.value), submit=dateOnly(getSubmitDate(pendingEditLeave)); if(!start||!end){editLeaveError.textContent='กรุณาระบุวันที่เริ่มลาและวันที่สิ้นสุดลา';editLeaveError.classList.remove('hidden');return;} if(end<start){editLeaveError.textContent='วันที่สิ้นสุดลาต้องไม่ก่อนวันที่เริ่มลา';editLeaveError.classList.remove('hidden');return;} if(!submit){editLeaveError.textContent='แก้ไขไม่ได้ เพราะไม่พบวันที่ส่งใบลา';editLeaveError.classList.remove('hidden');return;} if(start<=submit){editLeaveError.textContent=`แก้ไขไม่ได้: วันที่เริ่มลาต้องเป็นหลังวันที่ส่งใบลา (${fmtDateDMY(submit)})`;editLeaveError.classList.remove('hidden');return;} const newDays=countCalendarDaysInclusive(start,end), oldDays=Number(pendingEditLeave.leaveDays)||0, type=normalizeHistoryLeaveType(pendingEditLeave.leaveType)||pendingEditLeave.leaveType||'ใบลา'; if(!confirm(`ยืนยันแก้ไข${type}ของ ${pendingEditLeave.empName||''}\
+    saveEditLeave?.addEventListener('click',async()=>{ if(!pendingEditLeave)return; editLeaveError.classList.add('hidden'); const selectedMode=editLeaveDayMode.value; if(!selectedMode){editLeaveError.textContent='กรุณาเลือกรูปแบบการลา';editLeaveError.classList.remove('hidden');return;} const isHalfDay=selectedMode==='morning'||selectedMode==='afternoon', normalizedEndValue=isHalfDay?editStartDate.value:editEndDate.value, start=dateOnly(editStartDate.value), end=dateOnly(normalizedEndValue), submit=dateOnly(getSubmitDate(pendingEditLeave)); if(!start||!end){editLeaveError.textContent='กรุณาระบุวันที่เริ่มลาและวันที่สิ้นสุดลา';editLeaveError.classList.remove('hidden');return;} if(end<start){editLeaveError.textContent='วันที่สิ้นสุดลาต้องไม่ก่อนวันที่เริ่มลา';editLeaveError.classList.remove('hidden');return;} if(!submit){editLeaveError.textContent='แก้ไขไม่ได้ เพราะไม่พบวันที่ส่งใบลา';editLeaveError.classList.remove('hidden');return;} if(start<=submit){editLeaveError.textContent=`แก้ไขไม่ได้: วันที่เริ่มลาต้องเป็นหลังวันที่ส่งใบลา (${formatEditDate(submit)})`;editLeaveError.classList.remove('hidden');return;} const newDays=isHalfDay?0.5:countCalendarDaysInclusive(start,end), halfDayPeriod=selectedMode==='morning'?'เช้า':selectedMode==='afternoon'?'บ่าย':'', oldDays=numericDays(pendingEditLeave.leaveDays), type=normalizeHistoryLeaveType(pendingEditLeave.leaveType)||pendingEditLeave.leaveType||'ใบลา', newPeriodText=halfDayPeriod?` (${halfDayPeriod})`:''; if(!confirm(`ยืนยันแก้ไข${type}ของ ${pendingEditLeave.empName||''}\
 จาก ${fmtDateDMY(pendingEditLeave.startDate)} - ${fmtDateDMY(pendingEditLeave.endDate||pendingEditLeave.startDate)} (${oldDays} วัน)\
-เป็น ${fmtDateDMY(editStartDate.value)} - ${fmtDateDMY(editEndDate.value)} (${newDays} วัน)`))return; try{await updateDoc(doc(db,'leave_requests',pendingEditLeave.id),{startDate:editStartDate.value,endDate:editEndDate.value,leaveDays:newDays,updatedAt:new Date().toISOString()}); closeEditLeaveModal(); showToast(`✏️ แก้ไข${type}เรียบร้อยแล้ว`,'success'); if(typeof loadLeaves==='function')await loadLeaves(); else if(typeof loadAllLeaves==='function')await loadAllLeaves(); }catch(err){console.error(err);editLeaveError.textContent=`แก้ไขไม่ได้: ${err?.code||err?.message||'เกิดข้อผิดพลาด'}`;editLeaveError.classList.remove('hidden');} });
+เป็น ${fmtDateDMY(editStartDate.value)} - ${fmtDateDMY(normalizedEndValue)} (${newDays} วัน${newPeriodText})`))return; try{await updateDoc(doc(db,'leave_requests',pendingEditLeave.id),{startDate:editStartDate.value,endDate:normalizedEndValue,leaveDays:newDays,halfDayPeriod,updatedAt:new Date().toISOString()}); closeEditLeaveModal(); showToast(`✏️ แก้ไข${type}เรียบร้อยแล้ว`,'success'); if(typeof loadLeaves==='function')await loadLeaves(); else if(typeof loadAllLeaves==='function')await loadAllLeaves(); }catch(err){console.error(err);editLeaveError.textContent=`แก้ไขไม่ได้: ${err?.code||err?.message||'เกิดข้อผิดพลาด'}`;editLeaveError.classList.remove('hidden');} });
 
     function openVacationActionModal(row, mode){
       pendingVacationAction = { id: row.id, mode, leaveType: normalizeHistoryLeaveType(row.leaveType) || row.leaveType || 'ใบลา' };
