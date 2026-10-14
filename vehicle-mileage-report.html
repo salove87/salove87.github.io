@@ -65,10 +65,10 @@ ul{margin:0;padding:0;list-style:none}li{padding:10px 0 10px 30px;position:relat
 @media print{nav,.acts,.chips,.hint,#bar{display:none}section{display:block!important}.hero{color:#000;background:none}}
 </style></head><body>
 <div style="position:relative;z-index:20;max-width:1080px;margin:auto;padding:0 12px"><a href="vehicle-mileage-log.html" style="display:inline-flex;align-items:center;gap:8px;margin:12px 0;padding:11px 18px;border-radius:12px;background:#fff;color:#293b92;font-weight:700;text-decoration:none;box-shadow:0 2px 12px #0002">🚗 บันทึกการใช้รถ / เลขไมล์</a></div>
-<div id="bar"></div><div id="tip"></div>
+<div id="reportAdminModal" role="dialog" aria-modal="true" aria-labelledby="reportAdminTitle" hidden style="position:fixed;inset:0;z-index:10000;background:#0009;display:none;align-items:center;justify-content:center;padding:16px"><div style="background:#fff;color:#1e293b;border-radius:18px;padding:24px;width:100%;max-width:420px;box-shadow:0 20px 60px #0005"><h2 id="reportAdminTitle" style="font-size:20px">🔐 เข้าสู่ระบบแอดมิน</h2><p style="font-size:13px;color:#64748b;margin:0 0 16px">ใช้บัญชีแอดมินระบบจองรถบริษัท</p><form id="reportAdminForm" style="display:grid;gap:12px"><label>อีเมลแอดมิน<input id="reportAdminEmail" type="email" autocomplete="username" required style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px"></label><label>รหัสผ่าน<input id="reportAdminPassword" type="password" autocomplete="current-password" required style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px"></label><p id="reportAdminError" role="alert" style="color:#b91c1c;font-size:13px;margin:0"></p><div style="display:flex;justify-content:flex-end;gap:10px"><button type="button" id="reportAdminClose" style="padding:10px;border-radius:9px;border:0">ปิด</button><button type="submit" id="reportAdminSubmit" style="padding:10px 16px;border-radius:9px;border:0;background:#0f766e;color:#fff">เข้าสู่ระบบ</button></div></form><div id="reportAdminSuccess" hidden><p>✓ ยืนยันสิทธิ์แอดมินสำเร็จ</p><p style="font-size:13px">การแก้ไขและลบรายการเลขไมล์ยังไม่ได้เปิดใช้งาน เพื่อป้องกันการลบข้อมูลผิดฐานข้อมูล</p><button type="button" id="reportAdminLogout" style="padding:10px;border-radius:9px">ออกจากระบบ</button></div></div></div><div id="bar"></div><div id="tip"></div>
 <header class="hero"><div class="wrap">
 <div class="top"><div><span class="pill" id="badge"></span><h1>รายงานการใช้รถยนต์ส่วนกลาง</h1><p>สรุปสำหรับผู้บริหาร · Nissan Almera &amp; EV</p></div>
-<div class="acts"><button class="ic" id="th" title="สลับธีม">◐</button><button class="ic" id="fs" title="โหมดเต็มจอ">⛶</button><button class="ic" onclick="print()" title="พิมพ์">⎙</button></div></div>
+<div class="acts"><button id="reportAdminBtn" type="button" style="border:1px solid #fff7;background:#fff2;color:white;border-radius:12px;padding:9px 13px;font:600 13px Prompt, sans-serif;cursor:pointer">🔐 เข้าสู่ระบบแอดมิน</button><button class="ic" id="th" title="สลับธีม">◐</button><button class="ic" id="fs" title="โหมดเต็มจอ">⛶</button><button class="ic" onclick="print()" title="พิมพ์">⎙</button></div></div>
 <div class="chips" id="chips"></div></div></header>
 <nav><div class="wrap tabs" id="tabs"><span id="ind"></span></div></nav>
 <main class="wrap"><section></section><section></section><section></section><section></section><section></section>
@@ -203,4 +203,18 @@ try {
 document.body.appendChild(fbScript);
 // Disable unused generic polling when direct listener is active.
 
+</script><script type="module">
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged} from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+import {getFirestore,doc,getDoc} from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+const app=initializeApp({apiKey:'AIzaSyAgTPzz6xqCOVYgWUK0z8-978qKUoDvTy8',authDomain:'onlinecarbooking-b623d.firebaseapp.com',projectId:'onlinecarbooking-b623d',storageBucket:'onlinecarbooking-b623d.firebasestorage.app'},'report-booking-admin');
+const auth=getAuth(app),db=getFirestore(app),$=id=>document.getElementById(id);
+let authorized=false;
+function updateAdmin(){ $('reportAdminBtn').textContent=authorized?'🔓 แอดมินเข้าสู่ระบบแล้ว':'🔐 เข้าสู่ระบบแอดมิน';$('reportAdminForm').hidden=authorized;$('reportAdminSuccess').hidden=!authorized; }
+$('reportAdminBtn').addEventListener('click',()=>{$('reportAdminModal').style.display='flex';$('reportAdminError').textContent='';updateAdmin()});
+$('reportAdminClose').addEventListener('click',()=>{$('reportAdminModal').style.display='none'});
+$('reportAdminModal').addEventListener('click',e=>{if(e.target===$('reportAdminModal'))$('reportAdminModal').style.display='none'});
+$('reportAdminForm').addEventListener('submit',async e=>{e.preventDefault();const btn=$('reportAdminSubmit');btn.disabled=true;$('reportAdminError').textContent='';try{const credential=await signInWithEmailAndPassword(auth,$('reportAdminEmail').value.trim(),$('reportAdminPassword').value);const admin=await getDoc(doc(db,'admins',credential.user.uid));if(!admin.exists()||admin.data().active!==true)throw Error('บัญชีนี้ไม่มีสิทธิ์แอดมิน');authorized=true;$('reportAdminPassword').value='';updateAdmin()}catch(err){authorized=false;$('reportAdminError').textContent=err.code==='auth/invalid-credential'?'อีเมลหรือรหัสผ่านไม่ถูกต้อง':err.message;await signOut(auth).catch(()=>{});updateAdmin()}finally{btn.disabled=false}});
+$('reportAdminLogout').addEventListener('click',async()=>{await signOut(auth);authorized=false;updateAdmin();$('reportAdminModal').style.display='none'});
+onAuthStateChanged(auth,async user=>{authorized=false;if(user){try{const admin=await getDoc(doc(db,'admins',user.uid));authorized=admin.exists()&&admin.data().active===true}catch(e){authorized=false}}updateAdmin()});
 </script></body></html>
