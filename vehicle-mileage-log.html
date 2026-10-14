@@ -1,202 +1,384 @@
 <!DOCTYPE html>
-<html lang="th"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>รายงานการใช้รถยนต์ส่วนกลาง</title>
-<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-:root{--bg:#eef1f8;--cd:rgba(255,255,255,.8);--tx:#141b2d;--mu:#667189;--bd:rgba(20,27,45,.08);--a:#6366f1;--b:#14b8a6;--sh:0 10px 30px rgba(40,50,100,.08);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0a0f1d;--cd:rgba(30,40,70,.55);--tx:#e9eefb;--mu:#8e9ab5;--bd:rgba(255,255,255,.09);--sh:0 10px 30px rgba(0,0,0,.35)}}
-:root[data-theme="dark"]{--bg:#0a0f1d;--cd:rgba(30,40,70,.55);--tx:#e9eefb;--mu:#8e9ab5;--bd:rgba(255,255,255,.09);--sh:0 10px 30px rgba(0,0,0,.35)}
-html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}*{box-sizing:border-box}
-body{margin:0;min-height:100%;background:var(--bg);color:var(--tx);font-family:'Prompt',system-ui,sans-serif;line-height:1.5}
-#bar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--a),var(--b));transition:width .5s;z-index:20}
-.wrap{max-width:1100px;margin:0 auto;padding:0 16px}
-.hero{background:radial-gradient(circle at 15% 0,#4f46e5 0,transparent 55%),radial-gradient(circle at 90% 20%,#0d9488 0,transparent 50%),#0f172a;color:#fff;padding:26px 0 34px}
-.top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
-h1{margin:8px 0 2px;font-size:clamp(1.4rem,4.5vw,2.1rem);font-weight:700;letter-spacing:-.3px}
-.hero p{margin:0;opacity:.75;font-size:.9rem}
-.pill{display:inline-block;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);padding:3px 12px;border-radius:99px;font-size:.76rem;backdrop-filter:blur(6px)}
-.acts{display:flex;gap:6px}
-.ic{width:38px;height:38px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;font-size:1.05rem;cursor:pointer;transition:.2s}.ic:hover{background:rgba(255,255,255,.25);transform:translateY(-2px)}
-.chips{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
-.chip{font:inherit;font-size:.82rem;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;padding:5px 14px;border-radius:99px;cursor:pointer;transition:.2s}
-.chip.on{background:#fff;color:#1e1b4b;font-weight:600}
-nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--cd);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd)}
-.tabs{position:relative;display:flex;gap:2px;overflow-x:auto;padding:8px 16px;scrollbar-width:none}
-.tabs button{position:relative;z-index:1;font:inherit;font-size:.9rem;font-weight:500;border:0;background:none;color:var(--mu);padding:8px 16px;border-radius:12px;cursor:pointer;white-space:nowrap;transition:color .25s}
-.tabs button.on{color:#fff}
-#ind{position:absolute;top:8px;left:0;height:calc(100% - 16px);border-radius:12px;background:linear-gradient(135deg,var(--a),#8b5cf6);box-shadow:0 6px 16px rgba(99,102,241,.4);transition:transform .35s cubic-bezier(.5,1.4,.5,1),width .35s}
-main{padding:20px 16px 50px}
-section{display:none}section.on{display:block;animation:in .5s both}
-@keyframes in{from{opacity:0;transform:translateY(14px)}}
-.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:14px}
-.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:14px}
-.c{background:var(--cd);border:1px solid var(--bd);border-radius:20px;padding:18px;box-shadow:var(--sh);backdrop-filter:blur(10px);transition:.25s}
-.c:hover{transform:translateY(-3px)}
-.k small{color:var(--mu);font-size:.8rem}.k b{display:block;font-size:2.1rem;font-weight:700;background:linear-gradient(135deg,var(--a),var(--b));-webkit-background-clip:text;background-clip:text;color:transparent}
-.k i{font-style:normal;font-size:1.4rem;float:right;opacity:.8}
-h2{font-size:1rem;margin:0 0 14px;font-weight:600}
-.br{display:grid;grid-template-columns:minmax(80px,130px) 1fr auto;gap:4px 10px;align-items:center;margin:9px 0;font-size:.88rem;animation:in .5s both;animation-delay:var(--d)}
-.br span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.br b{text-align:right}.br small{grid-column:2/4;color:var(--mu);font-size:.72rem;margin-top:-4px}
-.bt{background:var(--bd);height:12px;border-radius:99px;overflow:hidden}
-.bt i{display:block;height:100%;width:var(--w);border-radius:99px;background:linear-gradient(90deg,var(--a),var(--b));animation:gw 1s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--d)}
-@keyframes gw{from{width:0}}
-.dn{width:100%;max-width:230px;display:block;margin:0 auto;animation:pop .8s both}.dn circle{cursor:pointer;transition:.2s}.dn circle:hover{stroke-width:32}
-@keyframes pop{from{opacity:0;transform:scale(.7) rotate(-40deg)}}
-.dv{font-size:26px;font-weight:700;fill:var(--tx)}.dl{font-size:11px;fill:var(--mu)}
-.lg{display:flex;justify-content:center;gap:16px;margin-top:12px;font-size:.85rem;flex-wrap:wrap}.lg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
-.mc{display:flex;align-items:flex-end;gap:6px;height:250px}
-.mc div{flex:1;text-align:center;font-size:.68rem;color:var(--mu);min-width:0}
-.mc u{display:block;margin:0 auto 6px;max-width:44px;height:var(--h);border-radius:10px 10px 4px 4px;background:linear-gradient(var(--a),#a5b4fc);animation:gh .9s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--d);cursor:pointer;transition:filter .2s}
-.mc u:hover{filter:brightness(1.2)}.mc .pk u{background:linear-gradient(var(--b),#99f6e4)}
-.mc b{display:block;color:var(--tx);font-size:.72rem}
-@keyframes gh{from{height:0}}
-.sw{display:flex;gap:8px;margin-bottom:12px}
-.sw button{font:inherit;font-size:.85rem;border:1px solid var(--bd);background:none;color:var(--mu);padding:6px 16px;border-radius:99px;cursor:pointer}.sw button.on{background:var(--a);color:#fff;border-color:var(--a)}
-input{font:inherit;width:100%;padding:10px 16px;border-radius:14px;border:1px solid var(--bd);background:var(--cd);color:var(--tx);margin-bottom:12px;outline:none}input:focus{border-color:var(--a)}
-.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.84rem}
-th,td{padding:9px 10px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--bd)}th{color:var(--mu);font-weight:500}.n{text-align:right}
-tr:hover td{background:rgba(99,102,241,.08)}
-.tag{padding:2px 10px;border-radius:99px;font-size:.74rem;color:#fff}
-.ins{display:flex;gap:14px;align-items:center}.ins em{font-style:normal;font-size:2rem}.ins small{color:var(--mu);font-size:.78rem}.ins b{display:block;font-size:1.1rem}
-ul{margin:0;padding:0;list-style:none}li{padding:10px 0 10px 30px;position:relative;border-bottom:1px solid var(--bd)}li:last-child{border:0}li:before{content:'✦';position:absolute;left:4px;color:var(--a)}
-#tip{position:fixed;pointer-events:none;opacity:0;background:#0f172a;color:#fff;font-size:.8rem;padding:6px 12px;border-radius:10px;z-index:30;transition:opacity .15s;box-shadow:0 8px 20px rgba(0,0,0,.3)}
-.hint{text-align:center;color:var(--mu);font-size:.75rem;margin-top:22px}
-@media print{nav,.acts,.chips,.hint,#bar{display:none}section{display:block!important}.hero{color:#000;background:none}}
-</style></head><body>
-<div id="bar"></div><div id="tip"></div>
-<header class="hero"><div class="wrap">
-<div class="top"><div><span class="pill" id="badge"></span><h1>รายงานการใช้รถยนต์ส่วนกลาง</h1><p>สรุปสำหรับผู้บริหาร · Nissan Almera &amp; EV</p></div>
-<div class="acts"><button class="ic" id="th" title="สลับธีม">◐</button><button class="ic" id="fs" title="โหมดเต็มจอ">⛶</button><button class="ic" onclick="print()" title="พิมพ์">⎙</button></div></div>
-<div class="chips" id="chips"></div></div></header>
-<nav><div class="wrap tabs" id="tabs"><span id="ind"></span></div></nav>
-<main class="wrap"><section></section><section></section><section></section><section></section><section></section>
-<div class="hint">กดปุ่มแท็บ หรือใช้ลูกศร ← → เพื่อเปลี่ยนหน้า · แตะที่กราฟเพื่อดูรายละเอียด</div></main>
-<script>
-const RAW=[["2025-10-29T15:15","Nissan Almera","ศุภกร","ซ่อมบำรุง","ไทยวัสดุ",76251,76257,6],["2025-10-29T16:35","EV","ชูพงศ์","นิวโมเดล","บริษัท มาสเตอร์เท็ค สมุทสาคร",2037,2253,216],["2025-10-30T15:49","Nissan Almera","วิสุดา","จัดซื้อ","Duhome",76257,76277,20],["2025-10-31T10:37","Nissan Almera","อรสา","บุคคล / HR","BYD",76277,76282,5],["2025-10-31T15:05","Nissan Almera","อรสา","บุคคล / HR","BYD",76282,76292,10],["2025-10-31T15:06","EV","อรสา","บุคคล / HR","BYD",2253,2258,5],["2025-11-01T15:47","Nissan Almera","แขไข","จัดซื้อ","ไทยวัสดุ",76282,76299,17],["2025-11-03T14:25","Nissan Almera","แขไข","จัดซื้อ","ดูโฮมบาฃพลี",76282,76316,34],["2025-11-04T15:19","EV","ชูพงศ์","นิวโมเดล","Able Progress",2258,2456,198],["2025-11-05T11:27","Nissan Almera","ชูพงศ์","นิวโมเดล","GPX thailand",76316,76392,76],["2025-11-06T14:21","Nissan Almera","สานนท์","ประกันคุณภาพ (QA)","บ.MPC",76392,76421,29],["2025-11-07T11:10","Nissan Almera","สุพัตรา","การตลาด","เวลโกรว์ ฉะเชิงเทรา",76421,76477,56],["2025-11-10T08:44","EV","อัครพัชร์","มิลิเนีย","-",2456,2713,257],["2025-11-10T13:53","Nissan Almera","แขไข","จัดซื้อ","ไทยวัสดุ",76477,76484,7],["2025-11-11T21:10","Nissan Almera","อัครพัชร์","มิลิเนีย","NMI - Honda",76484,76545,61],["2025-11-12T16:13","EV","ชูพงศ์","นิวโมเดล","Yamaha",2713,2734,21],["2025-11-14T16:46","Nissan Almera","สานนท์","ประกันคุณภาพ (QA)","บ.MPC & บ.ไทยสิน",76545,76599,54],["2025-11-19T10:06","Nissan Almera","วิสุดา","จัดซื้อ","First IT",76545,76599,54],["2025-11-20T14:14","Nissan Almera","แขไข","จัดซื้อ","แสงสหอุปกรณ์",76599,76620,21],["2025-11-20T14:45","EV","ชูพงศ์","นิวโมเดล","JMG",2734,2752,18],["2025-11-25T11:03","Nissan Almera","วิสุดา","จัดซื้อ","First IT",2734,2752,18],["2025-11-26T17:18","EV","ธิญาดา","ประกันคุณภาพ (QA)","Thai Honda",2752,2856,104],["2025-11-26T17:51","Nissan Almera","สานนท์","ประกันคุณภาพ (QA)","Kawasaki",76620,76857,237],["2025-11-28T15:11","EV","ชูพงศ์","การตลาด","Able Progress",2857,3038,181],["2025-11-28T15:34","Nissan Almera","ธิญาดา","ประกันคุณภาพ (QA)","Thai Honda",76857,76929,72],["2025-12-01T11:30","EV","วิสุดา","จัดซื้อ","First IT",3038,3045,7],["2025-12-01T16:52","Nissan Almera","ธิญาดา","ประกันคุณภาพ (QA)","KMT",76929,77204,275],["2025-12-02T16:42","Nissan Almera","สานนท์","ประกันคุณภาพ (QA)","Kawasaki",77204,77443,239],["2025-12-04T14:46","Nissan Almera","นภาพรรณ","วางแผน","บริษัท ยูไนเต็ด",77443,77492,49],["2025-12-08T10:42","Nissan Almera","อัครพัชร์","บริหาร","Yamaha",77492,77630,138],["2025-12-08T17:23","Nissan Almera","จิรภิญญา","มิลิเนีย","เติมน้ำมัน",77630,77634,4],["2025-12-09T10:07","Nissan Almera","ศุภกร","จัดซื้อ","ไทยวัสดุ",77634,77640,6],["2025-12-09T15:16","Nissan Almera","นิภาพร","จัดซื้อ","บ.ยูไนเต็ด พรีซิชั่น",77640,77694,54],["2025-12-10T15:02","Nissan Almera","นิภาพร","จัดซื้อ","ร้านนามบัตร+ไทวัสดุ",77694,77702,8],["2025-12-11T08:46","EV","อัครพัชร์","มิลิเนีย","Mitsubishi",3045,3101,56],["2025-12-11T14:32","Nissan Almera","สานนท์","ประกันคุณภาพ (QA)","Kawasaki",77702,77936,234],["2025-12-11T17:51","EV","ชูพงศ์","การตลาด","สนามบินสุวรรณภูมิ",3101,3208,107],["2025-12-12T13:57","Nissan Almera","อรสา","บุคคล / HR","อุตสหกรรมจังหวัด",77936,77963,27],["2025-12-16T19:45","EV","ชูพงศ์","การตลาด","ราโต้",3208,3245,37],["2025-12-17T11:09","Nissan Almera","วิสุดา","จัดซื้อ","First IT",77963,77970,7],["2025-12-17T20:35","EV","ชูพงศ์","การตลาด","Kawasaki",3245,3680,435],["2025-12-18T14:47","Nissan Almera","มงคล","ซ่อมบำรุง","ไทยสวัสดุ",77970,77977,7],["2025-12-19T17:02","Nissan Almera","ธิญาดา","ประกันคุณภาพ (QA)","Thai Honda",77977,78045,68],["2025-12-19T17:22","EV","ชูพงศ์","การตลาด","SCCTECH / PUTIAN",3680,3734,54],["2025-12-23T16:16","Nissan Almera","อังคาร","การตลาด","JMG",78045,78081,36],["2025-12-23T17:58","EV","ชูพงศ์","การตลาด","เทคนิคอุตสาหกรรม",3734,3885,151],["2025-12-23T21:41","Nissan Almera","วิสุดา","จัดซื้อ","เอาของขวัญปีใหม่ให้ลูกค้า",78081,78134,53],["2025-12-24T10:54","Nissan Almera","ศุภกร","ซ่อมบำรุง","ไทยวัสดุ",78134,78147,13],["2025-12-24T16:14","Nissan Almera","สานนท์","ประกันคุณภาพ (QA)","Thaisin",78147,78178,31],["2025-12-25T13:40","EV","ชูพงศ์","การตลาด","JMG",3885,3915,30],["2025-12-25T17:09","Nissan Almera","สานนท์","ประกันคุณภาพ (QA)","Kawasaki",78178,78460,282],["2026-01-05T16:50","EV","อรสา","บุคคล / HR","เฟิร์นไอที",3915,3923,8],["2026-01-06T13:38","Nissan Almera","สุพัตรา","การตลาด","TYM, Forward Glass,Penstone",78460,78595,135],["2026-01-07T15:11","EV","ชูพงศ์","การตลาด","จีพี มอเตอร์",3923,4069,146],["2026-01-09T14:48","EV","ชูพงศ์","การตลาด","Taisho",4069,4200,131],["2026-01-09T16:58","EV","รัชนี","ฝ่ายผลิต 2","First IT",4200,4208,8],["2026-01-09T17:57","Nissan Almera","อัครพัชร์","มิลิเนีย","นาโน --> ประชุมกับ Yamaha + Dealer ที่ศูนย์พัฒนากีฬากองทัพบก รามอินทรา",78605,78713,108],["2026-01-12T18:24","Nissan Almera","รัชนี","ฝ่ายผลิต 2","First IT",78713,78721,8],["2026-01-14T15:51","Nissan Almera","แขไข","จัดซื้อ","ดโฮม",78721,78741,20],["2026-01-15T10:19","EV","อังคาร","นิวโมเดล","WAPP",4208,4231,23],["2026-01-15T13:50","Nissan Almera","สานนท์","ประกันคุณภาพ (QA)","พาลูกค้า (Artron) ไปทานข้าว",78741,78756,15],["2026-01-16T14:29","Nissan Almera","สานนท์","ประกันคุณภาพ (QA)","Thai Honda",78756,78844,88],["2026-01-17T12:48","EV","ชูพงศ์","นิวโมเดล","ไทยสินบางประกง",4231,4283,52],["2026-01-20T09:39","Nissan Almera","ศุภกร","จัดซื้อ","ไทยวัสดุ",78844,78851,7],["2026-01-21T09:34","EV","ชูพงศ์","นิวโมเดล","JMG",4283,4307,24],["2026-01-21T12:18","Nissan Almera","แขไข","จัดซื้อ","สนามบินสุวรรณภูมิ",78851,78904,53],["2026-01-23T10:05","Nissan Almera","ศุภกร","ซ่อมบำรุง","ไทยวัสดุ",78904,78910,6],["2026-01-23T15:39","Nissan Almera","สานนท์","ประกันคุณภาพ (QA)","Thai Honda",78910,78985,75],["2026-01-26T08:45","EV","อังคาร","นิวโมเดล","WAPP",4307,4321,14],["2026-01-26T12:16","EV","วิสุดา","จัดซื้อ","ไปรษณีย์สาขาบางเสาธง",4321,4328,7],["2026-01-28T17:10","Nissan Almera","สานนท์","ประกันคุณภาพ (QA)","Thai Honda",78985,79071,86],["2026-01-29T18:45","EV","ชูพงศ์","นิวโมเดล","JMG",4328,4357,29],["2026-01-30T16:08","EV","ชูพงศ์","นิวโมเดล","GPX motor",4357,4444,87],["2026-01-30T17:00","Nissan Almera","ธิญาดา","ประกันคุณภาพ (QA)","มินิแบ",79071,79172,101],["2026-02-02T09:31","Nissan Almera","ศุภกร","ซ่อมบำรุง","ไทยวัสดุ",79172,79178,6],["2026-02-03T10:28","EV","วิสุดา","จัดซื้อ","First IT",4444,4451,7],["2026-02-03T12:59","EV","จิรภิญญา","มิลิเนีย","ส่งของให้เจ้านาย",4451,4460,9],["2026-02-06T14:27","Nissan Almera","ศุภกร","จัดซื้อ","ไทยวัสดุ",79178,79190,12],["2026-02-06T17:42","EV","อรสา","บุคคล / HR","อุตสหกรรมจังหวัด",4460,4488,28],["2026-02-09T14:11","EV","ชูพงศ์","นิวโมเดล","Topmark silkscreen",4672,4762,90],["2026-02-12T13:40","EV","ชูพงศ์","นิวโมเดล","Thaisin KM35",4762,4833,71],["2026-02-13T13:23","Nissan Almera","นภาพรรณ","สโตร์วัตถุดิบ","Yamaha",79190,79215,25],["2026-02-16T11:25","EV","ชูพงศ์","นิวโมเดล","TYM",4833,4854,21],["2026-02-17T15:53","Nissan Almera","ธิญาดา","ประกันคุณภาพ (QA)","Thai Honda",79215,79286,71],["2026-02-17T16:00","EV","ชูพงศ์","นิวโมเดล","TYM/JMG",4854,4886,32],["2026-02-18T09:42","Nissan Almera","ศุภกร","จัดซื้อ","ฮาร์ดแวร์เฮาส์",79286,79310,24],["2026-02-18T16:10","EV","ชูพงศ์","นิวโมเดล","Able Progress",4886,5099,213],["2026-02-20T11:23","EV","ชูพงศ์","นิวโมเดล","TYM /WAPP",5099,5145,46],["2026-02-23T14:02","Nissan Almera","สานนท์","ประกันคุณภาพ (QA)","พาลูกค้า TH ไปทานข้าว",79310,79326,16],["2026-02-24T17:30","EV","ชูพงศ์","นิวโมเดล","JMG",5145,5175,30],["2026-02-25T14:45","EV","ชูพงศ์","นิวโมเดล","TYM / GP MOTOR",5175,5265,90],["2026-02-26T11:13","EV","ชูพงศ์","นิวโมเดล","JMG",5265,5287,22],["2026-02-26T17:20","Nissan Almera","สานนท์","ประกันคุณภาพ (QA)","บ.SPK.Plastic",79350,79404,54],["2026-02-27T18:06","EV","ชูพงศ์","นิวโมเดล","support ลูกค้า flabeg",5297,5428,131],["2026-03-02T09:22","Nissan Almera","สุพัตรา","การตลาด","รับลูกค้า",79404,79510,106],["2026-03-02T16:33","Nissan Almera","อรสา","บุคคล / HR","ไทยวัสดุ",79510,79518,8],["2026-03-04T17:46","EV","ชูพงศ์","นิวโมเดล","Kawasaki",5428,5685,257],["2026-03-05T17:24","EV","อังคาร","นิวโมเดล","Jmg",5685,5701,16],["2026-03-05T17:45","Nissan Almera","อังคาร","นิวโมเดล","GP Motor Thailand",79533,79604,71],["2026-03-06T10:59","EV","อังคาร","นิวโมเดล","BMG >>> SCC Tech",5701,5740,39],["2026-03-06T17:20","Nissan Almera","สานนท์","ประกันคุณภาพ (QA)","SPK Plastic",79604,79658,54],["2026-03-09T12:08","EV","ธนพล","นิวโมเดล","GPmotors",5740,5813,73],["2026-03-11T15:01","Nissan Almera","ศุภกร","ซ่อมบำรุง","โกบอล",79658,79689,31],["2026-03-12T13:30","EV","ชูพงศ์","นิวโมเดล","พา VSCC ไปกินข้าว",6014,6023,9],["2026-03-12T17:20","EV","ชูพงศ์","นิวโมเดล","ส่ง auditor VSCC",6023,6080,57],["2026-03-12T17:21","Nissan Almera","สุพัตรา","การตลาด","รร.มาริออต",79689,79752,63],["2026-03-16T09:07","Nissan Almera","ศุภกร","ซ่อมบำรุง","ไทยวัสดุ",79752,79759,7],["2026-03-19T15:31","Nissan Almera","ศุภกร","ซ่อมบำรุง","ไทยวัสดุ",79759,79766,7],["2026-03-19T16:43","EV","ชูพงศ์","นิวโมเดล","Forward glass / Abel",6080,6319,239],["2026-03-20T14:53","Nissan Almera","ศุภกร","ซ่อมบำรุง","ดูโฮม",79766,79785,19],["2026-04-01T16:23","Nissan Almera","นิภาพร","จัดซื้อ","ไทยวัสดุ /โลตัส /ไปรษณี",79785,79820,35],["2026-04-02T13:45","EV","ธนพล","นิวโมเดล","บริษัท สยามแคสติ้ง",6328,6483,155],["2026-04-03T15:44","EV","ชูพงศ์","นิวโมเดล","Technic",6483,6637,154],["2026-04-03T16:21","Nissan Almera","วิสุดา","จัดซื้อ","ที่ว่าการอำเภอบางเสาธง/บ้านผู้ใหญ่บางเสาธง(ท่าน้ำ)",79820,79880,60],["2026-04-07T12:12","Nissan Almera","นภาพรรณ","สโตร์วัตถุดิบ","Yamaga",79880,79925,45],["2026-04-07T12:58","EV","วิสุดา","จัดซื้อ","ท่าน้ำบางเสาธง/อบต.บางเสาธง",6637,6657,20],["2026-04-08T16:24","Nissan Almera","สานนท์","ประกันคุณภาพ (QA)","บ.JMG",79925,79939,14],["2026-04-09T15:09","EV","ชูพงศ์","นิวโมเดล","TNP",6657,6659,2],["2026-04-21T14:48","EV","ธนพล","นิวโมเดล","JMG",6659,6675,16],["2026-04-23T15:36","EV","ธิญาดา","ประกันคุณภาพ (QA)","Summit กิ่งแก้ว",6675,6708,33],["2026-04-23T18:07","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",79939,80006,67],["2026-04-24T17:44","Nissan Almera","ไม่ระบุ","ซ่อมบำรุง","บ้านผู้บริหาร",80006,80071,65],["2026-04-27T17:31","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",80071,80194,123],["2026-04-28T17:27","EV","ธนพล","นิวโมเดล","ไป SCP",6708,6860,152],["2026-05-03T17:10","Nissan Almera","ไชยา","ซ่อมบำรุง","สมุทรปราการถึงกรุงเทพ",80194,80441,247],["2026-05-04T17:43","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",80441,80500,59],["2026-05-05T16:09","EV","ธนพล","นิวโมเดล","JMG",6860,6877,17],["2026-05-05T17:43","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",80500,80563,63],["2026-05-06T13:41","EV","สานนท์","ประกันคุณภาพ (QA)","ร้านเอนกคาเฟ่ (พาลูกค้า TH ไปทานข้าว)",6877,6891,14],["2026-05-06T17:00","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",80563,80624,61],["2026-05-07T17:26","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",80624,80685,61],["2026-05-08T15:15","EV","ชูพงศ์","นิวโมเดล","Able Progress",6891,7095,204],["2026-05-08T17:41","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",80685,80750,65],["2026-05-09T17:49","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",80750,80811,61],["2026-05-11T17:43","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",80811,80871,60],["2026-05-12T17:24","EV","ธนพล","นิวโมเดล","เอเบิ่ล โปรเกรส",7095,7294,199],["2026-05-12T17:30","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",80871,80929,58],["2026-05-13T17:11","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",80929,80988,59],["2026-05-14T09:46","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",80988,81047,59],["2026-05-14T11:03","Nissan Almera","นภาพรรณ","สโตร์วัตถุดิบ","Yamaha",81047,81066,19],["2026-05-14T16:43","EV","สานนท์","ประกันคุณภาพ (QA)","บ.ไทยสิน",7294,7324,30],["2026-05-14T17:19","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",81066,81126,60],["2026-05-15T17:21","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",81126,81187,61],["2026-05-16T17:51","Nissan Almera","ไชยา","ซ่อมบำรุง","บ้านผู้บริหาร",81187,81246,59],["2026-05-17T17:38","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",81246,81308,62],["2026-05-18T17:28","EV","ชูพงศ์","นิวโมเดล","Trial mold เทคนิคอุตสาหกรรม",7324,7480,156],["2026-05-18T18:08","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",81308,81372,64],["2026-05-19T17:38","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",81372,81432,60],["2026-05-20T18:18","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",81432,81491,59],["2026-05-21T18:04","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",81491,81557,66],["2026-05-22T11:42","EV","เกษร","ฝ่ายผลิต 1","SAS",7480,7531,51],["2026-05-22T17:32","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",81557,81616,59],["2026-05-23T17:30","Nissan Almera","ไชยา","ซ่อมบำรุง","บ้านผู้บริหาร",81616,81674,58],["2026-05-24T17:42","Nissan Almera","ไชยา","ซ่อมบำรุง","บ้านผู้บริหาร",81674,81736,62],["2026-05-25T10:59","EV","เกษมสุข","ฝ่ายผลิต 1","กิ่งแก้ว",7531,7571,40],["2026-05-25T18:34","Nissan Almera","ไชยา","ซ่อมบำรุง","บ้านผู้บริหาร",81736,81795,59],["2026-05-26T14:17","EV","อินทุอร","ระบบคุณภาพ","ไปส่งงานแลกเปลี่นนที่ summit และไปรับงานเคลมที่ Thai honda",7571,7644,73],["2026-05-26T17:25","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",81795,81855,60],["2026-05-27T11:32","EV","สานนท์","ประกันคุณภาพ (QA)","บ.SAS กิ่งแก้ว",7644,7679,35],["2026-05-27T18:13","Nissan Almera","ไชยา","ซ่อมบำรุง","บ้านผู้บริหาร",81855,81913,58],["2026-05-28T16:38","EV","ชูพงศ์","นิวโมเดล","กิ่งแก้ว supplier ฉีด",7679,7723,44],["2026-05-28T17:56","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",81913,81972,59],["2026-05-29T17:35","EV","ชูพงศ์","นิวโมเดล","Able Progress",7723,7912,189],["2026-05-29T18:14","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",81972,82030,58],["2026-05-30T17:25","Nissan Almera","ไชยา","ซ่อมบำรุง","บ้านผู้บริหาร",82030,82089,59],["2026-06-02T08:00","Nissan Almera","ไชยา","ซ่อมบำรุง","บ้านผู้บริหาร",82089,82148,59],["2026-06-02T17:25","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",82148,82212,64],["2026-06-02T21:04","EV","สุพัตรา","การตลาด","Autolive Thailand",7912,8080,168],["2026-06-03T09:29","EV","อังคาร","ประกันคุณภาพ (QA)","First IT",8080,8088,8],["2026-06-03T17:21","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",82212,82274,62],["2026-06-04T15:31","EV","ชูพงศ์","นิวโมเดล","Thaisin",8097,8127,30],["2026-06-04T18:18","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",82274,82337,63],["2026-06-05T13:11","EV","สานนท์","ประกันคุณภาพ (QA)","บ.Hong Yip Auto Parts",8127,8222,95],["2026-06-05T17:43","Nissan Almera","ไชยา","ซ่อมบำรุง","บ้านผู้บริหาร",82337,82397,60],["2026-06-06T18:11","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",82397,82459,62],["2026-06-08T12:58","Nissan Almera","ไชยา","ซ่อมบำรุง","บ้านผู้บริหาร",82459,82525,66],["2026-06-09T09:58","Nissan Almera","เกษร","ฝ่ายผลิต 1","ส่งงาน Summit",82525,82558,33],["2026-06-09T17:56","EV","ชูพงศ์","นิวโมเดล","Kawasaki",8222,8492,270],["2026-06-11T18:22","Nissan Almera","โกวิท","ซ่อมบำรุง","บ้านผู้บริหาร",82558,82621,63],["2026-06-11T20:12","EV","อังคาร","ประกันคุณภาพ (QA)","เอเบิ้ล",8492,8694,202],["2026-06-13T08:52","Nissan Almera","ไชยา","ซ่อมบำรุง","บ้านผู้บริหาร",82621,82696,75],["2026-06-13T17:52","Nissan Almera","ไชยา","ซ่อมบำรุง","บ้านผู้บริหาร",82696,82760,64],["2026-06-15T16:12","EV","ชูพงศ์","นิวโมเดล","JMG TRIAL MOLD GPX",8694,8710,16],["2026-06-16T14:54","Nissan Almera","ชูพงศ์","นิวโมเดล","JMG",82760,82775,15],["2026-06-17T17:24","EV","ชูพงศ์","นิวโมเดล","Kawasaki",8730,8955,225],["2026-06-18T14:53","EV","สานนท์","ประกันคุณภาพ (QA)","บ.Thai Honda",8955,9038,83],["2026-06-19T15:03","EV","อังคาร","ประกันคุณภาพ (QA)","First IT",9038,9049,11],["2026-06-20T17:40","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",82775,82837,62],["2026-06-22T11:51","EV","อังคาร","ประกันคุณภาพ (QA)","First IT",9049,9060,11],["2026-06-22T17:26","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",82837,82901,64],["2026-06-23T17:45","EV","ชูพงศ์","นิวโมเดล","Able Progress",9060,9253,193],["2026-06-23T19:30","Nissan Almera","นภาพรรณ","สโตร์วัตถุดิบ","บริษัท เอเบิ้ล โปรเกรส   ลาดลุมแก้ว",82901,83098,197],["2026-06-24T16:44","EV","สุพัตรา","การตลาด","TYM",9253,9279,26],["2026-06-24T17:12","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",83098,83154,56],["2026-06-25T18:32","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",83154,83210,56],["2026-06-26T16:23","EV","ชูพงศ์","นิวโมเดล","ABLE PROGRESS",9279,9475,196],["2026-06-26T17:51","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",83210,83266,56],["2026-06-27T17:34","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",83266,83325,59],["2026-06-29T17:21","Nissan Almera","ไชยา","ซ่อมบำรุง","บ้านผู้บริหาร",83325,83437,112],["2026-06-30T14:39","EV","อินทุอร","ประกันคุณภาพ (QA)","Yamaha",9475,9494,19],["2026-06-30T17:24","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านาย",83437,83492,55],["2026-07-01T17:28","EV","ชูพงศ์","นิวโมเดล","Trial เทคนิคอุตสาหกรรม",9494,9645,151],["2026-07-01T17:53","Nissan Almera","ไชยา","ซ่อมบำรุง","บ้านผู้บริหาร",83492,83548,56],["2026-07-02T18:02","Nissan Almera","สุริยา","ซ่อมบำรุง","บัานนาย",83548,83617,69],["2026-07-03T18:13","Nissan Almera","ไชยา","ซ่อมบำรุง","บ้านผู้บริหาร",83617,83673,56],["2026-07-04T17:08","Nissan Almera","ไชยา","ซ่อมบำรุง","บ้านผู้บริหาร",83673,83729,56],["2026-07-05T15:00","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",83729,83790,61],["2026-07-07T17:55","EV","ชูพงศ์","นิวโมเดล","Kawasaki",9645,9895,250],["2026-07-08T15:40","EV","อรสา","บุคคล / HR","ปกส",9895,9909,14],["2026-07-09T16:10","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",83790,83848,58],["2026-07-09T17:59","EV","สานนท์","ประกันคุณภาพ (QA)","บริษัท ERP",9909,10091,182],["2026-07-10T16:17","EV","ชูพงศ์","นิวโมเดล","KST DIECASTING",10091,10163,72],["2026-07-14T18:59","Nissan Almera","สุริยา","ซ่อมบำรุง","บ้านผู้บริหาร",83848,83925,77],["2026-07-16T17:25","EV","ชูพงศ์","นิวโมเดล","Siam casting",10183,10292,109],["2026-07-17T16:25","EV","ชูพงศ์","นิวโมเดล","Thai Honda / WAPP / United",10292,10394,102],["2026-07-23T15:14","EV","ชูพงศ์","นิวโมเดล","Yamaha",10414,10433,19],["2026-07-24T11:16","EV","ชูพงศ์","นิวโมเดล","Yamaha",10433,10456,23],["2026-07-29T08:13","EV","สานนท์","ประกันคุณภาพ (QA)","บ.ธนพิพัฒน์",10456,10583,127],["2026-07-30T15:19","EV","ชูพงศ์","นิวโมเดล","SSK and TSKT",10583,10676,93],["2026-07-31T08:06","Nissan Almera","สานนท์","ประกันคุณภาพ (QA)","บ.เทคนิค อุตสาหกรรม",83951,84123,172],["2026-08-04T12:58","EV","ชูพงศ์","นิวโมเดล","Able Progress",10690,10898,208],["2026-08-04T15:53","Nissan Almera","สานนท์","ประกันคุณภาพ (QA)","Kawasaki",84123,84385,262],["2026-08-05T13:44","EV","สานนท์","ประกันคุณภาพ (QA)","ร้าน ส.ทะเลเผา (พาลูกค้า TSM ไปทานข้าว)",10898,10906,8],["2026-08-06T13:35","EV","ชูพงศ์","นิวโมเดล","บางปลา",10906,10920,14],["2026-08-07T15:06","EV","ชูพงศ์","นิวโมเดล","Honda Asia",10920,10986,66],["2026-08-09T18:39","Nissan Almera","ไชยา","ซ่อมบำรุง","บ้านผู้บริหาร",84385,84444,59],["2026-08-10T16:06","EV","อรสา","บุคคล / HR","พัฒนาฝีมือแรงงาน",10986,11014,28],["2026-08-11T17:46","EV","ชูพงศ์","นิวโมเดล","Meeting Front loading 9751. KMT",11014,11247,233],["2026-08-11T17:51","Nissan Almera","สานนท์","ประกันคุณภาพ (QA)","ไทย ยามาฮ่า",84444,84465,21],["2026-08-14T10:48","EV","อรสา","บุคคล / HR","พัฒนาฝีมือแรงงานสมุทรปราการ",11247,11265,18],["2026-08-14T17:06","EV","ชูพงศ์","นิวโมเดล","Meeting KMT",11265,11506,241],["2026-08-17T13:51","EV","นภาพรรณ","สโตร์วัตถุดิบ","Yamashina",11506,11510,4],["2026-08-18T08:09","Nissan Almera","สานนท์","ประกันคุณภาพ (QA)","บ.ธนพิพัฒน์",84480,84623,143],["2026-08-18T16:48","EV","ชูพงศ์","นิวโมเดล","ศรีทอง อิเลคเคมี",11510,11594,84],["2026-08-19T08:07","Nissan Almera","สานนท์","ประกันคุณภาพ (QA)","บ.ธนพิพัฒน์",84623,84779,156],["2026-08-19T10:14","Nissan Almera","สุริยา","ซ่อมบำรุง","บางพีล",84779,84809,30],["2026-08-19T16:48","Nissan Almera","ชูพงศ์","นิวโมเดล","Thai Yamaha",84809,84832,23],["2026-08-20T08:25","EV","สานนท์","ประกันคุณภาพ (QA)","บ.ไทยสิน",11594,11676,82],["2026-08-20T15:08","EV","ชูพงศ์","นิวโมเดล","Yamaha",11688,11718,30],["2026-08-23T17:54","Nissan Almera","ไชยา","ซ่อมบำรุง","บ้านผู้บริหาร",84832,84891,59],["2026-08-25T09:09","EV","สุพัตรา","การตลาด","โลตัสบางพลี",11718,11724,6],["2026-08-28T15:51","EV","ชูพงศ์","นิวโมเดล","ศรีทอง ,โฟกัสพลาสติก, เฟิร์ส ไอที",11724,11835,111],["2026-08-28T17:40","Nissan Almera","สานนท์","ประกันคุณภาพ (QA)","ไทย ฮอนด้า",84891,84967,76],["2026-08-29T16:45","EV","ชูพงศ์","นิวโมเดล","Bites bangna",11835,11890,55],["2026-08-31T19:23","Nissan Almera","อินทุอร","ประกันคุณภาพ (QA)","เฟิร์สไอที",84967,84975,8],["2026-09-02T18:08","EV","ชูพงศ์","นิวโมเดล","Supplier Focus trial mold t6",11890,11987,97],["2026-09-08T16:28","Nissan Almera","นิภาพร","จัดซื้อ","ไทยวัสดุ",84975,85051,76],["2026-09-10T08:45","EV","ชูพงศ์","นิวโมเดล","Trial Mold Injection Scall Cap ที่ supplier FOCUS",11987,11987,0],["2026-09-13T16:38","Nissan Almera","ไชยา","ซ่อมบำรุง","บ้านผู้บริหาร",85051,85114,63],["2026-09-14T16:09","Nissan Almera","ชูพงศ์","นิวโมเดล","WAPP trial part painting",85114,85133,19],["2026-09-15T16:05","EV","ชูพงศ์","นิวโมเดล","Focus and Able Progress",11987,12204,217],["2026-09-17T13:40","EV","ชูพงศ์","นิวโมเดล","JMG บางปลา",12204,12219,15],["2026-09-18T11:34","Nissan Almera","อรสา","บุคคล / HR","ไปฮาร์ดแวร์",85133,85156,23],["2026-09-18T15:52","Nissan Almera","สุพัตรา","การตลาด","ศูนย์ BYD เทพารักษ์",85156,85161,5],["2026-09-21T17:53","EV","ชูพงศ์","นิวโมเดล","Supplier KST AND JMG",12224,12307,83],["2026-09-22T17:09","Nissan Almera","ชูพงศ์","นิวโมเดล","Supplier CNK molding die casting",85161,85202,41],["2026-09-24T13:27","Nissan Almera","นภาพรรณ","สโตร์วัตถุดิบ","รับสี TYM",85202,85232,30],["2026-09-24T14:12","EV","ชูพงศ์","นิวโมเดล","Supplier CNK",12321,12369,48],["2026-09-29T08:39","Nissan Almera","ชูพงศ์","นิวโมเดล","Trial part die cast",85232,85232,0],["2026-09-29T08:39","EV","ชูพงศ์","นิวโมเดล","Trial STAY DIE CAST supplier KST",12369,12369,0],["2026-09-29T18:19","EV","ชูพงศ์","นิวโมเดล","Trial mold KST",12370,12431,61],["2026-10-01T17:29","EV","ชูพงศ์","นิวโมเดล","Kawasaki",12431,12730,299],["2026-10-05T07:34","EV","ชูพงศ์","นิวโมเดล","Trial part die cast KST",12730,12730,0],["2026-10-05T15:13","Nissan Almera","ไชยา","ซ่อมบำรุง","บ้านผู้บริหาร",85232,85371,139],["2026-10-05T15:46","EV","ชูพงศ์","นิวโมเดล","Thai honda",12730,12810,80],["2026-10-05T15:47","EV","ชูพงศ์","นิวโมเดล","Thai Honda send part new model",12810,12810,0],["2026-10-07T17:57","EV","ชูพงศ์","นิวโมเดล","Kawasaki",12810,13077,267]];
-let D=RAW.map(r=>({d:new Date(r[0]),car:r[1],user:r[2],dept:r[3],loc:r[4],o:r[5],i:r[6],km:r[7]}));
-D.sort((a,b)=>a.d-b.d);
-const $=i=>document.getElementById(i),fmt=n=>Math.round(n).toLocaleString('th-TH');
-const MN=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-const ml2=k=>{const p=k.split('-');return MN[+p[1]-1]+' '+String((+p[0]+543)%100)};
-const COL={'EV':'#14b8a6','Nissan Almera':'#6366f1'};
-const TABS=['◈ ภาพรวม','▥ แนวโน้มรายเดือน','◔ เจาะลึก','☰ รายการเดินทาง','✦ สรุปและข้อเสนอแนะ'];
-const CARS=[['all','ทั้งหมด'],['EV','รถ EV'],['Nissan Almera','Nissan Almera']];
-let F='all',cur=0,sub='dept',q='';
-const S=()=>document.querySelectorAll('main section');
-const data=()=>F=='all'?D:D.filter(x=>x.car==F);
-function grp(a,k){const m={};a.forEach(x=>{const g=m[x[k]]=m[x[k]]||{k:x[k],n:0,km:0};g.n++;g.km+=x.km});return Object.values(m).sort((a,b)=>b.km-a.km)}
-const bars=(a,n)=>{const mx=a[0]?a[0].km:1;return a.slice(0,n).map((x,i)=>`<div class="br" style="--d:${i*70}ms"><span title="${x.k}">${x.k}</span><div class="bt"><i style="--w:${x.km/mx*100}%;--d:${i*70}ms"></i></div><b>${fmt(x.km)}</b><small>${x.n} เที่ยว · เฉลี่ย ${fmt(x.km/x.n)} กม.</small></div>`).join('')};
-function donut(a,t){let off=0;const R=70,C=2*Math.PI*R;return `<svg viewBox="0 0 200 200" class="dn">${a.map(x=>{const l=x.km/t*C,s=`<circle r="${R}" cx="100" cy="100" fill="none" stroke="${COL[x.k]||'#f59e0b'}" stroke-width="26" stroke-dasharray="${l} ${C-l}" stroke-dashoffset="${-off}" transform="rotate(-90 100 100)" data-t="${x.k}: ${fmt(x.km)} กม. (${Math.round(x.km/t*100)}%)"/>`;off+=l;return s}).join('')}<text x="100" y="98" text-anchor="middle" class="dv">${fmt(t)}</text><text x="100" y="118" text-anchor="middle" class="dl">กม. รวม</text></svg><div class="lg">${a.map(x=>`<span><i style="background:${COL[x.k]||'#f59e0b'}"></i>${x.k} ${Math.round(x.km/t*100)}%</span>`).join('')}</div>`}
-const rows=A=>A.slice().reverse().filter(x=>!q||(x.user+x.dept+x.loc+x.car).toLowerCase().includes(q)).slice(0,q?60:20).map(x=>`<tr><td>${x.d.toLocaleDateString('th-TH',{day:'2-digit',month:'short',year:'2-digit'})}</td><td><span class="tag" style="background:${COL[x.car]}">${x.car}</span></td><td>${x.user}</td><td>${x.dept}</td><td>${x.loc}</td><td class="n">${fmt(x.o)}</td><td class="n">${fmt(x.i)}</td><td class="n"><b>${fmt(x.km)}</b></td></tr>`).join('');
-function render(){
- const A=data(),n=A.length,km=A.reduce((a,x)=>a+x.km,0),car=grp(A,'car'),dep=grp(A,'dept'),usr=grp(A,'user'),lc=grp(A,'loc').filter(x=>x.k!='-'),mo={};
- A.forEach(x=>{const k=x.d.getFullYear()+'-'+String(x.d.getMonth()+1).padStart(2,'0');(mo[k]=mo[k]||{k,n:0,km:0}).n++;mo[k].km+=x.km});
- const ml=Object.keys(mo).sort().map(k=>mo[k]),pk=ml.slice().sort((a,b)=>b.km-a.km)[0]||{k:'2026-01',km:0,n:0},mx=pk.km||1;
- const kp=(l,v,ic)=>`<div class="c k"><i>${ic}</i><small>${l}</small><b class="cu" data-v="${v}">0</b></div>`;
- const s=S();
- s[0].innerHTML=`<div class="g">${kp('จำนวนเที่ยวทั้งหมด',n,'🚗')+kp('ระยะทางรวม (กม.)',km,'🛣️')+kp('เฉลี่ยต่อเที่ยว (กม.)',km/(n||1),'📍')+kp('ผู้ใช้งาน (คน)',usr.length,'👥')}</div><div class="g2"><div class="c"><h2>สัดส่วนระยะทางตามรถ</h2>${donut(car,km||1)}</div><div class="c"><h2>แผนกที่ใช้รถสูงสุด (กม.)</h2>${bars(dep,6)}</div></div>`;
- s[1].innerHTML=`<div class="c"><h2>ระยะทางรายเดือน (กม.) · แท่งสีเขียวคือเดือนสูงสุด</h2><div class="mc">${ml.map((x,i)=>`<div class="${x.k==pk.k?'pk':''}"><b>${fmt(x.km)}</b><u style="--h:${x.km/mx*170}px;--d:${i*60}ms" data-t="${ml2(x.k)}: ${fmt(x.km)} กม. · ${x.n} เที่ยว"></u>${ml2(x.k)}<br>${x.n} เที่ยว</div>`).join('')}</div></div>`;
- const L={dept:['แผนก',dep],user:['ผู้ใช้งาน',usr],loc:['สถานที่ปลายทาง',lc]};
- s[2].innerHTML=`<div class="c"><div class="sw">${Object.keys(L).map(k=>`<button class="${k==sub?'on':''}" onclick="sub='${k}';render();show(2,1)">${L[k][0]}</button>`).join('')}</div><h2>${L[sub][0]}สูงสุด 10 อันดับ (กม. รวม)</h2>${bars(L[sub][1],10)}</div>`;
- s[3].innerHTML=`<div class="c"><input id="q" placeholder="🔎 ค้นหาชื่อ แผนก สถานที่ หรือรถ…" value="${q}"><div class="tw"><table><thead><tr><th>วันที่</th><th>รถ</th><th>ผู้ใช้</th><th>แผนก</th><th>สถานที่</th><th class="n">ไมค์ออก</th><th class="n">ไมค์เข้า</th><th class="n">กม.</th></tr></thead><tbody id="tb">${rows(A)}</tbody></table></div></div>`;
- $('q').oninput=e=>{q=e.target.value.toLowerCase();$('tb').innerHTML=rows(data())};
- const z=A.filter(x=>x.km<=0).length,t=lc[0]||{k:'-',n:0},I=(e,l,v,sb)=>`<div class="c ins"><em>${e}</em><div><small>${l}</small><b>${v}</b><small>${sb}</small></div></div>`;
- s[4].innerHTML=`<div class="g">${I('🏆','เดือนใช้งานสูงสุด',ml2(pk.k),fmt(pk.km)+' กม. · '+pk.n+' เที่ยว')+I('🏢','แผนกนำ',(dep[0]||{k:'-'}).k,fmt((dep[0]||{km:0}).km/(km||1)*100)+'% ของระยะทาง')+I('🔋','รถที่ใช้มากสุด',(car[0]||{k:'-'}).k,fmt((car[0]||{km:0}).km/(km||1)*100)+'% ของระยะทาง')+I('📍','ปลายทางยอดนิยม',t.k,t.n+' เที่ยว')+I('📅','เฉลี่ยต่อเดือน',fmt(km/(ml.length||1))+' กม.',fmt(n/(ml.length||1))+' เที่ยว/เดือน')+I('⚠️','รายการระยะทาง 0 กม.',z+' รายการ','ควรตรวจสอบเลขไมค์')}</div><div class="c"><h2>ข้อเสนอแนะ</h2><ul><li>จัดสรรรถให้เหมาะกับลักษณะงาน เช่น รถ EV สำหรับเที่ยวระยะไกล ซึ่งมีระยะทางเฉลี่ยต่อเที่ยวสูงกว่า</li><li>รวมเที่ยวของแผนกที่ไปปลายทางเดียวกัน เพื่อลดระยะทางและค่าใช้จ่ายรวม</li><li>ให้เลือกชื่อผู้ใช้และแผนกจากรายการในระบบ และบังคับกรอกแผนก เพื่อลดข้อมูลสะกดไม่ตรงกัน</li><li>ตรวจสอบเลขไมค์ก่อนบันทึก เพื่อป้องกันรายการที่ระยะทาง 0 กม.</li><li>สรุปรายงานนี้เป็นรายเดือนเพื่อติดตามแนวโน้มอย่างต่อเนื่อง</li></ul></div>`;
- const a0=D[0].d,a1=D[D.length-1].d,f=x=>x.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'});
- $('badge').textContent=`ข้อมูลจริงจากระบบ · ${f(a0)} – ${f(a1)} · ${n} รายการ`;
-}
-function runCU(){document.querySelectorAll('section.on .cu').forEach(el=>{const v=+el.dataset.v,t0=performance.now();const st=t=>{const p=Math.min((t-t0)/1000,1),e=1-Math.pow(1-p,3);el.textContent=fmt(v*e);if(p<1)requestAnimationFrame(st)};requestAnimationFrame(st)})}
-function show(i,keep){cur=i;S().forEach((s,j)=>s.classList.toggle('on',j==i));const bs=document.querySelectorAll('#tabs button');bs.forEach((b,j)=>b.classList.toggle('on',j==i));
- const b=bs[i],ind=$('ind');ind.style.width=b.offsetWidth+'px';ind.style.transform=`translateX(${b.offsetLeft}px)`;$('bar').style.width=(i+1)*20+'%';runCU();if(!keep)window.scrollTo({top:0,behavior:'smooth'})}
-TABS.forEach((t,i)=>{const b=document.createElement('button');b.textContent=t;b.onclick=()=>show(i);$('tabs').appendChild(b)});
-CARS.forEach(c=>{const b=document.createElement('button');b.className='chip'+(c[0]==F?' on':'');b.textContent=c[1];b.onclick=()=>{F=c[0];document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x==b));render();show(cur,1)};$('chips').appendChild(b)});
-const tip=$('tip');
-document.addEventListener('mouseover',e=>{const t=e.target.closest('[data-t]');tip.textContent=t?t.dataset.t:'';tip.style.opacity=t?1:0});
-document.addEventListener('mousemove',e=>{tip.style.left=Math.max(8,Math.min(e.clientX+12,innerWidth-tip.offsetWidth-8))+'px';tip.style.top=(e.clientY+16)+'px'});
-document.addEventListener('click',e=>{const t=e.target.closest('[data-t]');if(t&&e.pointerType!='mouse'){tip.textContent=t.dataset.t;tip.style.left=Math.max(8,Math.min(e.clientX-60,innerWidth-tip.offsetWidth-8))+'px';tip.style.top=(e.clientY-50)+'px';tip.style.opacity=1;setTimeout(()=>tip.style.opacity=0,2200)}});
-document.addEventListener('keydown',e=>{if(e.target.tagName=='INPUT')return;if(e.key=='ArrowRight')show(Math.min(cur+1,4));if(e.key=='ArrowLeft')show(Math.max(cur-1,0))});
-$('fs').onclick=()=>{try{(document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()).catch(()=>{})}catch(e){}};
-$('th').onclick=()=>{const r=document.documentElement,d=r.dataset.theme?r.dataset.theme=='dark':matchMedia('(prefers-color-scheme:dark)').matches;r.dataset.theme=d?'light':'dark'};
-addEventListener('resize',()=>show(cur,1));
-render();show(0,1);
+<html lang="th">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ระบบบันทึกการใช้รถ</title>
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f7f9fc; }
+        .btn-primary { transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.06);} 
+        .btn-primary:hover { box-shadow: 0 10px 15px -3px rgba(45,212,191,0.3), 0 4px 6px -4px rgba(45,212,191,0.2); transform: translateY(-2px); }
+        .btn-delete { transition: all 0.2s; }
+        .btn-delete:hover { transform: scale(1.05); opacity: 0.9; }
+        .log-table { border-collapse: separate; border-spacing: 0 8px; }
+        .log-table th, .log-table td { padding: 12px 16px; }
+        .action-btn { padding:6px 8px; border-radius:6px; font-size:0.875rem; }
+        .action-edit { background:#fff7ed; color:#92400e; border:1px solid #fcd34d; }
+        .action-delete { background:#fff1f2; color:#9f1239; border:1px solid #fecaca; }
+        .warning { color:#92400e; background:#fff7ed; padding:8px; border-radius:6px; }
+        .badge { display:inline-block; background:#e6fffa; color:#0f766e; padding:6px 10px; border-radius:8px; font-weight:600; margin-right:8px; }
+        /* Responsive Table */
+        @media (max-width: 768px) {
+            .log-table th, .log-table td { padding: 8px 10px; font-size: 0.875rem; }
+            .log-table thead { display: none; }
+            .log-table tbody tr { display: block; margin-bottom: 1rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+            .log-table td { display:flex; justify-content: space-between; border-bottom: 1px solid #f3f4f6; }
+            .log-table td:before { content: attr(data-label); font-weight: 600; color: #4b5563; }
+            .log-table td:last-child { border-bottom: none; }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
 
-// Live data adapter: configurable read-only JSON API. No credentials embedded in HTML.
-const liveBox=document.createElement('div');
-liveBox.className='wrap';liveBox.style.cssText='padding:10px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.82rem';
-liveBox.innerHTML='<span id="liveState" role="status">● ข้อมูลสำรองจากไฟล์ (ยังไม่เชื่อมต่อ)</span><button id="liveConfig" type="button" style="font:inherit;padding:5px 12px;border-radius:9px;cursor:pointer">ตั้งค่าแหล่งข้อมูล</button><button id="liveRefresh" type="button" style="font:inherit;padding:5px 12px;border-radius:9px;cursor:pointer">↻ อัปเดตตอนนี้</button><span id="liveUpdated"></span>';
-document.querySelector('.hero').appendChild(liveBox);
-const liveState=document.getElementById('liveState'), liveUpdated=document.getElementById('liveUpdated');
-let liveUrl=localStorage.getItem('vehicleReportApiUrl')||'',liveTimer=null,liveBusy=false;
-function convertRecord(r){
- const val=(...keys)=>keys.map(k=>r[k]).find(v=>v!==undefined&&v!==null&&v!=='');
- if(Array.isArray(r))return {d:new Date(r[0]),car:r[1],user:r[2],dept:r[3],loc:r[4],o:Number(r[5]),i:Number(r[6]),km:Number(r[7])};
- const start=Number(val('o','odometerOut','mileageOut','startMileage','odometer_start'));
- const end=Number(val('i','odometerIn','mileageIn','endMileage','odometer_end'));
- const kmValue=val('km','distance','distanceKm','totalKm');
- return {d:new Date(val('d','date','datetime','createdAt','returnDate','timestamp')),car:String(val('car','vehicle','vehicleName','carName')||''),user:String(val('user','driver','driverName','employeeName')||''),dept:String(val('dept','department')||''),loc:String(val('loc','destination','location','purpose')||''),o:start,i:end,km:kmValue==null?end-start:Number(kmValue)};
-}
-function normalizePayload(json){
- const records=Array.isArray(json)?json:Array.isArray(json?.records)?json.records:Array.isArray(json?.data)?json.data:Array.isArray(json?.trips)?json.trips:null;
- if(!records)throw Error('รูปแบบ API ต้องส่ง array หรือ {records:[...]}');
- const out=records.map(convertRecord).filter(r=>!Number.isNaN(r.d.getTime())&&Number.isFinite(r.km)&&Number.isFinite(r.o)&&Number.isFinite(r.i));
- if(records.length && !out.length)throw Error('ไม่พบข้อมูลที่ตรงกับคอลัมน์รายงาน');
- return out.sort((a,b)=>a.d-b.d);
-}
-async function refreshLive(){
- if(!liveUrl){liveState.textContent='● ข้อมูลสำรองจากไฟล์ (ยังไม่เชื่อมต่อ)';return}
- if(liveBusy)return;liveBusy=true;liveState.textContent='◌ กำลังตรวจสอบข้อมูลล่าสุด…';
- try{
-  const ctl=new AbortController(),timeout=setTimeout(()=>ctl.abort(),12000);
-  let response;try{response=await fetch(liveUrl,{cache:'no-store',signal:ctl.signal,credentials:'omit',headers:{'Accept':'application/json'}})}finally{clearTimeout(timeout)}
-  if(!response.ok)throw Error('HTTP '+response.status);
-  const incoming=normalizePayload(await response.json());
-  D=incoming;render();show(cur,1);
-  liveState.textContent='● เชื่อมต่อข้อมูลสดแล้ว ('+D.length+' รายการ)';liveState.style.color='#99f6e4';
-  liveUpdated.textContent='อัปเดต '+new Date().toLocaleTimeString('th-TH')+' · ตรวจทุก 15 วินาที';
- }catch(err){liveState.textContent='⚠ เชื่อมต่อไม่สำเร็จ — แสดงข้อมูลล่าสุดที่โหลดได้';liveState.style.color='#fecaca';liveUpdated.textContent=err.message+' · ตรวจอีกครั้งใน 15 วินาที'}
- finally{liveBusy=false}
-}
-function startLive(){if(liveTimer)clearInterval(liveTimer);refreshLive();liveTimer=setInterval(()=>{if(!document.hidden)refreshLive()},15000)}
-document.getElementById('liveRefresh').onclick=refreshLive;
-document.getElementById('liveConfig').onclick=()=>{
- const value=prompt('ใส่ URL ของ API ที่คืนข้อมูลการใช้รถเป็น JSON (HTTPS เท่านั้น)\nเว้นว่างเพื่อตัดการเชื่อมต่อ',liveUrl);
- if(value===null)return;
- const v=value.trim();if(v&&!/^https:\/\//i.test(v)){alert('กรุณาใช้ HTTPS URL เท่านั้น');return}
- liveUrl=v;if(v)localStorage.setItem('vehicleReportApiUrl',v);else localStorage.removeItem('vehicleReportApiUrl');
- liveState.style.color='';startLive();
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">ระบบบันทึกการใช้รถ</h1>
+    <p id="auth-status" class="text-center text-sm text-gray-500 mb-4">กำลังเชื่อมต่อ...</p>
+
+    <div id="current-date-time" class="text-center text-sm font-semibold text-teal-700 mb-6 p-2 bg-teal-50 rounded-lg shadow-inner"></div>
+
+    <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+        <h2 class="text-xl font-semibold text-teal-600 mb-4">บันทึกการใช้รถใหม่</h2>
+        <form id="car-log-form">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="vehicle" class="block text-sm font-medium text-gray-700 mb-1">เลือกรถยนต์</label>
+                    <select id="vehicle" name="vehicle" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500">
+                        <option value="">-- เลือกรถ --</option>
+                        <option value="Nissan Almera">นิสสัน อเมร่า (Nissan Almera)</option>
+                        <option value="EV">รถยนต์ไฟฟ้า (EV)</option>
+                    </select>
+                    <div id="last-odom-display" class="mt-2 text-sm text-gray-600"></div>
+                </div>
+
+                <div>
+                    <label for="userName" class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้ใช้งาน</label>
+                    <input id="userName" name="userName" type="text" required placeholder="เช่น สมหญิง / User ID" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500" />
+                </div>
+
+                <div>
+                    <label for="department" class="block text-sm font-medium text-gray-700 mb-1">แผนก</label>
+                    <select id="department" name="department" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500">
+                        <option value="">-- เลือกแผนก --</option>
+                        <option>บริหาร</option>
+                        <option>มิลิเนีย</option>
+                        <option>นิวโมเดล</option>
+                        <option>ฝ่ายผลิต 1</option>
+                        <option>ฝ่ายผลิต 2</option>
+                        <option>ประกันคุณภาพ (QA)</option>
+                        <option>ซ่อมบำรุง</option>
+                        <option>สโตร์วัตถุดิบ</option>
+                        <option>วางแผน</option>
+                        <option>จัดส่ง</option>
+                        <option>บัญชี</option>
+                        <option>การตลาด</option>
+                        <option>บุคคล / HR</option>
+                        <option>ระบบคุณภาพ</option>
+                        <option>จัดซื้อ</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="easyPass" class="block text-sm font-medium text-gray-700 mb-1">Easy Pass คงเหลือ (บาท)</label>
+                    <input id="easyPass" name="easyPass" type="number" step="0.25" min="0" required placeholder="เช่น 120.50" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500" />
+                </div>
+
+                <div class="md:col-span-2">
+                    <label for="location" class="block text-sm font-medium text-gray-700 mb-1">สถานที่ใช้งาน (Location)</label>
+                    <input id="location" name="location" type="text" required placeholder="เช่น กรุงเทพฯ > เชียงใหม่ / ส่งของบริษัท" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500" />
+                </div>
+
+                <div>
+                    <label for="odometerOut" class="block text-sm font-medium text-gray-700 mb-1">เลขไมค์ ขาออก (กม.)</label>
+                    <input id="odometerOut" name="odometerOut" type="number" required min="0" step="1" placeholder="ตัวเลขเท่านั้น" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500" />
+                    <p id="odometer-out-hint" class="text-xs text-gray-500 mt-1">ระบบจะแสดงค่าไมค์ล่าสุดของรถที่เลือกเพื่อช่วยตรวจสอบ</p>
+                </div>
+
+                <div>
+                    <label for="odometerIn" class="block text-sm font-medium text-gray-700 mb-1">เลขไมค์ ขาเข้า (กม.)</label>
+                    <input id="odometerIn" name="odometerIn" type="number" required min="0" step="1" placeholder="ตัวเลขเท่านั้น" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500" />
+                    <p id="odometer-in-hint" class="text-xs text-gray-500 mt-1">กรุณากรอกไมค์ที่มากกว่าหรือเท่ากับไมค์ขาออก และไม่ต่ำกว่าไมค์ล่าสุดของรถ</p>
+                </div>
+
+            </div>
+
+            <div id="form-message" class="mt-3 text-sm font-medium text-red-500 hidden"></div>
+
+            <button type="submit" id="submit-btn" class="btn-primary w-full mt-6 bg-teal-500 text-white p-3 rounded-lg font-semibold hover:bg-teal-600 focus:outline-none focus:ring-4 focus:ring-teal-500 focus:ring-opacity-50">บันทึกข้อมูลการใช้รถ</button>
+        </form>
+    </div>
+
+    <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mb-4">
+        <button id="delete-latest-btn" disabled class="btn-delete w-full sm:w-1/2 bg-red-500 text-white p-3 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-600 focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50">ลบรายการล่าสุด (Delete Latest)</button>
+        <button id="download-btn" disabled class="btn-primary w-full sm:w-1/2 bg-blue-500 text-white p-3 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-600 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50">ดาวน์โหลดข้อมูล (CSV)</button>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow-lg mb-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">รายการบันทึกล่าสุด</h2>
+        <div class="overflow-x-auto">
+            <table class="log-table w-full text-left text-gray-600">
+                <thead class="bg-gray-50 text-xs uppercase text-gray-500 rounded-lg">
+                    <tr>
+                        <th>วันที่/เวลา</th>
+                        <th>รถยนต์</th>
+                        <th>ผู้ใช้งาน</th>
+                        <th>แผนก</th>
+                        <th>สถานที่</th>
+                        <th>Easy Pass (บาท)</th>
+                        <th>ไมค์ออก</th>
+                        <th>ไมค์เข้า</th>
+                        <th>ระยะทาง (กม.)</th>
+                        <th class="rounded-r-lg">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="log-list"><tr><td colspan="10" class="text-center py-8">ไม่มีรายการบันทึก</td></tr></tbody>
+            </table>
+        </div>
+        <div id="loading-state" class="text-center py-4 text-gray-500 hidden">กำลังโหลดข้อมูล...</div>
+        <div class="text-center mt-4">
+            <button id="load-more-btn" class="px-4 py-2 bg-teal-100 text-teal-700 rounded-lg border border-teal-200 hover:bg-teal-200">แสดงรายการเพิ่มเติม</button>
+        </div>
+    </div>
+
+    <div id="custom-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white p-6 rounded-lg shadow-2xl max-w-sm w-full">
+            <h3 id="modal-title" class="text-xl font-bold mb-3 text-gray-800"></h3>
+            <p id="modal-message" class="text-gray-600 mb-4"></p>
+            <div class="flex justify-end space-x-2"><button id="modal-close" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">ปิด</button></div>
+        </div>
+    </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, doc, addDoc, deleteDoc, updateDoc, onSnapshot, collection, query, orderBy, limit, getDocs, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+const firebaseConfig = {
+    apiKey: "AIzaSyDKfJvn9yh-g1J5OMA9EBLEyp740b-NyH4",
+    authDomain: "vehicle-mileage-31238.firebaseapp.com",
+    projectId: "vehicle-mileage-31238",
+    storageBucket: "vehicle-mileage-31238.firebasestorage.app",
+    messagingSenderId: "968556830605",
+    appId: "1:968556830605:web:4708cecdbfc44737c267c4",
+    measurementId: "G-42QZMXH8VF"
 };
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshLive()});
-// Direct read-only Firestore realtime subscription (same project and collection as vehicle-mileage-log.html).
-// Never silently substitute historic embedded figures for a failed live connection.
-const fbScript=document.createElement('script');fbScript.type='module';fbScript.textContent=`
-import {initializeApp} from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
-import {getAuth,signInAnonymously} from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-import {getFirestore,collection,onSnapshot} from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
-const config={apiKey:'AIzaSyDKfJvn9yh-g1J5OMA9EBLEyp740b-NyH4',authDomain:'vehicle-mileage-31238.firebaseapp.com',projectId:'vehicle-mileage-31238',storageBucket:'vehicle-mileage-31238.firebasestorage.app',messagingSenderId:'968556830605',appId:'1:968556830605:web:4708cecdbfc44737c267c4'};
-const app=initializeApp(config,'vehicle-report-readonly');
-const db=getFirestore(app),auth=getAuth(app);
-const status=document.getElementById('liveState'), updated=document.getElementById('liveUpdated');
-status.textContent='◌ กำลังยืนยันตัวตนกับ Firebase…';
-try {
- await signInAnonymously(auth);
- const path='artifacts/default-app-id/public/data/vehicle_logs';
- onSnapshot(collection(db,path),snap=>{
-   const rows=snap.docs.map(doc=>({...doc.data(),id:doc.id}));
-   const normalized=rows.map(r=>{
-     const ts=r.timestamp?.toDate?.()||r.clientTimestamp||null;
-     const d=ts instanceof Date?ts:new Date(ts);
-     const o=Number(r.odometerOut),i=Number(r.odometerIn);
-     return {d,car:r.vehicle||'',user:r.userName||'',dept:r.department||'',loc:r.location||'',o,i,km:i-o};
-   }).filter(r=>Number.isFinite(r.d.getTime())&&Number.isFinite(r.o)&&Number.isFinite(r.i));
-   D=normalized.sort((a,b)=>a.d-b.d);
-   render();show(cur,1);
-   status.textContent='● Firebase สด ('+D.length+' รายการ)';status.style.color='#99f6e4';
-   updated.textContent='ซิงก์ล่าสุด '+new Date().toLocaleTimeString('th-TH');
- },err=>{status.textContent='⚠ อ่าน Firestore ไม่สำเร็จ: '+err.code;status.style.color='#fecaca';updated.textContent='รายงานยังเป็นข้อมูลสำรอง ไม่ใช่ข้อมูลสด';});
-}catch(err){status.textContent='⚠ Firebase Auth ไม่สำเร็จ: '+(err.code||err.message);status.style.color='#fecaca';updated.textContent='รายงานยังเป็นข้อมูลสำรอง ไม่ใช่ข้อมูลสด';}
-`;
-document.body.appendChild(fbScript);
-// Disable unused generic polling when direct listener is active.
 
-</script></body></html>
+const COLLECTION_PATH = `/artifacts/${appId}/public/data/vehicle_logs`;
+let db, auth, userId = null, vehicleLogsRef;
+let unsubscribe = null, displayLimit = 20;
+
+let lastOdometers = { 'Nissan Almera': 77634, 'EV': 3045 };
+const USE_MOCK = false; // connected to Firebase now
+const MOCK_LOGS = [
+    { id: 'mock1', vehicle: 'Nissan Almera', userName: 'สมชาย', department: 'จัดส่ง', location: 'กทม. > ชลบุรี', easyPass: 50.00, odometerOut: 77634, odometerIn: 77690, clientTimestamp: new Date().toISOString() },
+    { id: 'mock2', vehicle: 'EV', userName: 'สมหญิง', department: 'การตลาด', location: 'กทม. > ระยอง', easyPass: 0.00, odometerOut: 3045, odometerIn: 3100, clientTimestamp: new Date(Date.now()-3600*1000).toISOString() }
+];
+
+// Elements
+const form = document.getElementById('car-log-form');
+const logList = document.getElementById('log-list');
+const authStatus = document.getElementById('auth-status');
+const deleteLatestBtn = document.getElementById('delete-latest-btn');
+const downloadBtn = document.getElementById('download-btn');
+const loadingState = document.getElementById('loading-state');
+const formMessage = document.getElementById('form-message');
+const modal = document.getElementById('custom-modal');
+const modalTitle = document.getElementById('modal-title');
+const modalMessage = document.getElementById('modal-message');
+const modalClose = document.getElementById('modal-close');
+const currentDateTimeDiv = document.getElementById('current-date-time');
+const loadMoreBtn = document.getElementById('load-more-btn');
+const vehicleSelect = document.getElementById('vehicle');
+const odometerOutInput = document.getElementById('odometerOut');
+const odometerInInput = document.getElementById('odometerIn');
+const odometerOutHint = document.getElementById('odometer-out-hint');
+const odometerInHint = document.getElementById('odometer-in-hint');
+const submitBtn = document.getElementById('submit-btn');
+const lastOdomDisplay = document.getElementById('last-odom-display');
+
+function showModal(title, message) { modalTitle.textContent = title; modalMessage.textContent = message; modal.classList.remove('hidden'); }
+modalClose.addEventListener('click', () => modal.classList.add('hidden'));
+function safeParseDate(v){ if(!v) return null; try{ const d=new Date(v); return isNaN(d)?null:d }catch(e){return null} }
+function formatTimestamp(timestamp){ if(!timestamp) return 'ไม่ระบุ'; try{ if(typeof timestamp==='string'){ const d=safeParseDate(timestamp); if(d) return d.toLocaleString('th-TH',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Bangkok'}); } if(timestamp && typeof timestamp.toDate==='function'){ const d=timestamp.toDate(); return d.toLocaleString('th-TH',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Bangkok'}); } if(timestamp instanceof Date){ return timestamp.toLocaleString('th-TH',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Bangkok'}); } }catch(e){console.warn('formatTimestamp failed',e,timestamp)} return 'ไม่ระบุ'; }
+function updateDateTimeDisplay(){ const now=new Date(); const options={weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:'Asia/Bangkok'}; currentDateTimeDiv.textContent=`วันที่และเวลาปัจจุบัน (ระบบ): ${now.toLocaleString('th-TH',options)} (เวลาที่บันทึกจริงจะใช้เวลาเซิร์ฟเวอร์)` }
+updateDateTimeDisplay(); setInterval(updateDateTimeDisplay,1000);
+
+// Update the lastOdometers from a list of logs (take the max odometerIn per vehicle)
+function recomputeLastOdometersFromLogs(logs){ const map = {}; logs.forEach(l=>{ if(!l || !l.vehicle) return; const inKm = Number(l.odometerIn) || 0; if(!(l.vehicle in map) || inKm > map[l.vehicle]) map[l.vehicle] = inKm; }); // fill defaults if missing
+    ['Nissan Almera','EV'].forEach(v=>{ if(!(v in map)) map[v] = lastOdometers[v] || 0; }); lastOdometers = map; updateLastOdomDisplay(); }
+
+function updateLastOdomDisplay(){ // show the current recorded last odometers
+    const parts = [];
+    for(const [k,v] of Object.entries(lastOdometers)){
+        parts.push(`${k}: ${Number(v).toLocaleString('th-TH')} กม.`);
+    }
+    lastOdomDisplay.textContent = parts.join(' • ');
+}
+updateLastOdomDisplay();
+
+function renderLogs(logs){ loadingState.classList.add('hidden'); logList.innerHTML=''; if(!logs||logs.length===0){ logList.innerHTML='<tr><td colspan="10" class="text-center py-8 text-gray-500">ไม่มีรายการบันทึก</td></tr>'; deleteLatestBtn.disabled=true; downloadBtn.disabled=true; return; } deleteLatestBtn.disabled=false; downloadBtn.disabled=false;
+    // recompute last odometers so UI reflects newest saved data
+    recomputeLastOdometersFromLogs(logs);
+
+    function getLogTime(item){ try{ if(item&&item.timestamp&&typeof item.timestamp.toDate==='function') return item.timestamp.toDate().getTime(); if(item&&item.clientTimestamp){ const d=safeParseDate(item.clientTimestamp); if(d) return d.getTime(); const n=new Date(item.clientTimestamp); if(!isNaN(n)) return n.getTime(); } }catch(e){} return 0; }
+    logs.sort((a,b)=>getLogTime(b)-getLogTime(a));
+
+    logs.forEach(log=>{ const tr=document.createElement('tr'); tr.className='bg-gray-50 hover:bg-gray-100 transition duration-150 ease-in-out border-b border-gray-200'; const distance=(Number.isFinite(log.odometerIn)&&Number.isFinite(log.odometerOut))?Math.max(0,log.odometerIn-log.odometerOut):0; const easyPass=(log.easyPass!==undefined&&log.easyPass!==null)?Number(log.easyPass).toFixed(2):'-'; const ts=log.timestamp||log.clientTimestamp||null; const tsDisplay=formatTimestamp(ts);
+        // action buttons: edit / delete
+        const editBtn = `<button class="action-btn action-edit" data-id="${log.id}">แก้ไข</button>`;
+        const delBtn = `<button class="action-btn action-delete ml-2" data-id="${log.id}">ลบ</button>`;
+        tr.innerHTML=`<td data-label="วันที่/เวลา" class="font-medium text-gray-900">${tsDisplay}</td><td data-label="รถยนต์" class="font-semibold text-teal-700">${log.vehicle||''}</td><td data-label="ผู้ใช้งาน">${log.userName||''}</td><td data-label="แผนก">${log.department||'-'}</td><td data-label="สถานที่">${log.location||'-'}</td><td data-label="Easy Pass" class="text-right">${easyPass}</td><td data-label="ไมค์ออก" class="text-right">${(log.odometerOut??'').toLocaleString('th-TH')}</td><td data-label="ไมค์เข้า" class="text-right">${(log.odometerIn??'').toLocaleString('th-TH')}</td><td data-label="ระยะทาง (กม.)" class="font-bold text-blue-600 text-right">${distance.toLocaleString('th-TH')}</td><td data-label="จัดการ" class="text-right">${editBtn}${delBtn}</td>`;
+        logList.appendChild(tr);
+    });
+
+    // Attach event listeners for newly created buttons
+    document.querySelectorAll('.action-delete').forEach(btn=>{ btn.addEventListener('click', async (e)=>{ const id = btn.getAttribute('data-id'); if(!id) return; const confirmed = confirm('ยืนยันการลบรายการนี้?'); if(!confirmed) return; try{ if(USE_MOCK){ const idx = MOCK_LOGS.findIndex(x=>String(x.id)===String(id)); if(idx>=0){ MOCK_LOGS.splice(idx,1); renderLogs(MOCK_LOGS); showModal('สำเร็จ','ลบข้อมูลเรียบร้อย'); } } else { await deleteDoc(doc(db, COLLECTION_PATH, id)); showModal('สำเร็จ','ลบข้อมูลเรียบร้อย'); } } catch(err){ console.error('delete failed',err); showModal('ข้อผิดพลาด', `ไม่สามารถลบได้: ${err.message}`); } }); });
+
+    document.querySelectorAll('.action-edit').forEach(btn=>{ btn.addEventListener('click', async (e)=>{ const id = btn.getAttribute('data-id'); if(!id) return; // find record
+            let record = null;
+            if(USE_MOCK) record = MOCK_LOGS.find(x=>String(x.id)===String(id));
+            else {
+                // fetch single doc
+                try{ const q = query(collection(db, COLLECTION_PATH), orderBy('timestamp','desc'), limit(displayLimit)); // fallback if needed
+                }catch(e){}
+            }
+            // Build simple edit modal
+            const editModal = document.createElement('div'); editModal.className='fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-[9999]';
+            editModal.innerHTML = `
+                <div class="bg-white p-6 rounded-lg shadow-2xl max-w-md w-full">
+                    <h3 class="text-xl font-bold mb-3 text-gray-800">แก้ไขรายการ (ID: ${id.substring(0,8)})</h3>
+                    <div class="space-y-2">
+                        <label class="block text-sm">ผู้ใช้งาน</label>
+                        <input id="edit-user" class="w-full p-2 border rounded" value="${(record?.userName)||''}" />
+                        <label class="block text-sm">แผนก</label>
+                        <input id="edit-dept" class="w-full p-2 border rounded" value="${(record?.department)||''}" />
+                        <label class="block text-sm">สถานที่</label>
+                        <input id="edit-loc" class="w-full p-2 border rounded" value="${(record?.location)||''}" />
+                        <label class="block text-sm">Easy Pass</label>
+                        <input id="edit-easy" type="number" step="0.25" class="w-full p-2 border rounded" value="${(record?.easyPass)||''}" />
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><label class="block text-sm">ไมค์ออก</label><input id="edit-out" type="number" class="w-full p-2 border rounded" value="${(record?.odometerOut)||''}" /></div>
+                            <div><label class="block text-sm">ไมค์เข้า</label><input id="edit-in" type="number" class="w-full p-2 border rounded" value="${(record?.odometerIn)||''}" /></div>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex justify-end space-x-2"><button id="cancel-edit" class="px-4 py-2 bg-gray-200 rounded">ยกเลิก</button><button id="save-edit" class="px-4 py-2 bg-teal-500 text-white rounded">บันทึก</button></div>
+                </div>
+            `;
+            document.body.appendChild(editModal);
+            document.getElementById('cancel-edit').onclick = ()=>{ editModal.remove(); };
+            document.getElementById('save-edit').onclick = async ()=>{
+                const newUser = document.getElementById('edit-user').value.trim();
+                const newDept = document.getElementById('edit-dept').value.trim();
+                const newLoc = document.getElementById('edit-loc').value.trim();
+                const newEasy = parseFloat(document.getElementById('edit-easy').value) || 0;
+                const newOut = parseInt(document.getElementById('edit-out').value,10);
+                const newIn = parseInt(document.getElementById('edit-in').value,10);
+                if(isNaN(newOut) || isNaN(newIn)){ alert('กรุณากรอกไมค์ให้ถูกต้อง'); return; }
+                if(newIn < newOut){ alert('ไมค์เข้า ต้อง >= ไมค์ออก'); return; }
+                try{
+                    if(USE_MOCK){ const idx = MOCK_LOGS.findIndex(x=>String(x.id)===String(id)); if(idx>=0){ MOCK_LOGS[idx] = { ...MOCK_LOGS[idx], userName:newUser, department:newDept, location:newLoc, easyPass:newEasy, odometerOut:newOut, odometerIn:newIn }; renderLogs(MOCK_LOGS); }
+                    } else {
+                        await updateDoc(doc(db, COLLECTION_PATH, id), { userName:newUser, department:newDept, location:newLoc, easyPass:newEasy, odometerOut:newOut, odometerIn:newIn, clientTimestamp:new Date().toISOString() });
+                    }
+                    editModal.remove(); showModal('สำเร็จ','แก้ไขข้อมูลเรียบร้อย');
+                } catch(err){ console.error('update failed',err); showModal('ข้อผิดพลาด', `ไม่สามารถแก้ไขได้: ${err.message}`); }
+            };
+    }); });
+}
+
+// Firebase init + auth
+async function initFirebase(){ try{ setLogLevel('debug'); const app = initializeApp(firebaseConfig); db = getFirestore(app); auth = getAuth(app);
+        onAuthStateChanged(auth, async (user)=>{ if(user){ userId = user.uid; authStatus.textContent = `เชื่อมต่อแล้ว (User ID: ${userId.substring(0,8)}...)`; vehicleLogsRef = collection(db, COLLECTION_PATH); listenForLogs(); deleteLatestBtn.disabled=false; downloadBtn.disabled=false; } else { await signInUser(); } });
+        await signInUser(); } catch(err){ authStatus.textContent = `ข้อผิดพลาดในการเชื่อมต่อ Firebase: ${err.message || err.code}`; showModal('ข้อผิดพลาด','ไม่สามารถเชื่อมต่อกับฐานข้อมูลได้ โปรดตรวจสอบการตั้งค่า Firebase Console.'); } }
+
+async function signInUser(){ try{ await signInAnonymously(auth); authStatus.textContent = 'ลงชื่อเข้าใช้แบบไม่ระบุตัวตน...'; } catch(err){ authStatus.textContent = `การยืนยันตัวตนล้มเหลว: ${err.message}`; showModal('ข้อผิดพลาดในการเข้าสู่ระบบ', `ไม่สามารถยืนยันตัวตนได้: ${err.message}`); } }
+
+function listenForLogs(){ if(!db) return; loadingState.classList.remove('hidden'); if(typeof unsubscribe === 'function') unsubscribe(); try{ const q = query(collection(db, COLLECTION_PATH), orderBy('timestamp','desc'), limit(displayLimit)); unsubscribe = onSnapshot(q, (snapshot)=>{ const logs = []; snapshot.forEach(docSnap=>logs.push({ id: docSnap.id, ...docSnap.data() })); renderLogs(logs); if(snapshot.size < displayLimit) loadMoreBtn.classList.add('hidden'); else loadMoreBtn.classList.remove('hidden'); }, (err)=>{ console.error('Firestore listen failed:', err); showModal('ข้อผิดพลาด','ไม่สามารถดึงข้อมูลบันทึกการใช้รถได้'); loadingState.classList.add('hidden'); }); } catch(err){ console.error('listenForLogs error', err); showModal('ข้อผิดพลาด', `ไม่สามารถตั้งค่าการฟังข้อมูล: ${err.message || err}`); loadingState.classList.add('hidden'); } }
+
+loadMoreBtn.addEventListener('click', ()=>{ displayLimit += 20; loadMoreBtn.textContent = 'กำลังโหลดเพิ่มเติม...'; loadMoreBtn.disabled = true; listenForLogs(); setTimeout(()=>{ loadMoreBtn.disabled = false; loadMoreBtn.textContent = 'แสดงรายการเพิ่มเติม'; }, 800); });
+
+// Validation utilities
+function showFormError(message){ formMessage.textContent = message; formMessage.classList.remove('hidden'); }
+function hideFormError(){ formMessage.textContent = ''; formMessage.classList.add('hidden'); }
+
+vehicleSelect.addEventListener('change', ()=>{ hideFormError(); const v = vehicleSelect.value; const last = lastOdometers[v] ?? null; if(last !== null){ odometerOutInput.placeholder = `เช่น ${last} (ไมค์ล่าสุดของ ${v})`; odometerInInput.placeholder = `ต้องไม่น้อยกว่า ${last}`; odometerOutHint.textContent = `ไมค์ล่าสุดบันทึกไว้: ${last.toLocaleString('th-TH')} กม.`; odometerInHint.textContent = `กรอกไมค์ที่ >= ไมค์ขาออก และไม่ต่ำกว่า ${last.toLocaleString('th-TH')} กม.`; odometerOutInput.min = last; odometerInInput.min = last; } else { odometerOutInput.placeholder = 'ตัวเลขเท่านั้น'; odometerInInput.placeholder = 'ตัวเลขเท่านั้น'; odometerOutHint.textContent = 'ระบบจะแสดงค่าไมค์ล่าสุดของรถที่เลือกเพื่อช่วยตรวจสอบ'; odometerInHint.textContent = 'กรุณากรอกไมค์ที่มากกว่าหรือเท่ากับไมค์ขาออก และไม่ต่ำกว่าไมค์ล่าสุดของรถ'; odometerOutInput.removeAttribute('min'); odometerInInput.removeAttribute('min'); } updateLastOdomDisplay(); });
+
+function validateOdometerFields(){ hideFormError(); const v = vehicleSelect.value; const last = lastOdometers[v] ?? null; const outVal = odometerOutInput.value ? parseInt(odometerOutInput.value,10) : NaN; const inVal = odometerInInput.value ? parseInt(odometerInInput.value,10) : NaN; if(isNaN(outVal) || isNaN(inVal)) return true; if(inVal < outVal){ showFormError('เลขไมค์ขาเข้า ต้องมากกว่าหรือเท่ากับ เลขไมค์ขาออก'); return false; } if(last !== null){ if(outVal < last || inVal < last){ showFormError(`เลขไมค์ที่กรอกต่ำกว่าไมค์ล่าสุดของรถที่เลือก (${v} = ${last.toLocaleString('th-TH')} กม.) กรุณาตรวจสอบ`); return false; } } for(const [otherVehicle, otherLast] of Object.entries(lastOdometers)){ if(otherVehicle === v) continue; if(Math.abs(outVal - otherLast) <= 1000 || Math.abs(inVal - otherLast) <= 1000){ showFormError(`ค่าที่กรอกใกล้เคียงกับไมค์ของ ${otherVehicle} (ไมค์ล่าสุด ${otherLast.toLocaleString('th-TH')} กม.) ระบบจะบล็อกการบันทึกนี้ โปรดตรวจสอบให้ตรงกับรถที่เลือก`); return false; } } return true; }
+odometerOutInput.addEventListener('input', validateOdometerFields);
+odometerInInput.addEventListener('input', validateOdometerFields);
+
+// Form submit
+form.addEventListener('submit', async (e)=>{ e.preventDefault(); hideFormError(); if(!db && !USE_MOCK){ showModal('ข้อผิดพลาด', 'ฐานข้อมูลยังไม่พร้อมใช้งาน โปรดรอสักครู่'); return; }
+    const vehicle = vehicleSelect.value; const userName = document.getElementById('userName').value.trim(); const department = document.getElementById('department').value.trim(); const location = document.getElementById('location').value.trim(); const odometerOut = odometerOutInput.value ? parseInt(odometerOutInput.value,10) : NaN; const odometerIn = odometerInInput.value ? parseInt(odometerInInput.value,10) : NaN; const easyPassVal = document.getElementById('easyPass').value; const easyPass = easyPassVal !== '' ? parseFloat(easyPassVal) : null;
+    if(!vehicle || !userName || !department || !location || easyPassVal === '' || isNaN(odometerOut) || isNaN(odometerIn)) { showFormError('กรุณากรอกข้อมูลให้ครบถ้วนทุกช่อง (ต้องไม่เว้นว่าง)'); return; }
+    if(odometerIn < odometerOut) { showFormError('เลขไมค์ขาเข้า ต้องมากกว่าหรือเท่ากับ เลขไมค์ขาออกเสมอ'); return; }
+    const last = lastOdometers[vehicle] ?? null; if(last !== null && (odometerOut < last || odometerIn < last)) { showFormError(`ไม่สามารถบันทึก: เลขไมค์ที่กรอกต่ำกว่าไมค์ล่าสุดของรถ ${vehicle} (ไมค์ล่าสุด ${last.toLocaleString('th-TH')} กม.)`); return; }
+    for(const [otherVehicle, otherLast] of Object.entries(lastOdometers)){ if(otherVehicle === vehicle) continue; if(Math.abs(odometerOut - otherLast) <= 1000 || Math.abs(odometerIn - otherLast) <= 1000){ showFormError(`ค่าที่กรอกใกล้เคียงกับไมค์ของ ${otherVehicle} (ไมค์ล่าสุด ${otherLast.toLocaleString('th-TH')} กม.) ระบบจะบล็อกการบันทึกนี้ โปรดตรวจสอบให้ตรงกับรถที่เลือก`); return; } }
+    submitBtn.disabled = true; submitBtn.textContent = 'กำลังบันทึก...';
+    try{
+        const newLog = { vehicle, userName, department, location, easyPass, odometerOut, odometerIn, distance: odometerIn - odometerOut, timestamp: serverTimestamp(), clientTimestamp: new Date().toISOString(), userId };
+        if(USE_MOCK){ MOCK_LOGS.push({ id: `mock-${Date.now()}`, ...newLog }); renderLogs(MOCK_LOGS); }
+        else { await addDoc(collection(db, COLLECTION_PATH), newLog); }
+        showModal('สำเร็จ!', 'บันทึกข้อมูลการใช้รถเรียบร้อยแล้ว'); form.reset(); lastOdometers[vehicle] = Math.max(lastOdometers[vehicle] || 0, odometerIn); vehicleSelect.dispatchEvent(new Event('change'));
+    } catch(err){ console.error('Firestore addDoc failed:', err); showFormError(`ข้อผิดพลาดในการบันทึก: ${err.message}`); showModal('ข้อผิดพลาดในการบันทึก', `ไม่สามารถบันทึกข้อมูลได้: ${err.message} โปรดตรวจสอบ Firebase Security Rules.`); } finally { submitBtn.disabled = false; submitBtn.textContent = 'บันทึกข้อมูลการใช้รถ'; }
+});
+
+// Delete latest (keeps existing function)
+deleteLatestBtn.addEventListener('click', async ()=>{
+    if(!db && !USE_MOCK) return; deleteLatestBtn.disabled = true; const originalText = deleteLatestBtn.textContent; deleteLatestBtn.textContent = 'กำลังลบ...';
+    try{
+        if(USE_MOCK){ if(MOCK_LOGS.length === 0){ showModal('ไม่พบข้อมูล', 'ไม่พบรายการบันทึกใดๆ ที่จะลบ'); return; } const latest = MOCK_LOGS.pop(); renderLogs(MOCK_LOGS); showModal('สำเร็จ!', `รายการล่าสุด (${latest.userName} / ${String(latest.id).substring(0,8)}...) ถูกลบแล้ว`); }
+        else {
+            const q = query(collection(db, COLLECTION_PATH), orderBy('timestamp','desc'), limit(1)); const querySnapshot = await getDocs(q); if(querySnapshot.empty){ showModal('ไม่พบข้อมูล', 'ไม่พบรายการบันทึกใดๆ ที่จะลบ'); return; } const latestDoc = querySnapshot.docs[0]; const docId = latestDoc.id;
+            const confirmed = await new Promise(resolve => { const confirmModal = document.createElement('div'); confirmModal.className = 'fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center p-4 z-[9999]'; confirmModal.innerHTML = `<div class="bg-white p-6 rounded-lg shadow-2xl max-w-sm w-full"><h3 class="text-xl font-bold mb-3 text-gray-800">ยืนยันการลบ</h3><p class="text-gray-600 mb-4">คุณต้องการลบรายการบันทึกที่ล่าสุดโดย ${latestDoc.data().userName} ใช่หรือไม่?</p><div class="flex justify-end space-x-2"><button id="cancel-delete" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">ยกเลิก</button><button id="confirm-delete" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">ยืนยัน</button></div></div>`; document.body.appendChild(confirmModal); document.getElementById('cancel-delete').onclick = ()=>{ confirmModal.remove(); resolve(false); }; document.getElementById('confirm-delete').onclick = ()=>{ confirmModal.remove(); resolve(true); }; });
+            if(confirmed){ await deleteDoc(doc(db, COLLECTION_PATH, docId)); showModal('สำเร็จ!', `รายการล่าสุด (${latestDoc.data().userName} / ${docId.substring(0,8)}...) ถูกลบแล้ว`); } else { showModal('ยกเลิก', 'การลบรายการถูกยกเลิก'); }
+        }
+    } catch(err){ console.error('Firestore delete failed:', err); showModal('ข้อผิดพลาด', `ไม่สามารถลบรายการได้: ${err.message}`); } finally { deleteLatestBtn.disabled = false; deleteLatestBtn.textContent = originalText; }
+});
+
+// Download CSV (fixed BOM/newline)
+downloadBtn.addEventListener('click', async ()=>{
+    if(!db && !USE_MOCK) return; downloadBtn.disabled = true; const originalText = downloadBtn.textContent; downloadBtn.textContent = 'กำลังเตรียมไฟล์...';
+    try{
+        let logs = [];
+        if(USE_MOCK) logs = MOCK_LOGS.slice();
+        else { const q = query(collection(db, COLLECTION_PATH), orderBy('timestamp','asc')); const querySnapshot = await getDocs(q); if(querySnapshot.empty){ showModal('ไม่มีข้อมูล', 'ไม่มีข้อมูลบันทึกให้ดาวน์โหลด'); downloadBtn.disabled = false; downloadBtn.textContent = originalText; return; } querySnapshot.forEach(docSnap => logs.push(docSnap.data())); }
+
+        const headers = ["ID บันทึก","วันที่/เวลา","รถยนต์","ผู้ใช้งาน","แผนก","สถานที่","Easy Pass (บาท)","ไมค์ออก (กม.)","ไมค์เข้า (กม.)","ระยะทาง (กม.)"];
+        const rows = [headers];
+        logs.forEach(log => {
+            const timestampStr = formatTimestamp(log.timestamp || log.clientTimestamp);
+            const distance = (log.odometerIn ?? 0) - (log.odometerOut ?? 0);
+            const row = [ log.userId ? String(log.userId).substring(0,8) : (log.id ? String(log.id).substring(0,8) : '-'), timestampStr, log.vehicle ?? '', log.userName ?? '', log.department ?? '', log.location ?? '', (log.easyPass ?? ''), (log.odometerOut ?? ''), (log.odometerIn ?? ''), distance ];
+            rows.push(row);
+        });
+
+        // Build CSV with BOM and CRLF safely
+        const csvString = '\uFEFF' + rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a'); link.setAttribute('href', url); link.setAttribute('download', `car_logbook_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url);
+        showModal('ดาวน์โหลดสำเร็จ!', 'ไฟล์ CSV ถูกดาวน์โหลดไปยังเครื่องของคุณแล้ว');
+    } catch(err){ console.error('Download failed:', err); showModal('ข้อผิดพลาด', `ไม่สามารถดาวน์โหลดข้อมูลได้: ${err.message}`); } finally { downloadBtn.disabled = false; downloadBtn.textContent = originalText; }
+});
+
+// Initialize
+if(USE_MOCK){ renderLogs(MOCK_LOGS); authStatus.textContent = 'โหมดทดสอบ: Mock data (ยังไม่ได้เชื่อม Firebase)'; deleteLatestBtn.disabled = false; downloadBtn.disabled = false; updateLastOdomDisplay(); } else { initFirebase(); }
+
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
