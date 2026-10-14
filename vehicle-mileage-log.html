@@ -32,6 +32,17 @@
     </style>
 </head>
 <body class="p-4 md:p-8">
+<!-- Return vehicle reminder: non-destructive navigation to the booking system -->
+<div id="return-car-reminder" role="dialog" aria-modal="true" aria-labelledby="return-car-reminder-title" style="position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.65);display:flex;align-items:center;justify-content:center;padding:16px">
+ <div style="background:#fff;border-radius:18px;padding:24px;max-width:480px;width:100%;box-shadow:0 20px 60px #0004;font-family:inherit">
+  <h2 id="return-car-reminder-title" style="font-size:22px;font-weight:800;color:#0f766e;margin:0 0 12px">🚗 แจ้งเตือนการคืนรถบริษัท</h2>
+  <p style="color:#334155;line-height:1.7;margin:0 0 18px">หากคุณใช้งานรถเสร็จแล้ว กรุณาเข้าไปที่ระบบจองรถ กด <strong>คืนรถ</strong> และกรอก <strong>เลขไมล์ขาเข้า</strong> เพื่อปิดรายการให้เรียบร้อย</p>
+  <a href="https://onlineutility.app/online-car-booking.html" style="display:block;text-align:center;background:#0d9488;color:white;text-decoration:none;font-weight:700;padding:13px;border-radius:11px;margin-bottom:10px">ไปกดคืนรถและลงเลขไมล์ ↗</a>
+  <button type="button" id="return-car-reminder-close" style="width:100%;background:#f1f5f9;color:#334155;border:0;padding:12px;border-radius:11px;font-weight:700;cursor:pointer">ปิดแจ้งเตือน และบันทึกเลขไมล์ที่หน้านี้</button>
+ </div>
+</div>
+<script>document.getElementById('return-car-reminder-close').addEventListener('click',function(){document.getElementById('return-car-reminder').remove()});</script>
+
 <div style="max-width:896px;margin:0 auto 16px;text-align:center"><a href="vehicle-mileage-report.html" style="display:inline-block;background:#3730a3;color:white;padding:12px 20px;border-radius:12px;font-weight:700;text-decoration:none;box-shadow:0 3px 10px #0002">📊 เปิดรายงานผู้บริหาร</a></div>
 
 <div class="max-w-4xl mx-auto">
