@@ -523,7 +523,7 @@
     <div id="adminModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
         <div class="modal-content">
             <h3 id="adminTitle" class="text-xl font-bold text-gray-800">เข้าสู่ระบบแอดมิน</h3>
-            <p class="text-sm text-gray-500 mt-1 mb-4">สำหรับยกเลิกรถที่กำลังใช้งานหรือเกินเวลาคืน</p>
+            <p class="text-sm text-gray-500 mt-1 mb-4">สำหรับยกเลิกรถที่กำลังใช้งาน</p>
             <form id="adminLoginForm" class="space-y-4">
                 <div><label for="adminEmail" class="block text-sm mb-1">อีเมลแอดมิน</label><input type="email" id="adminEmail" required autocomplete="username" class="w-full p-3 border rounded-lg"></div>
                 <div><label for="adminPassword" class="block text-sm mb-1">รหัสผ่าน</label><input type="password" id="adminPassword" required autocomplete="current-password" class="w-full p-3 border rounded-lg"></div>
@@ -596,8 +596,8 @@
             const end = endDateOf(booking)?.getTime();
             if(!Number.isFinite(start) || !Number.isFinite(end)) return { key:'invalid', label:'ข้อมูลเวลาไม่ถูกต้อง', color:'red' };
             if(now < start) return { key:'upcoming', label:'รอใช้งาน', color:'blue' };
-            if(now <= end) return { key:'active', label:'กำลังใช้งาน', color:'green' };
-            return { key:'overdue', label:'เกินเวลาคืน', color:'amber' };
+            // Keep booking active until explicitly returned or cancelled.
+            return { key:'active', label:'กำลังใช้งาน', color:'green' };
         }
 
         function formatDateTime(value){
@@ -681,7 +681,7 @@
             };
             const sorted = bookings.slice().sort((a,b)=>sortTime(b)-sortTime(a));
 
-            const myActive = sorted.find(booking => isMine(booking) && ['active','overdue'].includes(getUsageStatus(booking).key));
+            const myActive = sorted.find(booking => isMine(booking) && ['active'].includes(getUsageStatus(booking).key));
             if(myActive){
                 $('activeBookingPanel').classList.remove('hidden');
                 $('activeCarName').textContent = vehicleNames[myActive.carType] || myActive.carType;
@@ -703,10 +703,10 @@
                     actions += `<button type="button" data-id="${escapeHTML(booking.id)}" class="edit-booking-btn px-3 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold">แก้ไข</button>`;
                     actions += `<button type="button" data-id="${escapeHTML(booking.id)}" class="cancel-booking-btn px-3 py-2 bg-red-500 text-white rounded-lg text-xs font-semibold">ยกเลิก</button>`;
                 }
-                if(['active','overdue'].includes(status.key) && mine){
+                if(['active'].includes(status.key) && mine){
                     actions += `<button type="button" data-id="${escapeHTML(booking.id)}" class="return-booking-btn px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold">คืนรถ / ลงเลขไมล์</button>`;
                 }
-                if(isAdmin && ['upcoming','active','overdue'].includes(status.key)){
+                if(isAdmin && ['upcoming','active'].includes(status.key)){
                     actions += `<button type="button" data-id="${escapeHTML(booking.id)}" class="admin-cancel-btn px-3 py-2 bg-gray-800 text-white rounded-lg text-xs font-semibold">แอดมินยกเลิก</button>`;
                 }
                 const distanceLine = status.key === 'completed' && Number.isFinite(Number(booking.distance)) ? `<p class="text-sm mt-2 text-gray-700"><strong>ระยะทาง:</strong> ${Number(booking.distance).toLocaleString('th-TH')} กม. · ไมล์เข้า ${Number(booking.odometerIn).toLocaleString('th-TH')}</p>` : '';
@@ -798,7 +798,7 @@
         async function openReturn(id){
             const booking = bookings.find(item=>item.id===id);
             const status = booking ? getUsageStatus(booking).key : 'invalid';
-            if(!booking || !isMine(booking) || !['active','overdue'].includes(status)){ showAlert('รายการนี้ยังคืนรถไม่ได้หรือไม่ใช่รายการของคุณ','error'); return; }
+            if(!booking || !isMine(booking) || !['active'].includes(status)){ showAlert('รายการนี้ยังคืนรถไม่ได้หรือไม่ใช่รายการของคุณ','error'); return; }
             currentReturn = null;
             $('returnBookingId').value = id;
             $('returnBookingInfo').textContent = `${vehicleNames[booking.carType]} · ${booking.bookerName}`;
@@ -933,7 +933,7 @@
         $('confirmCancelBtn').addEventListener('click',async()=>{
             if(!currentCancel) return;
             const currentStatus = getUsageStatus(currentCancel).key;
-            if(['active','overdue'].includes(currentStatus) && !isAdmin){ showAlert('เฉพาะแอดมินเท่านั้นที่ยกเลิกรถที่กำลังใช้งานได้','error'); return; }
+            if(['active'].includes(currentStatus) && !isAdmin){ showAlert('เฉพาะแอดมินเท่านั้นที่ยกเลิกรถที่กำลังใช้งานได้','error'); return; }
             if(cancelRequiresAdmin && !isAdmin){ showAlert('สิทธิ์แอดมินหมดอายุ กรุณาเข้าสู่ระบบใหม่','error'); return; }
             const reason = cancelRequiresAdmin ? $('cancellationReason').value.trim() : 'ยกเลิกโดยผู้จองก่อนถึงเวลา';
             if(cancelRequiresAdmin && !reason){ showAlert('กรุณาระบุเหตุผลที่ยกเลิก','error'); return; }
