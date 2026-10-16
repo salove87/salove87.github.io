@@ -151,7 +151,8 @@ const db=getFirestore(app),auth=getAuth(app);
 // Keep an immutable backup record in the mileage project's archive collection before deleting.
 
 const mileagePath='artifacts/default-app-id/public/data/vehicle_logs';
-const status=document.getElementById('liveState'), updated=document.getElementById('liveUpdated');\nwindow.refreshMileageRealtime=()=>{updated.textContent='เชื่อมต่อแบบเรียลไทม์ ระบบจะอัปเดตเมื่อข้อมูลเปลี่ยน';};
+const status=document.getElementById('liveState'), updated=document.getElementById('liveUpdated');
+window.refreshMileageRealtime=()=>{updated.textContent='เชื่อมต่อแบบเรียลไทม์ ระบบจะอัปเดตเมื่อข้อมูลเปลี่ยน';};
 status.textContent='◌ กำลังยืนยันตัวตนกับ Firebase…';
 try {
  await signInAnonymously(auth);
@@ -159,7 +160,7 @@ try {
  onSnapshot(collection(db,path),snap=>{
    const rows=snap.docs.map(doc=>({...doc.data(),id:doc.id}));
    const normalized=rows.map(r=>{
-     const ts=r.timestamp?.toDate?.()||r.clientTimestamp||null;
+     const ts=r.timestamp?.toDate?.()||r.clientTimestamp?.toDate?.()||r.clientTimestamp||null;
      const d=ts instanceof Date?ts:new Date(ts);
      const o=Number(r.odometerOut),i=Number(r.odometerIn);
      return {id:r.id,d,car:r.vehicle||'',user:r.userName||'',dept:r.department||'',loc:r.location||'',o,i,km:i-o};
