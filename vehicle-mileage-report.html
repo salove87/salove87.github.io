@@ -68,7 +68,7 @@ ul{margin:0;padding:0;list-style:none}li{padding:10px 0 10px 30px;position:relat
 <div id="reportAdminModal" role="dialog" aria-modal="true" aria-labelledby="reportAdminTitle" hidden style="position:fixed;inset:0;z-index:10000;background:#0009;display:none;align-items:center;justify-content:center;padding:16px"><div style="background:#fff;color:#1e293b;border-radius:18px;padding:24px;width:100%;max-width:420px;box-shadow:0 20px 60px #0005"><h2 id="reportAdminTitle" style="font-size:20px">🔐 เข้าสู่ระบบแอดมิน</h2><p style="font-size:13px;color:#64748b;margin:0 0 16px">ใช้บัญชีแอดมินระบบจองรถบริษัท</p><form id="reportAdminForm" style="display:grid;gap:12px"><label>อีเมลแอดมิน<input id="reportAdminEmail" type="email" autocomplete="username" required style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px"></label><label>รหัสผ่าน<input id="reportAdminPassword" type="password" autocomplete="current-password" required style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px"></label><p id="reportAdminError" role="alert" style="color:#b91c1c;font-size:13px;margin:0"></p><div style="display:flex;justify-content:flex-end;gap:10px"><button type="button" id="reportAdminClose" style="padding:10px;border-radius:9px;border:0">ปิด</button><button type="submit" id="reportAdminSubmit" style="padding:10px 16px;border-radius:9px;border:0;background:#0f766e;color:#fff">เข้าสู่ระบบ</button></div></form><div id="reportAdminSuccess" hidden><p>✓ ยืนยันสิทธิ์แอดมินสำเร็จ</p><p style="font-size:13px">การแก้ไขและลบรายการเลขไมล์ยังไม่ได้เปิดใช้งาน เพื่อป้องกันการลบข้อมูลผิดฐานข้อมูล</p><button type="button" id="reportAdminLogout" style="padding:10px;border-radius:9px">ออกจากระบบ</button></div></div></div><div id="bar"></div><div id="tip"></div>
 <header class="hero"><div class="wrap">
 <div class="top"><div><span class="pill" id="badge"></span><h1>รายงานการใช้รถยนต์ส่วนกลาง</h1><p>สรุปสำหรับผู้บริหาร · Nissan Almera &amp; EV</p></div>
-<div class="acts"><button id="reportAdminBtn" type="button" style="border:1px solid #fff7;background:#fff2;color:white;border-radius:12px;padding:9px 13px;font:600 13px Prompt, sans-serif;cursor:pointer">🔐 เข้าสู่ระบบแอดมิน</button><button class="ic" id="th" title="สลับธีม">◐</button><button class="ic" id="fs" title="โหมดเต็มจอ">⛶</button><button class="ic" onclick="print()" title="พิมพ์">⎙</button></div></div>
+<div class="acts"><button class="ic" id="th" title="สลับธีม">◐</button><button class="ic" id="fs" title="โหมดเต็มจอ">⛶</button><button class="ic" onclick="print()" title="พิมพ์">⎙</button></div></div>
 <div class="chips" id="chips"></div></div></header>
 <nav><div class="wrap tabs" id="tabs"><span id="ind"></span></div></nav>
 <main class="wrap"><section></section><section></section><section></section><section></section><section></section>
@@ -92,7 +92,7 @@ const data=()=>F=='all'?D:D.filter(x=>x.car==F);
 function grp(a,k){const m={};a.forEach(x=>{const g=m[x[k]]=m[x[k]]||{k:x[k],n:0,km:0};g.n++;g.km+=x.km});return Object.values(m).sort((a,b)=>b.km-a.km)}
 const bars=(a,n)=>{const mx=a[0]?a[0].km:1;return a.slice(0,n).map((x,i)=>`<div class="br" style="--d:${i*70}ms"><span title="${x.k}">${x.k}</span><div class="bt"><i style="--w:${x.km/mx*100}%;--d:${i*70}ms"></i></div><b>${fmt(x.km)}</b><small>${x.n} เที่ยว · เฉลี่ย ${fmt(x.km/x.n)} กม.</small></div>`).join('')};
 function donut(a,t){let off=0;const R=70,C=2*Math.PI*R;return `<svg viewBox="0 0 200 200" class="dn">${a.map(x=>{const l=x.km/t*C,s=`<circle r="${R}" cx="100" cy="100" fill="none" stroke="${COL[x.k]||'#f59e0b'}" stroke-width="26" stroke-dasharray="${l} ${C-l}" stroke-dashoffset="${-off}" transform="rotate(-90 100 100)" data-t="${x.k}: ${fmt(x.km)} กม. (${Math.round(x.km/t*100)}%)"/>`;off+=l;return s}).join('')}<text x="100" y="98" text-anchor="middle" class="dv">${fmt(t)}</text><text x="100" y="118" text-anchor="middle" class="dl">กม. รวม</text></svg><div class="lg">${a.map(x=>`<span><i style="background:${COL[x.k]||'#f59e0b'}"></i>${x.k} ${Math.round(x.km/t*100)}%</span>`).join('')}</div>`}
-const rows=A=>filteredTrips().slice(0,window.zeroKmOnly?500:q?60:20).map(x=>`<tr><td>${x.d.toLocaleDateString('th-TH',{day:'2-digit',month:'short',year:'2-digit'})}</td><td><span class="tag" style="background:${COL[x.car]||'#64748b'}">${safeHtml(x.car)}</span></td><td>${safeHtml(x.user)}</td><td>${safeHtml(x.dept)}</td><td>${safeHtml(x.loc)}</td><td class="n">${fmt(x.o)}</td><td class="n">${fmt(x.i)}</td><td class="n"><b>${fmt(x.km)}</b></td>${window.reportAdminAuthorized?`<td><button type="button" onclick="reportEdit('${x.id||''}')">แก้ไข</button> <button type="button" onclick="reportDelete('${x.id||''}')">ลบ</button></td>`:''}</tr>`).join('');
+const rows=A=>filteredTrips().slice(0,window.zeroKmOnly?500:q?60:20).map(x=>`<tr><td>${x.d.toLocaleDateString('th-TH',{day:'2-digit',month:'short',year:'2-digit'})}</td><td><span class="tag" style="background:${COL[x.car]||'#64748b'}">${safeHtml(x.car)}</span></td><td>${safeHtml(x.user)}</td><td>${safeHtml(x.dept)}</td><td>${safeHtml(x.loc)}</td><td class="n">${fmt(x.o)}</td><td class="n">${fmt(x.i)}</td><td class="n"><b>${fmt(x.km)}</b></td></tr>`).join('');
 window.zeroKmOnly=false;
 function openZeroKm(){window.zeroKmOnly=true;q='';render();show(3);const inp=$('q');if(inp)inp.placeholder='⚠ กำลังแสดงเฉพาะรายการระยะทาง 0 กม. — พิมพ์เพื่อค้นหา';}
 function clearZeroKm(){window.zeroKmOnly=false;q='';render();show(3,1);}
@@ -106,7 +106,7 @@ function render(){
  s[1].innerHTML=`<div class="c"><h2>ระยะทางรายเดือน (กม.) · แท่งสีเขียวคือเดือนสูงสุด</h2><div class="mc">${ml.map((x,i)=>`<div class="${x.k==pk.k?'pk':''}"><b>${fmt(x.km)}</b><u style="--h:${x.km/mx*170}px;--d:${i*60}ms" data-t="${ml2(x.k)}: ${fmt(x.km)} กม. · ${x.n} เที่ยว"></u>${ml2(x.k)}<br>${x.n} เที่ยว</div>`).join('')}</div></div>`;
  const L={dept:['แผนก',dep],user:['ผู้ใช้งาน',usr],loc:['สถานที่ปลายทาง',lc]};
  s[2].innerHTML=`<div class="c"><div class="sw">${Object.keys(L).map(k=>`<button class="${k==sub?'on':''}" onclick="sub='${k}';render();show(2,1)">${L[k][0]}</button>`).join('')}</div><h2>${L[sub][0]}สูงสุด 10 อันดับ (กม. รวม)</h2>${bars(L[sub][1],10)}</div>`;
- s[3].innerHTML=`<div class="c"><input id="q" placeholder="🔎 ค้นหาชื่อ แผนก สถานที่ หรือรถ…" value="${q}">${window.zeroKmOnly?`<div style="padding:12px 14px;background:#fff7ed;color:#9a3412;border-radius:12px;margin:10px 0;font-weight:700">⚠ รายการที่ต้องตรวจสอบ: ระยะทาง 0 กม. <button onclick="clearZeroKm()" style="margin-left:12px;padding:7px 12px;border-radius:8px;background:#fff;border:1px solid #fdba74;cursor:pointer">แสดงทุกรายการ</button></div>`:""}${window.reportAdminAuthorized&&window.zeroKmOnly?`<div style="margin:10px 0;padding:10px;background:#eef2ff;border-radius:10px"><button type="button" onclick="reportBulkDelete()" style="padding:8px 12px;border:1px solid #dc2626;border-radius:8px;color:#b91c1c;background:white;cursor:pointer">ลบรายการ 0 กม. ที่กำลังแสดง</button><small style="margin-left:8px">ยืนยันก่อนลบและสำรองข้อมูล</small></div>`:""}<div class="tw"><table><thead><tr><th>วันที่</th><th>รถ</th><th>ผู้ใช้</th><th>แผนก</th><th>สถานที่</th><th class="n">ไมค์ออก</th><th class="n">ไมค์เข้า</th><th class="n">กม.</th>${window.reportAdminAuthorized?`<th>จัดการ</th>`:""}</tr></thead><tbody id="tb">${rows(A)}</tbody></table></div></div>`;
+ s[3].innerHTML=`<div class="c"><input id="q" placeholder="🔎 ค้นหาชื่อ แผนก สถานที่ หรือรถ…" value="${q}">${window.zeroKmOnly?`<div style="padding:12px 14px;background:#fff7ed;color:#9a3412;border-radius:12px;margin:10px 0;font-weight:700">⚠ รายการที่ต้องตรวจสอบ: ระยะทาง 0 กม. <button onclick="clearZeroKm()" style="margin-left:12px;padding:7px 12px;border-radius:8px;background:#fff;border:1px solid #fdba74;cursor:pointer">แสดงทุกรายการ</button></div>`:""}<div class="tw"><table><thead><tr><th>วันที่</th><th>รถ</th><th>ผู้ใช้</th><th>แผนก</th><th>สถานที่</th><th class="n">ไมค์ออก</th><th class="n">ไมค์เข้า</th><th class="n">กม.</th></tr></thead><tbody id="tb">${rows(A)}</tbody></table></div></div>`;
  $('q').oninput=e=>{q=e.target.value.toLowerCase();$('tb').innerHTML=rows(data())};
  const z=A.filter(x=>x.km<=0).length,t=lc[0]||{k:'-',n:0},I=(e,l,v,sb)=>`<div class="c ins"><em>${e}</em><div><small>${l}</small><b>${v}</b><small>${sb}</small></div></div>`;
  s[4].innerHTML=`<div class="g">${I('🏆','เดือนใช้งานสูงสุด',ml2(pk.k),fmt(pk.km)+' กม. · '+pk.n+' เที่ยว')+I('🏢','แผนกนำ',(dep[0]||{k:'-'}).k,fmt((dep[0]||{km:0}).km/(km||1)*100)+'% ของระยะทาง')+I('🔋','รถที่ใช้มากสุด',(car[0]||{k:'-'}).k,fmt((car[0]||{km:0}).km/(km||1)*100)+'% ของระยะทาง')+I('📍','ปลายทางยอดนิยม',t.k,t.n+' เที่ยว')+I('📅','เฉลี่ยต่อเดือน',fmt(km/(ml.length||1))+' กม.',fmt(n/(ml.length||1))+' เที่ยว/เดือน')+`<div class="c ins" role="button" tabindex="0" onclick="openZeroKm()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openZeroKm()}" style="cursor:pointer;outline-offset:4px" title="คลิกดูรายการที่ต้องตรวจสอบ"><em>⚠️</em><div><small>รายการระยะทาง 0 กม.</small><b>${z} รายการ ↗</b><small>คลิกดูรายการที่ต้องตรวจสอบ</small></div></div>`}</div><div class="c"><h2>ข้อเสนอแนะ</h2><ul><li>จัดสรรรถให้เหมาะกับลักษณะงาน เช่น รถ EV สำหรับเที่ยวระยะไกล ซึ่งมีระยะทางเฉลี่ยต่อเที่ยวสูงกว่า</li><li>รวมเที่ยวของแผนกที่ไปปลายทางเดียวกัน เพื่อลดระยะทางและค่าใช้จ่ายรวม</li><li>ให้เลือกชื่อผู้ใช้และแผนกจากรายการในระบบ และบังคับกรอกแผนก เพื่อลดข้อมูลสะกดไม่ตรงกัน</li><li>ตรวจสอบเลขไมค์ก่อนบันทึก เพื่อป้องกันรายการที่ระยะทาง 0 กม.</li><li>สรุปรายงานนี้เป็นรายเดือนเพื่อติดตามแนวโน้มอย่างต่อเนื่อง</li></ul></div>`;
@@ -131,55 +131,19 @@ render();show(0,1);
 // Live data adapter: configurable read-only JSON API. No credentials embedded in HTML.
 const liveBox=document.createElement('div');
 liveBox.className='wrap';liveBox.style.cssText='padding:10px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.82rem';
-liveBox.innerHTML='<span id="liveState" role="status">● ข้อมูลสำรองจากไฟล์ (ยังไม่เชื่อมต่อ)</span><button id="liveConfig" type="button" style="font:inherit;padding:5px 12px;border-radius:9px;cursor:pointer">ตั้งค่าแหล่งข้อมูล</button><button id="liveRefresh" type="button" style="font:inherit;padding:5px 12px;border-radius:9px;cursor:pointer">↻ อัปเดตตอนนี้</button><span id="liveUpdated"></span>';
+liveBox.innerHTML='<span id="liveState" role="status">◌ กำลังเชื่อมต่อ Firebase…</span><button id="liveConfig" type="button" style="font:inherit;padding:5px 12px;border-radius:9px;cursor:pointer">ตั้งค่าแหล่งข้อมูล</button><button id="liveRefresh" type="button" style="font:inherit;padding:5px 12px;border-radius:9px;cursor:pointer">↻ อัปเดตตอนนี้</button><span id="liveUpdated"></span>';
 document.querySelector('.hero').appendChild(liveBox);
 const liveState=document.getElementById('liveState'), liveUpdated=document.getElementById('liveUpdated');
-let liveUrl=localStorage.getItem('vehicleReportApiUrl')||'',liveTimer=null,liveBusy=false;
-function convertRecord(r){
- const val=(...keys)=>keys.map(k=>r[k]).find(v=>v!==undefined&&v!==null&&v!=='');
- if(Array.isArray(r))return {d:new Date(r[0]),car:r[1],user:r[2],dept:r[3],loc:r[4],o:Number(r[5]),i:Number(r[6]),km:Number(r[7])};
- const start=Number(val('o','odometerOut','mileageOut','startMileage','odometer_start'));
- const end=Number(val('i','odometerIn','mileageIn','endMileage','odometer_end'));
- const kmValue=val('km','distance','distanceKm','totalKm');
- return {d:new Date(val('d','date','datetime','createdAt','returnDate','timestamp')),car:String(val('car','vehicle','vehicleName','carName')||''),user:String(val('user','driver','driverName','employeeName')||''),dept:String(val('dept','department')||''),loc:String(val('loc','destination','location','purpose')||''),o:start,i:end,km:kmValue==null?end-start:Number(kmValue)};
-}
-function normalizePayload(json){
- const records=Array.isArray(json)?json:Array.isArray(json?.records)?json.records:Array.isArray(json?.data)?json.data:Array.isArray(json?.trips)?json.trips:null;
- if(!records)throw Error('รูปแบบ API ต้องส่ง array หรือ {records:[...]}');
- const out=records.map(convertRecord).filter(r=>!Number.isNaN(r.d.getTime())&&Number.isFinite(r.km)&&Number.isFinite(r.o)&&Number.isFinite(r.i));
- if(records.length && !out.length)throw Error('ไม่พบข้อมูลที่ตรงกับคอลัมน์รายงาน');
- return out.sort((a,b)=>a.d-b.d);
-}
-async function refreshLive(){
- if(!liveUrl){liveState.textContent='● ข้อมูลสำรองจากไฟล์ (ยังไม่เชื่อมต่อ)';return}
- if(liveBusy)return;liveBusy=true;liveState.textContent='◌ กำลังตรวจสอบข้อมูลล่าสุด…';
- try{
-  const ctl=new AbortController(),timeout=setTimeout(()=>ctl.abort(),12000);
-  let response;try{response=await fetch(liveUrl,{cache:'no-store',signal:ctl.signal,credentials:'omit',headers:{'Accept':'application/json'}})}finally{clearTimeout(timeout)}
-  if(!response.ok)throw Error('HTTP '+response.status);
-  const incoming=normalizePayload(await response.json());
-  D=incoming;render();show(cur,1);
-  liveState.textContent='● เชื่อมต่อข้อมูลสดแล้ว ('+D.length+' รายการ)';liveState.style.color='#99f6e4';
-  liveUpdated.textContent='อัปเดต '+new Date().toLocaleTimeString('th-TH')+' · ตรวจทุก 15 วินาที';
- }catch(err){liveState.textContent='⚠ เชื่อมต่อไม่สำเร็จ — แสดงข้อมูลล่าสุดที่โหลดได้';liveState.style.color='#fecaca';liveUpdated.textContent=err.message+' · ตรวจอีกครั้งใน 15 วินาที'}
- finally{liveBusy=false}
-}
-function startLive(){if(liveTimer)clearInterval(liveTimer);refreshLive();liveTimer=setInterval(()=>{if(!document.hidden)refreshLive()},15000)}
-document.getElementById('liveRefresh').onclick=refreshLive;
-document.getElementById('liveConfig').onclick=()=>{
- const value=prompt('ใส่ URL ของ API ที่คืนข้อมูลการใช้รถเป็น JSON (HTTPS เท่านั้น)\nเว้นว่างเพื่อตัดการเชื่อมต่อ',liveUrl);
- if(value===null)return;
- const v=value.trim();if(v&&!/^https:\/\//i.test(v)){alert('กรุณาใช้ HTTPS URL เท่านั้น');return}
- liveUrl=v;if(v)localStorage.setItem('vehicleReportApiUrl',v);else localStorage.removeItem('vehicleReportApiUrl');
- liveState.style.color='';startLive();
-};
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshLive()});
+document.getElementById('liveConfig').remove();
+document.getElementById('liveRefresh').onclick=()=>{liveState.textContent='◌ กำลังตรวจสอบการเชื่อมต่อ Firebase…';if(typeof window.refreshMileageRealtime==='function')window.refreshMileageRealtime();};
+D=[]; // Never display embedded historical sample data as if it were live.
+render();show(cur,1);
 // Direct read-only Firestore realtime subscription (same project and collection as vehicle-mileage-log.html).
 // Never silently substitute historic embedded figures for a failed live connection.
 const fbScript=document.createElement('script');fbScript.type='module';fbScript.textContent=`
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
 import {getAuth,signInAnonymously} from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-import {getFirestore,collection,onSnapshot,doc as mileageDoc,getDoc as mileageGetDoc,writeBatch as mileageBatch,serverTimestamp as mileageTimestamp,updateDoc as mileageUpdateDoc} from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import {getFirestore,collection,onSnapshot} from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 const config={apiKey:'AIzaSyDKfJvn9yh-g1J5OMA9EBLEyp740b-NyH4',authDomain:'vehicle-mileage-31238.firebaseapp.com',projectId:'vehicle-mileage-31238',storageBucket:'vehicle-mileage-31238.firebasestorage.app',messagingSenderId:'968556830605',appId:'1:968556830605:web:4708cecdbfc44737c267c4'};
 const app=initializeApp(config,'vehicle-report-readonly');
 const db=getFirestore(app),auth=getAuth(app);
@@ -188,31 +152,7 @@ const db=getFirestore(app),auth=getAuth(app);
 // Keep an immutable backup record in the mileage project's archive collection before deleting.
 
 const mileagePath='artifacts/default-app-id/public/data/vehicle_logs';
-const archivePath='artifacts/default-app-id/public/data/vehicle_log_deletion_archive';
-let manageBusy=false;
-function requireAdmin(){if(!window.reportAdminAuthorized||!window.reportAdminUid)throw Error('กรุณาเข้าสู่ระบบแอดมินก่อน');if(manageBusy)throw Error('กำลังดำเนินการรายการก่อนหน้า');}
-function getEntry(id){if(!id)throw Error('รายการนี้ไม่มีรหัสเอกสาร Firebase กรุณารีเฟรชหน้าเว็บเพื่อโหลดข้อมูลสดก่อน');const x=D.find(v=>v.id===id);if(!x)throw Error('ไม่พบรายการหรือข้อมูลถูกอัปเดตแล้ว');return x;}
-window.reportEdit=async id=>{
- try{requireAdmin();const x=getEntry(id);const value=prompt('แก้ไขเลขไมล์ขาเข้า (ไมล์ขาออก '+x.o.toLocaleString('th-TH')+')',String(x.i));if(value===null)return;
- const newIn=Number(value.trim());if(!/^\d+$/.test(value.trim())||!Number.isSafeInteger(newIn)||newIn<x.o)throw Error('เลขไมล์ขาเข้าต้องเป็นจำนวนเต็มไม่น้อยกว่าเลขไมล์ขาออก');
- if(!confirm('ยืนยันแก้เลขไมล์ขาเข้าเป็น '+newIn.toLocaleString('th-TH')+' กม. ใช่หรือไม่?'))return;
- manageBusy=true;await mileageUpdateDoc(mileageDoc(db,mileagePath,id),{odometerIn:newIn,distance:newIn-x.o,reportEditedAt:mileageTimestamp(),reportEditedBy:window.reportAdminUid});
- alert('แก้ไขสำเร็จ ระบบจะอัปเดตรายงานอัตโนมัติ');
- }catch(e){alert('ไม่สามารถแก้ไขรายการ: '+e.message)}finally{manageBusy=false}
-};
-window.reportDelete=async id=>{try{requireAdmin();const x=getEntry(id);if(!confirm('ลบรายการ '+x.user+' / '+x.car+' / '+x.d.toLocaleDateString('th-TH')+' / '+x.km+' กม.?\nระบบจะเก็บข้อมูลสำรองก่อนลบ'))return;await deleteSelected([id]);}catch(e){alert('ลบไม่สำเร็จ: '+e.message)}};
-window.reportBulkDelete=async()=>{try{requireAdmin();const xs=filteredTrips().filter(x=>x.km<=0&&x.id);if(!xs.length)return alert('ไม่พบรหัสเอกสารสำหรับลบ กรุณารีเฟรชหน้าเว็บและตรวจสอบการเชื่อมต่อ Firebase');if(!confirm('ยืนยันลบ '+xs.length+' รายการระยะทาง 0 กม. ที่แสดงอยู่?\nระบบจะเก็บข้อมูลสำรองก่อนลบ'))return;const check=prompt('พิมพ์ DELETE '+xs.length+' เพื่อยืนยันการลบหลายรายการ');if(check!=='DELETE '+xs.length)return;await deleteSelected(xs.map(x=>x.id));}catch(e){alert('ลบไม่สำเร็จ: '+e.message)}};
-async function deleteSelected(ids){requireAdmin();if(ids.length>200)throw Error('ลบได้สูงสุดครั้งละ 200 รายการ');manageBusy=true;try{
- const batch=mileageBatch(db);
- for(const id of ids){const ref=mileageDoc(db,mileagePath,id);const snap=await mileageGetDoc(ref);if(!snap.exists())throw Error('รายการ '+id+' ไม่พบแล้ว');
- batch.set(mileageDoc(db,archivePath,id),{...snap.data(),sourceId:id,deletedBy:window.reportAdminUid,deletedAt:mileageTimestamp()});
- batch.delete(ref);
- }
- await batch.commit();alert('ลบสำเร็จ '+ids.length+' รายการ และบันทึกสำรองไว้แล้ว');
- }finally{manageBusy=false}
-}
-
-const status=document.getElementById('liveState'), updated=document.getElementById('liveUpdated');
+const status=document.getElementById('liveState'), updated=document.getElementById('liveUpdated');\nwindow.refreshMileageRealtime=()=>{updated.textContent='เชื่อมต่อแบบเรียลไทม์ ระบบจะอัปเดตเมื่อข้อมูลเปลี่ยน';};
 status.textContent='◌ กำลังยืนยันตัวตนกับ Firebase…';
 try {
  await signInAnonymously(auth);
@@ -229,8 +169,8 @@ try {
    render();show(cur,1);
    status.textContent='● Firebase สด ('+D.length+' รายการ)';status.style.color='#99f6e4';
    updated.textContent='ซิงก์ล่าสุด '+new Date().toLocaleTimeString('th-TH');
- },err=>{status.textContent='⚠ อ่าน Firestore ไม่สำเร็จ: '+err.code;status.style.color='#fecaca';updated.textContent='รายงานยังเป็นข้อมูลสำรอง ไม่ใช่ข้อมูลสด';});
-}catch(err){status.textContent='⚠ Firebase Auth ไม่สำเร็จ: '+(err.code||err.message);status.style.color='#fecaca';updated.textContent='รายงานยังเป็นข้อมูลสำรอง ไม่ใช่ข้อมูลสด';}
+ },err=>{D=[];render();show(cur,1);status.textContent='⚠ อ่าน Firestore ไม่สำเร็จ: '+err.code;status.style.color='#fecaca';updated.textContent='ไม่แสดงข้อมูลเก่าจนกว่าจะเชื่อมต่อข้อมูลสดสำเร็จ';});
+}catch(err){D=[];render();show(cur,1);status.textContent='⚠ Firebase Auth ไม่สำเร็จ: '+(err.code||err.message);status.style.color='#fecaca';updated.textContent='ไม่แสดงข้อมูลเก่าจนกว่าจะเชื่อมต่อข้อมูลสดสำเร็จ';}
 `;
 document.body.appendChild(fbScript);
 // Disable unused generic polling when direct listener is active.
