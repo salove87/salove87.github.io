@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>คืนรถและบันทึกเลขไมล์ | ระบบรถบริษัท</title>
-<style>body{margin:0;background:#f1f5f9;color:#0f172a;font-family:system-ui,"Noto Sans Thai",sans-serif;min-height:100vh;display:grid;place-items:center;padding:20px;box-sizing:border-box}.card{max-width:540px;background:#fff;border-radius:22px;padding:30px;box-shadow:0 15px 40px #0f172a12}h1{font-size:25px;color:#0f766e;margin:0 0 14px}p{line-height:1.85}.btn{display:block;text-align:center;padding:15px 18px;border-radius:12px;background:#0d9488;color:#fff;text-decoration:none;font-weight:800;margin:22px 0 10px}.secondary{display:block;text-align:center;color:#475569;text-decoration:none;padding:12px}.note{background:#fef3c7;border-radius:12px;padding:12px 15px;color:#92400e;font-size:14px}.download{margin-top:20px;padding-top:18px;border-top:1px solid #e2e8f0}.download button{width:100%;border:0;border-radius:12px;background:#334155;color:white;padding:14px;font:inherit;font-weight:700;cursor:pointer}.download button:disabled{opacity:.6;cursor:wait}.hint{font-size:13px;color:#64748b;margin:9px 0 0}.error{color:#b91c1c;font-size:14px}</style></head><body><main class="card"><h1>🚗 คืนรถและบันทึกเลขไมล์</h1><p>ระบบได้ย้ายการบันทึกเลขไมล์ไปที่ <strong>ระบบจองและคืนรถบริษัท</strong> แล้ว เพื่อให้ข้อมูลการคืนรถและเลขไมล์บันทึกในขั้นตอนเดียวกัน</p><div class="note">⚠️ หน้านี้ไม่รับการบันทึกเลขไมล์อีกต่อไป กรุณาเปิดรายการรถที่กำลังใช้งาน แล้วกด “คืนรถ / ลงเลขไมล์”</div><a class="btn" href="https://onlineutility.app/online-car-booking.html">ไปคืนรถและลงเลขไมล์ →</a><a class="secondary" href="vehicle-mileage-report.html">📊 เปิดรายงานผู้บริหาร</a><section class="download"><h2 style="font-size:18px;margin:0 0 10px">📥 ดาวน์โหลดข้อมูลเลขไมล์ดิบ</h2><p class="hint">ดาวน์โหลดข้อมูลทั้งหมดจาก Firebase เป็นไฟล์ JSON โดยไม่แสดงรายการบนหน้านี้</p><button id="rawDownload" type="button">ดาวน์โหลดไฟล์ข้อมูลดิบ (.json)</button><p id="downloadStatus" role="status" aria-live="polite" class="hint"></p></section></main>
+<style>body{margin:0;background:#f1f5f9;color:#0f172a;font-family:system-ui,"Noto Sans Thai",sans-serif;min-height:100vh;display:grid;place-items:center;padding:20px;box-sizing:border-box}.card{max-width:540px;background:#fff;border-radius:22px;padding:30px;box-shadow:0 15px 40px #0f172a12}h1{font-size:25px;color:#0f766e;margin:0 0 14px}p{line-height:1.85}.btn{display:block;text-align:center;padding:15px 18px;border-radius:12px;background:#0d9488;color:#fff;text-decoration:none;font-weight:800;margin:22px 0 10px}.secondary{display:block;text-align:center;color:#475569;text-decoration:none;padding:12px}.note{background:#fef3c7;border-radius:12px;padding:12px 15px;color:#92400e;font-size:14px}.download{margin-top:20px;padding-top:18px;border-top:1px solid #e2e8f0}.download button{width:100%;border:0;border-radius:12px;background:#334155;color:white;padding:14px;font:inherit;font-weight:700;cursor:pointer}.download button:disabled{opacity:.6;cursor:wait}.hint{font-size:13px;color:#64748b;margin:9px 0 0}.error{color:#b91c1c;font-size:14px}</style></head><body><main class="card"><h1>🚗 คืนรถและบันทึกเลขไมล์</h1><p>ระบบได้ย้ายการบันทึกเลขไมล์ไปที่ <strong>ระบบจองและคืนรถบริษัท</strong> แล้ว เพื่อให้ข้อมูลการคืนรถและเลขไมล์บันทึกในขั้นตอนเดียวกัน</p><div class="note">⚠️ หน้านี้ไม่รับการบันทึกเลขไมล์อีกต่อไป กรุณาเปิดรายการรถที่กำลังใช้งาน แล้วกด “คืนรถ / ลงเลขไมล์”</div><a class="btn" href="https://onlineutility.app/online-car-booking.html">ไปคืนรถและลงเลขไมล์ →</a><a class="secondary" href="vehicle-mileage-report.html">📊 เปิดรายงานผู้บริหาร</a><section class="download"><h2 style="font-size:18px;margin:0 0 10px">📥 ดาวน์โหลดข้อมูลเลขไมล์ดิบ</h2><p class="hint">ดาวน์โหลดข้อมูลทั้งหมดจาก Firebase เป็นไฟล์ Excel โดยไม่แสดงรายการบนหน้านี้</p><button id="rawDownload" type="button">ดาวน์โหลดไฟล์ Excel (.xlsx)</button><p id="downloadStatus" role="status" aria-live="polite" class="hint"></p></section></main>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
 import {getAuth,signInAnonymously} from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
@@ -13,10 +14,23 @@ btn.addEventListener('click',async()=>{
     await signInAnonymously(getAuth(app));
     const snap=await getDocs(collection(getFirestore(app),'artifacts/default-app-id/public/data/vehicle_logs'));
     const records=snap.docs.map(d=>({documentId:d.id,...d.data()}));
-    const payload={exportedAt:new Date().toISOString(),projectId:'vehicle-mileage-31238',collection:'artifacts/default-app-id/public/data/vehicle_logs',count:records.length,records};
-    const blob=new Blob([JSON.stringify(payload,(k,v)=>v&&typeof v==='object'&&typeof v.toDate==='function'?v.toDate().toISOString():v,2)],{type:'application/json;charset=utf-8'});
-    const url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=url;a.download='vehicle-mileage-raw-'+new Date().toISOString().slice(0,10)+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    if(!window.XLSX)throw Error('ไม่สามารถโหลดตัวสร้างไฟล์ Excel ได้ กรุณาตรวจสอบอินเทอร์เน็ต');
+    const columns=['documentId','vehicle','userName','department','location','easyPass','odometerOut','odometerIn','distance','timestamp','clientTimestamp','userId','status','updatedAt','updatedBy'];
+    const formatValue=v=>{
+      if(v==null)return '';
+      if(v&&typeof v.toDate==='function')return v.toDate().toLocaleString('th-TH');
+      if(v instanceof Date)return v.toLocaleString('th-TH');
+      if(Array.isArray(v)||typeof v==='object')return JSON.stringify(v);
+      return v;
+    };
+    const allColumns=[...new Set([...columns,...records.flatMap(r=>Object.keys(r))])];
+    const rows=records.map(r=>Object.fromEntries(allColumns.map(k=>[k,formatValue(r[k])])));
+    const sheet=XLSX.utils.json_to_sheet(rows,{header:allColumns});
+    sheet['!cols']=allColumns.map(k=>({wch:Math.min(36,Math.max(14,k.length+4))}));
+    sheet['!autofilter']={ref:sheet['!ref']||'A1'};
+    const book=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(book,sheet,'ข้อมูลเลขไมล์');
+    XLSX.writeFile(book,'vehicle-mileage-'+new Date().toISOString().slice(0,10)+'.xlsx');
     status.textContent='เตรียมไฟล์ข้อมูล '+records.length+' รายการเรียบร้อย';
   }catch(err){status.className='error';status.textContent='ดาวน์โหลดไม่สำเร็จ: '+(err.code||err.message||'โปรดลองอีกครั้ง');}
   finally{btn.disabled=false;}
