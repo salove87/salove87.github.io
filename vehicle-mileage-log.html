@@ -29,14 +29,14 @@ async function loadRecords(){
 }
 el('searchRecord').addEventListener('input',renderRecords);
 el('refreshRecords').addEventListener('click',loadRecords);
-el('unlockRecords').addEventListener('click',async()=>{if(el('adminCode').value!=='303647'){alert('รหัสจัดการไม่ถูกต้อง');return}if(el('adminEmail').value.trim().toLowerCase()!==adminEmail){alert('อีเมลนี้ไม่ได้รับอนุญาตให้จัดการข้อมูล');return}try{const cred=await signInWithEmailAndPassword(auth,adminEmail,el('adminPassword').value);if(!cred.user.emailVerified){await signOut(auth);throw Error('กรุณายืนยันอีเมลใน Firebase ก่อนใช้งาน')}unlocked=true;el('adminPassword').value='';el('adminCode').value='';for(const id of ['adminEmail','adminPassword','adminCode','unlockRecords'])el(id).hidden=true;el('lockRecords').hidden=false;renderRecords()}catch(e){alert('เข้าสู่ระบบผู้ดูแลไม่สำเร็จ: '+(e.code||e.message))}});
+el('unlockRecords').addEventListener('click',async()=>{if(el('adminCode').value!=='303647'){alert('รหัสจัดการไม่ถูกต้อง');return}if(el('adminEmail').value.trim().toLowerCase()!==adminEmail){alert('อีเมลนี้ไม่ได้รับอนุญาตให้จัดการข้อมูล');return}try{const cred=await signInWithEmailAndPassword(auth,adminEmail,el('adminPassword').value);if(!cred.user.emailVerified){await signOut(auth);throw Error('กรุณายืนยันอีเมลใน Firebase ก่อนใช้งาน')}await cred.user.getIdToken(true);unlocked=true;el('adminPassword').value='';el('adminCode').value='';for(const id of ['adminEmail','adminPassword','adminCode','unlockRecords'])el(id).hidden=true;el('lockRecords').hidden=false;renderRecords()}catch(e){alert('เข้าสู่ระบบผู้ดูแลไม่สำเร็จ: '+(e.code||e.message))}});
 el('lockRecords').addEventListener('click',async()=>{unlocked=false;await signOut(auth);for(const id of ['adminEmail','adminPassword','adminCode','unlockRecords'])el(id).hidden=false;el('lockRecords').hidden=true;renderRecords();await loadRecords()});
 el('recordsBody').addEventListener('click',async e=>{
  const edit=e.target.closest('[data-edit]'),del=e.target.closest('[data-delete]');if(!unlocked||auth.currentUser?.email?.toLowerCase()!==adminEmail||!auth.currentUser?.emailVerified||(!edit&&!del))return;
  const id=(edit||del).getAttribute(edit?'data-edit':'data-delete');const row=records.find(r=>r.documentId===id);if(!row)return;
  if(edit){selectedId=id;const form=el('editForm');for(const key of ['vehicle','userName','department','location','odometerOut','odometerIn'])form.elements[key].value=row[key]??'';el('editDialog').showModal();return}
  if(!confirm('ยืนยันลบบันทึกของ '+(row.userName||'รายการนี้')+'? การลบไม่สามารถย้อนกลับได้'))return;
- try{await deleteDoc(doc(logs,id));await loadRecords();alert('ลบรายการสำเร็จ')}catch(err){alert('ลบไม่สำเร็จ: '+(err.code||err.message)+' — ตรวจสอบสิทธิ์ Firebase')}
+ try{await auth.currentUser.getIdToken(true);await deleteDoc(doc(logs,id));await loadRecords();alert('ลบรายการสำเร็จ')}catch(err){alert('ลบไม่สำเร็จ: '+(err.code||err.message)+'\nโปรเจกต์: '+app.options.projectId+'\nบัญชี: '+(auth.currentUser?.email||'Anonymous')+'\nตรวจสอบ Firestore Rules ที่เผยแพร่แล้ว')}
 });
 el('cancelEdit').addEventListener('click',()=>el('editDialog').close());
 el('editForm').addEventListener('submit',async e=>{
@@ -45,7 +45,7 @@ el('editForm').addEventListener('submit',async e=>{
  if(!Number.isFinite(out)||!Number.isFinite(inn)||inn<out){alert('เลขไมล์เข้าต้องไม่น้อยกว่าเลขไมล์ออก');return}
  const patch={vehicle:form.elements.vehicle.value.trim(),userName:form.elements.userName.value.trim(),department:form.elements.department.value.trim(),location:form.elements.location.value.trim(),odometerOut:out,odometerIn:inn,distance:inn-out,updatedAt:serverTimestamp()};
  if(!confirm('ยืนยันบันทึกการแก้ไขรายการนี้?'))return;
- try{await updateDoc(doc(logs,selectedId),patch);el('editDialog').close();await loadRecords();alert('บันทึกการแก้ไขสำเร็จ')}catch(err){alert('แก้ไขไม่สำเร็จ: '+(err.code||err.message)+' — ตรวจสอบสิทธิ์ Firebase')}
+ try{await auth.currentUser.getIdToken(true);await updateDoc(doc(logs,selectedId),patch);el('editDialog').close();await loadRecords();alert('บันทึกการแก้ไขสำเร็จ')}catch(err){alert('แก้ไขไม่สำเร็จ: '+(err.code||err.message)+'\nโปรเจกต์: '+app.options.projectId+'\nบัญชี: '+(auth.currentUser?.email||'Anonymous')+'\nยืนยันอีเมล: '+(auth.currentUser?.emailVerified?'ใช่':'ไม่ใช่')+'\nตรวจสอบว่า Firestore Rules ใหม่กด Publish แล้ว และอนุญาต update สำหรับบัญชีนี้')}
 });
 loadRecords();
 
