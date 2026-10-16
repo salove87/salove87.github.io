@@ -175,18 +175,4 @@ try {
 document.body.appendChild(fbScript);
 // Disable unused generic polling when direct listener is active.
 
-</script><script type="module">
-import {initializeApp} from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
-import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged} from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-import {getFirestore,doc,getDoc} from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
-const app=initializeApp({apiKey:'AIzaSyAgTPzz6xqCOVYgWUK0z8-978qKUoDvTy8',authDomain:'onlinecarbooking-b623d.firebaseapp.com',projectId:'onlinecarbooking-b623d',storageBucket:'onlinecarbooking-b623d.firebasestorage.app'},'report-booking-admin');
-const auth=getAuth(app),db=getFirestore(app),$=id=>document.getElementById(id);
-let authorized=false;
-function updateAdmin(){ $('reportAdminBtn').textContent=authorized?'🔓 แอดมินเข้าสู่ระบบแล้ว':'🔐 เข้าสู่ระบบแอดมิน';$('reportAdminForm').hidden=authorized;$('reportAdminSuccess').hidden=!authorized; }
-$('reportAdminBtn').addEventListener('click',()=>{$('reportAdminModal').style.display='flex';$('reportAdminError').textContent='';updateAdmin()});
-$('reportAdminClose').addEventListener('click',()=>{$('reportAdminModal').style.display='none'});
-$('reportAdminModal').addEventListener('click',e=>{if(e.target===$('reportAdminModal'))$('reportAdminModal').style.display='none'});
-$('reportAdminForm').addEventListener('submit',async e=>{e.preventDefault();const btn=$('reportAdminSubmit');btn.disabled=true;$('reportAdminError').textContent='';try{const credential=await signInWithEmailAndPassword(auth,$('reportAdminEmail').value.trim(),$('reportAdminPassword').value);const admin=await getDoc(doc(db,'admins',credential.user.uid));if(!admin.exists()||admin.data().active!==true)throw Error('บัญชีนี้ไม่มีสิทธิ์แอดมิน');authorized=true;window.reportAdminAuthorized=true;window.reportAdminUid=credential.user.uid;$('reportAdminPassword').value='';updateAdmin();render();show(cur,1)}catch(err){authorized=false;window.reportAdminAuthorized=false;window.reportAdminUid=null;$('reportAdminError').textContent=err.code==='auth/invalid-credential'?'อีเมลหรือรหัสผ่านไม่ถูกต้อง':err.message;await signOut(auth).catch(()=>{});updateAdmin()}finally{btn.disabled=false}});
-$('reportAdminLogout').addEventListener('click',async()=>{await signOut(auth);authorized=false;window.reportAdminAuthorized=false;window.reportAdminUid=null;updateAdmin();render();show(cur,1);$('reportAdminModal').style.display='none'});
-onAuthStateChanged(auth,async user=>{authorized=false;if(user){try{const admin=await getDoc(doc(db,'admins',user.uid));authorized=admin.exists()&&admin.data().active===true}catch(e){authorized=false}}window.reportAdminAuthorized=authorized;window.reportAdminUid=authorized?user.uid:null;updateAdmin();render();show(cur,1)});
 </script></body></html>
