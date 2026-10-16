@@ -18,7 +18,7 @@ h1{margin:8px 0 2px;font-size:clamp(1.4rem,4.5vw,2.1rem);font-weight:700;letter-
 .pill{display:inline-block;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);padding:3px 12px;border-radius:99px;font-size:.76rem;backdrop-filter:blur(6px)}
 .acts{display:flex;gap:6px}
 .ic{width:38px;height:38px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;font-size:1.05rem;cursor:pointer;transition:.2s}.ic:hover{background:rgba(255,255,255,.25);transform:translateY(-2px)}
-.chips{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.chips{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}.yearfilter{display:flex;align-items:center;gap:9px;margin-top:14px;flex-wrap:wrap;color:#fff;font-size:.86rem}.yearfilter select{font:inherit;padding:7px 14px;border:1px solid rgba(255,255,255,.3);border-radius:10px;background:#fff;color:#172554;min-width:145px;cursor:pointer}
 .chip{font:inherit;font-size:.82rem;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;padding:5px 14px;border-radius:99px;cursor:pointer;transition:.2s}
 .chip.on{background:#fff;color:#1e1b4b;font-weight:600}
 nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--cd);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd)}
@@ -62,14 +62,14 @@ tr:hover td{background:rgba(99,102,241,.08)}
 ul{margin:0;padding:0;list-style:none}li{padding:10px 0 10px 30px;position:relative;border-bottom:1px solid var(--bd)}li:last-child{border:0}li:before{content:'✦';position:absolute;left:4px;color:var(--a)}
 #tip{position:fixed;pointer-events:none;opacity:0;background:#0f172a;color:#fff;font-size:.8rem;padding:6px 12px;border-radius:10px;z-index:30;transition:opacity .15s;box-shadow:0 8px 20px rgba(0,0,0,.3)}
 .hint{text-align:center;color:var(--mu);font-size:.75rem;margin-top:22px}
-@media print{nav,.acts,.chips,.hint,#bar{display:none}section{display:block!important}.hero{color:#000;background:none}}
+@media print{nav,.acts,.chips,.yearfilter,.hint,#bar{display:none}section{display:block!important}.hero{color:#000;background:none}}
 </style></head><body>
 <div style="position:relative;z-index:20;max-width:1080px;margin:auto;padding:0 12px"><a href="vehicle-mileage-log.html" style="display:inline-flex;align-items:center;gap:8px;margin:12px 0;padding:11px 18px;border-radius:12px;background:#fff;color:#293b92;font-weight:700;text-decoration:none;box-shadow:0 2px 12px #0002">🚗 บันทึกการใช้รถ / เลขไมล์</a></div>
 <div id="bar"></div><div id="tip"></div>
 <header class="hero"><div class="wrap">
 <div class="top"><div><span class="pill" id="badge"></span><h1>รายงานการใช้รถยนต์ส่วนกลาง</h1><p>สรุปสำหรับผู้บริหาร · Nissan Almera &amp; EV</p></div>
 <div class="acts"><button class="ic" id="th" title="สลับธีม">◐</button><button class="ic" id="fs" title="โหมดเต็มจอ">⛶</button><button class="ic" onclick="print()" title="พิมพ์">⎙</button></div></div>
-<div class="chips" id="chips"></div></div></header>
+<div class="chips" id="chips"></div><div class="yearfilter"><label for="reportYear">📅 เลือกปีรายงาน</label><select id="reportYear" aria-label="เลือกปีรายงาน"><option value="all">ทุกปี</option></select></div></div></header>
 <nav><div class="wrap tabs" id="tabs"><span id="ind"></span></div></nav>
 <main class="wrap"><section></section><section></section><section></section><section></section><section></section>
 <div class="hint">กดปุ่มแท็บ หรือใช้ลูกศร ← → เพื่อเปลี่ยนหน้า · แตะที่กราฟเพื่อดูรายละเอียด</div></main>
@@ -84,12 +84,14 @@ const ml2=k=>{const p=k.split('-');return MN[+p[1]-1]+' '+String((+p[0]+543)%100
 const COL={'EV':'#14b8a6','Nissan Almera':'#6366f1'};
 const TABS=['◈ ภาพรวม','▥ แนวโน้มรายเดือน','◔ เจาะลึก','☰ รายการเดินทาง','✦ สรุปและข้อเสนอแนะ'];
 const CARS=[['all','ทั้งหมด'],['EV','รถ EV'],['Nissan Almera','Nissan Almera']];
-let F='all',cur=0,sub='dept',q='';
+let F='all',Y='all',cur=0,sub='dept',q='';
 window.reportAdminAuthorized=false;window.reportAdminUid=null;
 const safeHtml=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const filteredTrips=()=>data().slice().reverse().filter(x=>window.zeroKmOnly?x.km<=0:true).filter(x=>!q||(x.user+x.dept+x.loc+x.car).toLowerCase().includes(q));
 const S=()=>document.querySelectorAll('main section');
-const data=()=>F=='all'?D:D.filter(x=>x.car==F);
+const data=()=>D.filter(x=>(F==='all'||x.car===F)&&(Y==='all'||x.d.getFullYear()===Number(Y)));
+function updateYearOptions(){const select=document.getElementById('reportYear');const years=[...new Set(D.map(x=>x.d.getFullYear()).filter(Number.isFinite))].sort((a,b)=>b-a);select.innerHTML='<option value="all">ทุกปี</option>'+years.map(y=>'<option value="'+y+'">พ.ศ. '+(y+543)+'</option>').join('');if(Y!=='all'&&!years.includes(Number(Y)))Y='all';select.value=Y;}
+document.getElementById('reportYear').addEventListener('change',e=>{Y=e.target.value;render();show(cur,1)});
 function grp(a,k){const m={};a.forEach(x=>{const g=m[x[k]]=m[x[k]]||{k:x[k],n:0,km:0};g.n++;g.km+=x.km});return Object.values(m).sort((a,b)=>b.km-a.km)}
 const bars=(a,n)=>{const mx=a[0]?a[0].km:1;return a.slice(0,n).map((x,i)=>`<div class="br" style="--d:${i*70}ms"><span title="${x.k}">${x.k}</span><div class="bt"><i style="--w:${x.km/mx*100}%;--d:${i*70}ms"></i></div><b>${fmt(x.km)}</b><small>${x.n} เที่ยว · เฉลี่ย ${fmt(x.km/x.n)} กม.</small></div>`).join('')};
 function donut(a,t){let off=0;const R=70,C=2*Math.PI*R;return `<svg viewBox="0 0 200 200" class="dn">${a.map(x=>{const l=x.km/t*C,s=`<circle r="${R}" cx="100" cy="100" fill="none" stroke="${COL[x.k]||'#f59e0b'}" stroke-width="26" stroke-dasharray="${l} ${C-l}" stroke-dashoffset="${-off}" transform="rotate(-90 100 100)" data-t="${x.k}: ${fmt(x.km)} กม. (${Math.round(x.km/t*100)}%)"/>`;off+=l;return s}).join('')}<text x="100" y="98" text-anchor="middle" class="dv">${fmt(t)}</text><text x="100" y="118" text-anchor="middle" class="dl">กม. รวม</text></svg><div class="lg">${a.map(x=>`<span><i style="background:${COL[x.k]||'#f59e0b'}"></i>${x.k} ${Math.round(x.km/t*100)}%</span>`).join('')}</div>`}
@@ -168,7 +170,7 @@ try {
      return {id:r.id,d,car:r.vehicle||'',user:r.userName||'',dept:normalizeDepartment(r.department),loc:r.location||'',o,i,km:i-o};
    }).filter(r=>Number.isFinite(r.d.getTime())&&Number.isFinite(r.o)&&Number.isFinite(r.i));
    D=normalized.sort((a,b)=>a.d-b.d);
-   render();show(cur,1);
+   updateYearOptions();render();show(cur,1);
    status.textContent='● ข้อมูล Firebase สด ('+D.length+' รายการ)';status.style.color='#99f6e4';
    updated.textContent='ซิงก์ล่าสุด '+new Date().toLocaleTimeString('th-TH');
  },err=>{status.textContent='⚠ อ่าน Firestore ไม่สำเร็จ: '+err.code;status.style.color='#fecaca';updated.textContent='ไม่สามารถแสดงข้อมูล Firebase ได้';});
