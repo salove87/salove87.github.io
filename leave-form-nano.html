@@ -261,7 +261,8 @@ placeholder="กรอกรหัสพนักงาน"
 class="field-input"
 style="margin-bottom:12px;text-align:center;font-family:'JetBrains Mono',monospace;">
 
-<button onclick="checkLogin()" class="btn-primary" style="padding:11px;width:100%;border:none;cursor:pointer;">
+<p id="loginError" role="alert" style="display:none;color:#B91C1C;font-size:0.85rem;margin:0 0 12px;"></p>
+<button id="loginButton" type="button" class="btn-primary" style="padding:11px;width:100%;border:none;cursor:pointer;">
 เข้าสู่ระบบ
 </button>
 
@@ -682,11 +683,10 @@ readonly>
 
   <div id="toast" class="toast success">ส่งใบลาสำเร็จแล้ว ✅</div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+  <script>
+  (() => {
+    'use strict';
     // Added 'where' to Firestore imports for filtering
-    import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, getDocs, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB9Gzqb2sgYdhg0G5_ivc_GemeQp0yUy8Y",
@@ -707,9 +707,8 @@ readonly>
     }
     window.addEventListener('error', (e)=>{ showToast(`⚠️ JS Error: ${e.message}`, 'error'); });
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    let auth = null, db = null;
+    let collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, getDocs, where, serverTimestamp;
 
     const systemTimeEl = document.getElementById('systemTime');
     function updateSystemTime(){
@@ -1101,41 +1100,45 @@ readonly>
       return fmtDateDMY(hireDate) || hireDate;
     }
 
-window.checkLogin = function(){
+    let loggedInEmployeeId = '';
+    const loginInput = document.getElementById('loginEmpId');
+    const loginButton = document.getElementById('loginButton');
+    const loginError = document.getElementById('loginError');
 
-const id = document.getElementById("loginEmpId").value.trim();
+    function savedLoginEmployeeId(){
+      try { return localStorage.getItem('loginEmpId') || ''; }
+      catch { return ''; }
+    }
 
-if(EMP_MAP[id]){
+    function completeEmployeeLogin(id){
+      loggedInEmployeeId = id;
+      empId.value = id;
+      autofillNameFromEmpId(id);
+      updateLeaveSummary();
+      loginError.style.display = 'none';
+      document.getElementById('loginGate').style.display = 'none';
+    }
 
-localStorage.setItem("loginEmpId", id);
+    window.checkLogin = function(){
+      const raw = String(loginInput.value || '').trim().replace(/[๐-๙]/g, digit => String(digit.charCodeAt(0) - 0x0E50));
+      const id = normalizeEmployeeId(raw);
+      if(!id || !Object.prototype.hasOwnProperty.call(EMP_MAP, id)){
+        loginError.textContent = id ? 'ไม่พบรหัสพนักงาน กรุณาตรวจสอบรหัสแล้วลองอีกครั้ง' : 'กรุณากรอกรหัสพนักงาน';
+        loginError.style.display = 'block';
+        loginInput.focus();
+        return false;
+      }
+      // เปิดฟอร์มได้แม้เบราว์เซอร์ไม่อนุญาตให้จดจำรหัสในพื้นที่จัดเก็บ
+      try { localStorage.setItem('loginEmpId', id); } catch {}
+      completeEmployeeLogin(id);
+      return true;
+    };
+    loginButton.addEventListener('click', window.checkLogin);
+    loginInput.addEventListener('keydown', event => {
+      if(event.key === 'Enter'){ event.preventDefault(); window.checkLogin(); }
+    });
+    loginInput.addEventListener('input', () => { loginError.style.display = 'none'; });
 
-document.getElementById("loginGate").style.display="none";
-
-empId.value = id;
-autofillNameFromEmpId(id);
-
-}else{
-
-alert("ไม่พบรหัสพนักงาน");
-
-}
-
-}
-    window.addEventListener("load",()=>{
-
-const savedId = localStorage.getItem("loginEmpId");
-
-if(savedId && EMP_MAP[savedId]){
-
-document.getElementById("loginGate").style.display="none";
-
-empId.value = savedId;
-
-autofillNameFromEmpId(savedId);
-
-}
-
-});
     function normalizeEmpId(raw){ return String(raw||'').trim(); }
     function autofillNameFromEmpId(rawId){
       const id = normalizeEmpId(rawId);
@@ -1343,9 +1346,8 @@ autofillNameFromEmpId(savedId);
         async create(payload){ return addDoc(colRef, { ...payload, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }); },
         async update(id, payload){ return updateDoc(doc(db, 'leave_requests', id), { ...payload, updatedAt: serverTimestamp() }); },
         async remove(id){ return deleteDoc(doc(db, 'leave_requests', id)); },
-        async getAll(){ 
-             const q = query(colRef, orderBy('createdAt','desc'));
-             const snap = await getDocs(q);
+        async getAll(){
+             const snap = await getDocs(colRef);
              return snap.docs.map(d => ({ id: d.id, ...d.data() }));
         },
         // ADDED: Fetch specific employee history
@@ -1384,12 +1386,6 @@ autofillNameFromEmpId(savedId);
         showToast('Firestore อ่านข้อมูลล้มเหลว ใช้โหมด Local แทน', 'error');
         driver = makeLocalDriver(); attachSubscription();
       });
-    }
-
-    if(!isSecureOrigin){ driver = makeLocalDriver(); attachSubscription(); }
-    else {
-      signInAnonymously(auth).then(()=>{ driver = makeFirestoreDriver(); attachSubscription(); })
-      .catch(err=>{ console.error(err); driver = makeLocalDriver(); attachSubscription(); showToast('ใช้โหมด Local แทน','error'); });
     }
 
     function leaveTypeChipStyle(type){
@@ -2200,7 +2196,7 @@ if(!ok){
         
         form.reset();
         confirmAccuracy.checked=false;
-        empId.value=localStorage.getItem('loginEmpId')||'';
+        empId.value=loggedInEmployeeId || savedLoginEmployeeId();
         autofillNameFromEmpId(empId.value);
         goToFormStep(1);
         updateLeaveSummary();
@@ -2258,6 +2254,15 @@ if(!ok){
     }
 
     let pendingEditLeave = null;
+    const editLeaveModal = document.getElementById('editLeaveModal');
+    const editLeaveDetails = document.getElementById('editLeaveDetails');
+    const editLeaveError = document.getElementById('editLeaveError');
+    const editStartDate = document.getElementById('editStartDate');
+    const editEndDate = document.getElementById('editEndDate');
+    const closeEditLeave = document.getElementById('closeEditLeave');
+    const cancelEditLeave = document.getElementById('cancelEditLeave');
+    const saveEditLeave = document.getElementById('saveEditLeave');
+
     const editLeaveDayMode = document.getElementById('editLeaveDayMode');
     const editLeaveDayHint = document.getElementById('editLeaveDayHint');
 
@@ -2455,66 +2460,127 @@ const { ok, errors, warnings, value } =
     });
 
     function csvEscape(value){ const s = String(value ?? '').replace(/"/g,'""'); return '"' + s + '"'; }
-function generateCSV(data){
-  const payStatusByRowId = calculatePayStatuses(data);
-  const rows = [[
-    'รหัส',
-    'ชื่อพนักงาน',
-    'แผนก',
-    'ประเภทการลา',
-    'สถานะใบลา',
-    'ประเภทพนักงาน',
-    'สถานะสิทธิ์',
-    'จำนวนวันที่ได้รับสิทธิ์',
-    'จำนวนวันที่ไม่ได้รับสิทธิ์',
-    'มีไฟล์แนบ',
-    'เริ่ม',
-    'สิ้นสุด',
-    'จำนวนวัน',
-    'ช่วงเวลา',
-    'เหตุผลการลา',
-    'ผู้อนุมัติ',
-    'วันที่ส่งใบลา',
-    'เวลาที่ส่ง'
-  ]];
 
-  data.forEach(r => {
-    const hasFile = r.attachment ? "มีแนบไฟล์" : "ไม่มี";
-    const st = payStatusByRowId.get(r.id);
-    const status = st ? getPayStatusLabel(st) : '';
-    rows.push([
-      r.empId || '',
-      r.empName || '',
-      r.department || '',
-      r.leaveType || '',
-      r.leaveStatus === 'cancelled' ? 'ยกเลิก' : 'ปกติ',
-      getIncomeType(r.empId),
-      status,
-      st ? formatStatusDays(st.paidDays) : '',
-      st ? formatStatusDays(st.unpaidDays) : '',
-      hasFile,
-      r.startDate || '',
-      r.endDate || '',
-      r.leaveDays || '',
-      r.halfDayPeriod || '',
-      r.reason || '',
-      r.approver || '',
-      r.submitDate || '',
-      r.systemTime || ''
-    ]);
-  });
+    function isCancelledCSVRow(row){
+      return ['cancelled', 'canceled'].includes(String(row.leaveStatus || '').trim().toLowerCase());
+    }
 
-  return rows
-    .map(cols => cols.map(csvEscape).join(','))
-    .join('\n');
-}
+    // แยกเฉพาะข้อมูลส่งออก ไม่แก้ใบลาที่บันทึกอยู่ในระบบ
+    function csvDateISO(value){
+      const iso = String(value || '').slice(0, 10);
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return '';
+      const timestamp = Date.parse(iso + 'T00:00:00Z');
+      return Number.isFinite(timestamp) && new Date(timestamp).toISOString().slice(0, 10) === iso ? iso : '';
+    }
+
+    function splitLeaveForCSV(row, index){
+      const startISO = csvDateISO(row.startDate || row.endDate);
+      const endISO = csvDateISO(row.endDate || row.startDate);
+      const original = {
+        ...row,
+        csvSourceId: row.id || '',
+        csvOriginalStart: row.startDate || '',
+        csvOriginalEnd: row.endDate || '',
+        csvOriginalDays: row.leaveDays ?? ''
+      };
+      // ประวัติทั้งหมดต้องยังแสดงข้อมูลเก่าที่วันที่ไม่สมบูรณ์ โดยไม่เดางวดให้
+      if(!startISO || !endISO || endISO < startISO){
+        return [{ ...original, id: `csv-${index}-undated`, csvPeriodMonth: '', csvPeriodYear: '' }];
+      }
+
+      const dayMs = 86400000;
+      const start = Date.parse(startISO + 'T00:00:00Z');
+      const end = Date.parse(endISO + 'T00:00:00Z');
+      const totalCalendarDays = (end - start) / dayMs + 1;
+      const totalLeaveDays = numericDays(row.leaveDays);
+      const roundDays = value => Math.round(value * 1000000) / 1000000;
+      const parts = [];
+      let allocatedDays = 0;
+
+      for(let cursor = start; cursor <= end;){
+        const fromISO = new Date(cursor).toISOString().slice(0, 10);
+        const [year, month, day] = fromISO.split('-').map(Number);
+        const periodMonth = day >= 26 ? (month === 12 ? 1 : month + 1) : month;
+        const periodYear = day >= 26 && month === 12 ? year + 1 : year;
+        const range = getPayPeriodRange(periodMonth, periodYear);
+        const partEnd = Math.min(end, Date.parse(range.endISO + 'T00:00:00Z'));
+        const throughDays = (partEnd - start) / dayMs + 1;
+        // ใช้จำนวนวันที่บันทึกไว้และเกณฑ์วันปฏิทินเดิม ผลรวมทุกงวดต้องเท่าใบลาเดิม
+        const throughLeaveDays = partEnd === end ? totalLeaveDays : roundDays(totalLeaveDays * throughDays / totalCalendarDays);
+        const days = roundDays(throughLeaveDays - allocatedDays);
+        parts.push({
+          ...original,
+          id: `csv-${index}-${fromISO}`,
+          startDate: fromISO,
+          endDate: new Date(partEnd).toISOString().slice(0, 10),
+          leaveDays: days,
+          csvDaysBefore: allocatedDays,
+          csvPeriodMonth: periodMonth,
+          csvPeriodYear: periodYear
+        });
+        allocatedDays = throughLeaveDays;
+        cursor = partEnd + dayMs;
+      }
+      return parts;
+    }
+
+    function prepareCSVExportRows(data, { period = null, department = '' } = {}){
+      const activeRows = (Array.isArray(data) ? data : []).filter(row => !isCancelledCSVRow(row))
+        .map((row, index) => ({ ...normalizeEmployeeRow(row), csvSourceKey: row.id || `csv-source-${index}` }));
+      const allParts = activeRows.flatMap(splitLeaveForCSV);
+      // คิดสิทธิ์ P/N จากประวัติทั้งหมดก่อนเลือกงวด/แผนก เพื่อไม่เริ่มโควต้าใหม่ทุกงวด
+      // คงเกณฑ์สิทธิ์เดิมของใบลา แล้วแบ่ง P ก่อน N ตามลำดับวันที่ของแต่ละส่วน
+      const payStatuses = calculatePayStatuses(activeRows.map(row => ({ ...row, id: row.csvSourceKey })));
+      return allParts.filter(row => {
+        if(period && (!row.csvPeriodMonth || !rowOverlapsPeriod(row, period.startISO, period.endISO))) return false;
+        return !department || String(row.department || '').trim() === department;
+      }).map(row => {
+        const sourceStatus = payStatuses.get(row.csvSourceKey);
+        if(!sourceStatus) return row;
+        const days = numericDays(row.leaveDays);
+        const paidDays = Math.round(Math.max(0, Math.min(days, sourceStatus.paidDays - (row.csvDaysBefore || 0))) * 1000000) / 1000000;
+        const unpaidDays = Math.round((days - paidDays) * 1000000) / 1000000;
+        return { ...row, csvPayStatus: { ...sourceStatus, leaveDays: days, paidDays, unpaidDays } };
+      });
+    }
+
+    function generateCSV(data){
+      const rows = [[
+        'รหัส', 'ชื่อพนักงาน', 'แผนก', 'ประเภทการลา', 'สถานะใบลา',
+        'ประเภทพนักงาน', 'สถานะสิทธิ์', 'จำนวนวันที่ได้รับสิทธิ์',
+        'จำนวนวันที่ไม่ได้รับสิทธิ์', 'มีไฟล์แนบ', 'เริ่ม', 'สิ้นสุด',
+        'จำนวนวัน', 'ช่วงเวลา', 'เหตุผลการลา', 'ผู้อนุมัติ', 'วันที่ส่งใบลา', 'เวลาที่ส่ง',
+        'รอบเดือน', 'รอบปี', 'รหัสใบลา', 'เริ่มใบลาเดิม', 'สิ้นสุดใบลาเดิม', 'จำนวนวันใบลาเดิม'
+      ]];
+
+      data.filter(row => !isCancelledCSVRow(row)).forEach(r => {
+        const st = r.csvPayStatus;
+        rows.push([
+          r.empId || '', r.empName || '', r.department || '', r.leaveType || '', 'ปกติ',
+          getIncomeType(r.empId), st ? getPayStatusLabel(st) : '',
+          st ? formatStatusDays(st.paidDays) : '', st ? formatStatusDays(st.unpaidDays) : '',
+          r.attachment ? 'มีแนบไฟล์' : 'ไม่มี', r.startDate || '', r.endDate || '',
+          r.leaveDays ?? '', r.halfDayPeriod || '', r.reason || '', r.approver || '',
+          r.submitDate || '', r.systemTime || '',
+          r.csvPeriodMonth ? THAI_MONTHS[r.csvPeriodMonth - 1] : '', r.csvPeriodYear || '',
+          r.csvSourceId || '', r.csvOriginalStart || '', r.csvOriginalEnd || '', r.csvOriginalDays ?? ''
+        ]);
+      });
+
+      return rows.map(cols => cols.map(csvEscape).join(',')).join('\n');
+    }
 
     downloadCSVBtn.addEventListener('click', async ()=>{
       try {
           csvLoading.classList.remove('hidden');
           downloadCSVBtn.disabled = true;
           const allData = await driver.getAll();
-          const csv = generateCSV(allData);
+          const exportRows = prepareCSVExportRows(allData);
+          if(exportRows.length === 0){
+            showToast('⚠️ ไม่พบใบลาที่ยังไม่ยกเลิกสำหรับดาวน์โหลด', 'warning');
+            return;
+          }
+          const csv = generateCSV(exportRows);
           const blob = new Blob(["\ufeff"+csv], {type:'text/csv;charset=utf-8;'});
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a'); a.href = url; a.download = 'leave-requests-all.csv'; a.click(); URL.revokeObjectURL(url);
@@ -2619,10 +2685,7 @@ function generateCSV(data){
         const dept = periodDeptSel.value;
 
         const allData = await driver.getAll();
-        let filtered = allData.filter(row => rowOverlapsPeriod(row, r.startISO, r.endISO));
-        if(dept){
-          filtered = filtered.filter(row => (row.department || '').trim() === dept);
-        }
+        const filtered = prepareCSVExportRows(allData, { period: r, department: dept });
 
         // เรียงตามรหัสพนักงาน แล้ววันที่เริ่มลา ให้พร้อมใช้งานง่ายขึ้น
         filtered.sort((a,b)=>{
@@ -2655,6 +2718,38 @@ function generateCSV(data){
         downloadPeriodCSVBtn.textContent = '📥 ดาวน์โหลดรอบนี้';
       }
     });
+    // เริ่มรับข้อมูลหลังประกาศสถานะและเตรียมปุ่มของหน้าทั้งหมดแล้ว
+    async function initializeLeaveData(){
+      if(!isSecureOrigin){ driver = makeLocalDriver(); attachSubscription(); return; }
+      downloadCSVBtn.disabled = true;
+      downloadPeriodCSVBtn.disabled = true;
+      try{
+        const [appSDK, authSDK, firestoreSDK] = await Promise.all([
+          import('https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js'),
+          import('https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js'),
+          import('https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js')
+        ]);
+        ({ collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, getDocs, where, serverTimestamp } = firestoreSDK);
+        const app = appSDK.initializeApp(firebaseConfig);
+        auth = authSDK.getAuth(app);
+        db = firestoreSDK.getFirestore(app);
+        await authSDK.signInAnonymously(auth);
+        driver = makeFirestoreDriver();
+        attachSubscription();
+      }catch(err){
+        console.error('ไม่สามารถเชื่อมต่อข้อมูลส่วนกลางได้', err);
+        driver = makeLocalDriver();
+        attachSubscription();
+        showToast('เชื่อมต่อข้อมูลส่วนกลางไม่ได้ ขณะนี้ใช้ข้อมูลในเครื่องเท่านั้น', 'error');
+      }finally{
+        downloadCSVBtn.disabled = false;
+        downloadPeriodCSVBtn.disabled = false;
+      }
+    }
+    const savedEmployeeId = normalizeEmployeeId(savedLoginEmployeeId());
+    if(savedEmployeeId && Object.prototype.hasOwnProperty.call(EMP_MAP, savedEmployeeId)) completeEmployeeLogin(savedEmployeeId);
+    initializeLeaveData();
+  })();
   </script>
 </body>
 </html>
