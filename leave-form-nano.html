@@ -2157,7 +2157,7 @@ readonly>
         ['ชื่อพนักงาน',receipt.empName],['แผนก',receipt.department],
         ['ประเภทการลา',receipt.leaveType],
         ['วันที่ลา',`${receiptDate(receipt.startDate)} ถึง ${receiptDate(receipt.endDate)}`],
-        ['จำนวนวันลา',`${receipt.leaveDays} วัน`],
+        ['จำนวนวันลา',`${String(receipt.leaveDays ?? '').trim().replace(/(?:\s*วัน)+\s*$/, '').trim() || '-'} วัน`],
         ['ชื่อผู้ส่ง (อ้างอิงผู้อนุมัติ)',receipt.approver],
         ['วันที่และเวลาบันทึก',receipt.savedAt],
       ];
