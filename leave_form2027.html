@@ -1568,6 +1568,61 @@ autofillNameFromEmpId(savedId);
         if(e.target === employeeHistoryModal) employeeHistoryModal.style.display = 'none';
     };
 
+    // Submission receipt: generated only after Firestore confirms creation.
+    let latestReceipt = null;
+    function receiptPNG(receipt){
+      const canvas = document.createElement('canvas');
+      canvas.width = 1000; canvas.height = 1020;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,1000,1020);
+      ctx.fillStyle = '#12316a'; ctx.fillRect(0,0,1000,145);
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 34px Sarabun, sans-serif';
+      ctx.fillText('บริษัท นาโน มิเรอร์ อินดัสทรี้ จำกัด',55,65);
+      ctx.font = '26px Sarabun, sans-serif'; ctx.fillText('หลักฐานยืนยันการส่งใบลาออนไลน์',55,113);
+      ctx.fillStyle = '#15803d'; ctx.font = 'bold 30px Sarabun, sans-serif';
+      ctx.fillText('✓ บันทึกใบลาสำเร็จ',55,205);
+      const fields = [
+        ['เลขอ้างอิง',receipt.ref], ['รหัสพนักงาน',receipt.empId],
+        ['ชื่อพนักงาน',receipt.empName], ['แผนก',receipt.department],
+        ['ประเภทการลา',receipt.leaveType],
+        ['วันที่ลา',receipt.startDate + ' ถึง ' + receipt.endDate],
+        ['จำนวนวันลา',String(receipt.leaveDays) + ' วัน'],
+        ['ชื่อผู้ส่ง (ตามช่องผู้อนุมัติ)',receipt.approver],
+        ['วันที่และเวลาบันทึก',receipt.savedTime],
+        ['รหัสรายการ Firebase',receipt.id]
+      ];
+      ctx.textBaseline='middle';
+      fields.forEach(([label,val],i)=>{
+        const y=270+i*62;
+        if(i%2===0){ctx.fillStyle='#f2f5fa';ctx.fillRect(45,y-27,910,57);}
+        ctx.fillStyle='#334155';ctx.font='22px Sarabun, sans-serif';ctx.fillText(label,65,y);
+        ctx.fillStyle='#0f172a';ctx.font='bold 22px Sarabun, sans-serif';
+        const str=String(val||'-');
+        let display=str;
+        while(ctx.measureText(display).width>490 && display.length>4)display=display.slice(0,-2)+'…';
+        ctx.fillText(display,440,y);
+      });
+      ctx.fillStyle='#64748b';ctx.font='20px Sarabun, sans-serif';
+      ctx.fillText('หลักฐานการส่งใบลา ไม่ใช่หลักฐานการอนุมัติ',55,940);
+      ctx.fillText('ตรวจสอบรายการจริงด้วยรหัสรายการ Firebase ในระบบ HR',55,975);
+      return canvas;
+    }
+    function downloadReceipt(receipt){
+      const canvas=receiptPNG(receipt);
+      canvas.toBlob(blob=>{
+        if(!blob){showToast('สร้างไฟล์ PNG ไม่สำเร็จ กรุณากดดาวน์โหลดอีกครั้ง','error');return;}
+        const url=URL.createObjectURL(blob),a=document.createElement('a');
+        a.href=url;a.download=`Leave-Receipt-${receipt.ref}.png`;
+        document.body.appendChild(a);a.click();a.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),60000);
+      },'image/png');
+    }
+    const receiptPanel=document.createElement('div');
+    receiptPanel.id='receiptPanel';receiptPanel.className='card p-4 mt-4 hidden';
+    receiptPanel.innerHTML='<p class="font-semibold text-green-700">✅ บันทึกใบลาสำเร็จ</p><p id="receiptRefText" class="text-sm mt-2"></p><button type="button" id="retryReceipt" class="btn-primary px-4 py-2 mt-3">📥 ดาวน์โหลดหลักฐาน PNG อีกครั้ง</button>';
+    form.after(receiptPanel);
+    document.getElementById('retryReceipt').addEventListener('click',()=>{if(latestReceipt)downloadReceipt(latestReceipt);});
+
     form.addEventListener('submit', async (e)=>{
       e.preventDefault();
       
@@ -1654,10 +1709,27 @@ if(!ok){
         // ==================================
 
         submitBtn.textContent = 'กำลังบันทึก...';
-        await driver.create({
+        if(!driver || driver.kind !== 'firestore'){
+          throw new Error('ยังไม่ได้เชื่อมต่อ Firebase จึงไม่สามารถออกหลักฐานการส่งใบลาได้ กรุณาเชื่อมต่อแล้วลองใหม่');
+        }
+        const savedDoc = await driver.create({
          ...value,
-        attachment: attachmentBase64
+         attachment: attachmentBase64
         });
+        const savedTime = new Date().toLocaleString('th-TH',{timeZone:'Asia/Bangkok',hour12:false});
+        const receipt = {
+          ...value, id:savedDoc.id,
+          ref:'LV-'+new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'}).replaceAll('-','')+'-'+savedDoc.id,
+          savedTime
+        };
+        latestReceipt=receipt;
+        document.getElementById('receiptRefText').textContent='เลขอ้างอิง: '+receipt.ref;
+        receiptPanel.classList.remove('hidden');
+        // Browser download may require confirmation, especially on mobile.
+        try{ downloadReceipt(receipt); }catch(downloadError){
+          console.error('Receipt download:',downloadError);
+          showToast('บันทึกใบลาสำเร็จ แต่ดาวน์โหลด PNG ไม่สำเร็จ กรุณากดดาวน์โหลดซ้ำ','warning');
+        }
         
         form.reset();
         fileUploadSection.classList.add('hidden'); 
