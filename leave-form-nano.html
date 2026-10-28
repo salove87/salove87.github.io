@@ -291,7 +291,6 @@ style="margin-bottom:12px;text-align:center;font-family:'JetBrains Mono',monospa
         <li>ห้ามส่งใบลาในวันหยุด (อาทิตย์)</li>
         <li>กรณีลากิจ ระบบอนุญาตให้ส่งย้อนหลังได้ 2 วันเท่านั้น ถ้าเกินระบบจะตัดเป็นขาดงานทันที</li>
         <li>กรณีลาพักร้อนแล้วระบบมีปัญหาให้แจ้ง HR ทันทีในวันที่ทำรายการ หากไม่แจ้ง ลาพักร้อน ก็ จะเป็นลากิจทันที</li>
-        <li>ผู้ส่งใบลาต้องจัดเก็บหลักฐานการส่งใบลา (PNG) ไว้ตรวจสอบ กรณี HR ไม่พบรายการ การอ้างว่าส่งแล้วแต่ลบหลักฐานทิ้ง ไม่ถือเป็นการยืนยันการส่งใบลา ทั้งนี้ ให้ยึดข้อมูลในระบบเป็นหลัก</li>
       </ul>
     </div>
 
@@ -2158,7 +2157,14 @@ readonly>
         ['ชื่อพนักงาน',receipt.empName],['แผนก',receipt.department],
         ['ประเภทการลา',receipt.leaveType],
         ['วันที่ลา',`${receiptDate(receipt.startDate)} ถึง ${receiptDate(receipt.endDate)}`],
-        ['จำนวนวันลา',`${String(receipt.leaveDays ?? '').trim().replace(/(?:\s*วัน)+\s*$/, '').trim() || '-'} วัน`],
+        ['จำนวนวันลา', (() => {
+          const days = String(receipt.leaveDays ?? '').trim().replace(/(?:\s*วัน)+\s*$/, '').trim();
+          const period = String(receipt.halfDayPeriod ?? '').trim();
+          const isHalfDay = Number.parseFloat(days) === 0.5;
+          const periodLabel = /เช้า|morning/i.test(period) ? 'ครึ่งวันเช้า'
+            : /บ่าย|afternoon/i.test(period) ? 'ครึ่งวันบ่าย' : '';
+          return `${days || '-'} วัน${isHalfDay && periodLabel ? ` (${periodLabel})` : ''}`;
+        })()],
         ['ชื่อผู้ส่ง (อ้างอิงผู้อนุมัติ)',receipt.approver],
         ['วันที่และเวลาบันทึก',receipt.savedAt],
       ];
