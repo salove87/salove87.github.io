@@ -2175,8 +2175,11 @@ readonly>
         y+=Math.max(70,h+15);
         c.strokeStyle='#E2E8F0';c.beginPath();c.moveTo(110,y-27);c.lineTo(970,y-27);c.stroke();
       }
-      c.fillStyle='#64748B';c.textAlign='center';c.font='23px Sarabun, sans-serif';
-      c.fillText('เอกสารนี้ยืนยันการบันทึกใบลา ไม่ใช่หลักฐานการอนุมัติ',540,1260);
+      // ข้อความกำกับหลักฐาน: แบ่งบรรทัดเพื่อให้อ่านชัดบนมือถือและไฟล์ PNG
+      c.fillStyle='#64748B';c.textAlign='center';c.font='21px Sarabun, sans-serif';
+      c.fillText('เอกสารฉบับนี้จัดทำขึ้นเพื่อเป็นหลักฐานยืนยันการส่งใบลาผ่านระบบออนไลน์',540,1208);
+      c.fillText('ผู้ส่งสามารถใช้แสดงต่อฝ่ายทรัพยากรบุคคล (HR) เพื่อประกอบการตรวจสอบ',540,1243);
+      c.fillText('ในกรณีที่ได้รับแจ้งว่าไม่พบข้อมูลใบลาในระบบ',540,1278);
       return await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('สร้าง PNG ไม่สำเร็จ')),'image/png'));
     }
     async function downloadLeaveReceipt(){
