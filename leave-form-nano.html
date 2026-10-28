@@ -681,6 +681,20 @@ readonly>
     </div>
   </div>
 
+  <!-- Confirmation shown only after the leave request is stored -->
+  <div id="leaveReceiptModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="leaveReceiptTitle">
+    <div class="modal-content sheen" style="max-width:560px;margin:8vh auto;">
+      <h3 id="leaveReceiptTitle" class="font-display" style="font-size:1.25rem;font-weight:700;color:#15803D;margin:8px 0 12px;">✅ บันทึกใบลาสำเร็จ</h3>
+      <p style="font-size:.9rem;color:#5B6472;margin-bottom:12px;">ระบบบันทึกใบลาแล้ว และกำลังดาวน์โหลดหลักฐาน PNG ลงอุปกรณ์นี้</p>
+      <div id="leaveReceiptInfo" style="white-space:pre-line;overflow-wrap:anywhere;background:#F8FAFE;border:1px solid #D8E2F6;border-radius:12px;padding:14px;line-height:1.8;font-size:.92rem;"></div>
+      <p id="leaveReceiptDownloadStatus" role="status" aria-live="polite" style="margin:14px 0;color:#5B6472;font-size:.85rem;"></p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+        <button type="button" id="leaveReceiptDownload" class="btn-primary" style="padding:11px 15px;border:0;cursor:pointer;">📥 ดาวน์โหลดหลักฐาน PNG อีกครั้ง</button>
+        <button type="button" id="leaveReceiptClose" class="btn-secondary" style="flex:0 0 auto;padding:11px 18px;">ปิด</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast success">ส่งใบลาสำเร็จแล้ว ✅</div>
 
   <script>
@@ -708,7 +722,7 @@ readonly>
     window.addEventListener('error', (e)=>{ showToast(`⚠️ JS Error: ${e.message}`, 'error'); });
 
     let auth = null, db = null;
-    let collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, getDocs, where, serverTimestamp;
+    let collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, getDocs, getDoc, where, serverTimestamp;
 
     const systemTimeEl = document.getElementById('systemTime');
     function updateSystemTime(){
@@ -1553,6 +1567,17 @@ readonly>
         const btnHistory = document.createElement('button'); btnHistory.className='icon-btn cursor-pointer'; btnHistory.style.cssText='background:#EAF7EF;color:#166534;margin-right:6px;'; btnHistory.textContent='👤'; btnHistory.title='ดูประวัติการลา'; btnHistory.dataset.action='history'; btnHistory.dataset.id=row.id;
         tdActions.appendChild(btnHistory);
 
+        // Re-download the PNG receipt for this existing Firestore leave record.
+        const btnReceipt = document.createElement('button');
+        btnReceipt.className='icon-btn cursor-pointer';
+        btnReceipt.style.cssText='background:#E7F5EC;color:#15803D;margin-right:6px;';
+        btnReceipt.textContent='📥';
+        btnReceipt.title='ดาวน์โหลดหลักฐานการส่งใบลา PNG ซ้ำ';
+        btnReceipt.setAttribute('aria-label','ดาวน์โหลดหลักฐาน PNG ซ้ำ');
+        btnReceipt.dataset.action='receipt';
+        btnReceipt.dataset.id=row.id;
+        tdActions.appendChild(btnReceipt);
+
         const btnEdit = document.createElement('button'); btnEdit.className='icon-btn cursor-pointer'; btnEdit.style.cssText='background:var(--accent-soft);color:var(--accent-deep);margin-right:6px;'; btnEdit.textContent='✏️'; btnEdit.title='แก้ไข'; btnEdit.dataset.action='edit'; btnEdit.dataset.id=row.id;
         tdActions.appendChild(btnEdit);
         const btnManage = document.createElement('button'); btnManage.className='icon-btn cursor-pointer'; btnManage.style.cssText='background:var(--danger-soft);color:var(--danger);'; btnManage.textContent='🗑️'; btnManage.title='ยกเลิก/คืนสถานะใบลา'; btnManage.dataset.action='manage'; btnManage.dataset.id=row.id;
@@ -2102,6 +2127,140 @@ readonly>
         if(e.target === vacationActionModal) closeVacationActionModal();
     };
 
+    // Receipt: use only the Firestore document ID returned after a successful write.
+    let lastLeaveReceipt = null;
+    const receiptModal = document.getElementById('leaveReceiptModal');
+    const receiptInfo = document.getElementById('leaveReceiptInfo');
+    const receiptStatus = document.getElementById('leaveReceiptDownloadStatus');
+    const receiptFileName = receipt => `Leave-Receipt-${receipt.reference}.png`;
+    function receiptDate(date){
+      if(!date) return '-';
+      const [y,m,d] = String(date).split('-');
+      return y && m && d ? `${d}/${m}/${y}` : String(date);
+    }
+    async function createReceiptBlob(receipt){
+      if(document.fonts?.load) await document.fonts.load('24px Sarabun');
+      const canvas = document.createElement('canvas');
+      canvas.width = 1080; canvas.height = 1360;
+      const c = canvas.getContext('2d');
+      c.fillStyle='#F1F5F9';c.fillRect(0,0,1080,1360);
+      c.fillStyle='#fff';c.fillRect(50,50,980,1260);
+      c.fillStyle='#0B1C3D';c.fillRect(50,50,980,185);
+      c.textAlign='center';c.fillStyle='#fff';c.font='bold 36px Sarabun, sans-serif';
+      c.fillText('บริษัท นาโน มิเรอร์ อินดัสทรี้ จำกัด',540,125);
+      c.font='30px Sarabun, sans-serif';c.fillText('หลักฐานยืนยันการส่งใบลาออนไลน์',540,183);
+      c.fillStyle='#E7F5EC';c.fillRect(105,270,870,90);
+      c.fillStyle='#15803D';c.font='bold 32px Sarabun, sans-serif';c.fillText('✓ บันทึกใบลาสำเร็จในระบบส่วนกลาง',540,328);
+      c.textAlign='left';
+      const fields = [
+        ['เลขอ้างอิง',receipt.reference],['รหัสพนักงาน',receipt.empId],
+        ['ชื่อพนักงาน',receipt.empName],['แผนก',receipt.department],
+        ['ประเภทการลา',receipt.leaveType],
+        ['วันที่ลา',`${receiptDate(receipt.startDate)} ถึง ${receiptDate(receipt.endDate)}`],
+        ['จำนวนวันลา',`${receipt.leaveDays} วัน`],
+        ['ชื่อผู้ส่ง (อ้างอิงผู้อนุมัติ)',receipt.approver],
+        ['วันที่และเวลาบันทึก',receipt.savedAt],
+      ];
+      let y=425;
+      for(const [label,raw] of fields){
+        c.fillStyle='#64748B';c.font='25px Sarabun, sans-serif';c.fillText(label,115,y);
+        c.fillStyle='#101826';c.font='bold 27px Sarabun, sans-serif';
+        const value=String(raw??'-');
+        // Wrap long values within the receipt card.
+        const words=Array.from(value);let line='',lines=[];
+        for(const ch of words){if(c.measureText(line+ch).width>530){lines.push(line);line=ch;}else line+=ch;}
+        if(line)lines.push(line);
+        for(let i=0;i<Math.min(3,lines.length);i++)c.fillText(lines[i],435,y+i*33);
+        const h=Math.max(1,Math.min(3,lines.length))*33;
+        y+=Math.max(70,h+15);
+        c.strokeStyle='#E2E8F0';c.beginPath();c.moveTo(110,y-27);c.lineTo(970,y-27);c.stroke();
+      }
+      c.fillStyle='#64748B';c.textAlign='center';c.font='23px Sarabun, sans-serif';
+      c.fillText('เอกสารนี้ยืนยันการบันทึกใบลา ไม่ใช่หลักฐานการอนุมัติ',540,1260);
+      return await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('สร้าง PNG ไม่สำเร็จ')),'image/png'));
+    }
+    async function downloadLeaveReceipt(){
+      if(!lastLeaveReceipt) return;
+      try{
+        receiptStatus.textContent='กำลังสร้างไฟล์ PNG...';
+        const blob=await createReceiptBlob(lastLeaveReceipt);
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');a.href=url;a.download=receiptFileName(lastLeaveReceipt);
+        document.body.appendChild(a);a.click();a.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),60000);
+        receiptStatus.textContent='สั่งดาวน์โหลด PNG แล้ว โปรดตรวจสอบโฟลเดอร์ดาวน์โหลด (บางเบราว์เซอร์อาจขออนุญาต)';
+      }catch(err){console.error(err);receiptStatus.textContent='ไม่สามารถดาวน์โหลดอัตโนมัติได้ กรุณากดดาวน์โหลดอีกครั้ง';}
+    }
+    // Historical receipts are generated from the selected existing record only;
+    // the original server timestamp is retained, and no new leave is submitted.
+    function storedReceiptTimestamp(value){
+      if(!value) return null;
+      if(typeof value.toDate === 'function') return value.toDate();
+      if(typeof value.seconds === 'number') return new Date(value.seconds*1000);
+      const d = value instanceof Date ? value : new Date(value);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+    function bangkokReceiptDateKey(date){
+      const parts = new Intl.DateTimeFormat('en-GB',{
+        timeZone:'Asia/Bangkok',year:'numeric',month:'2-digit',day:'2-digit'
+      }).formatToParts(date);
+      const part = type => parts.find(p=>p.type===type)?.value || '';
+      return `${part('year')}${part('month')}${part('day')}`;
+    }
+    async function redownloadSavedLeaveReceipt(row, button){
+      if(driver?.kind !== 'firestore'){
+        showToast('ดาวน์โหลดหลักฐานย้อนหลังได้เมื่อเชื่อมต่อ Firebase เท่านั้น','error');
+        return;
+      }
+      if(!row?.id || String(row.id).startsWith('__')){
+        showToast('รายการนี้ไม่มีรหัสอ้างอิงจาก Firebase','error');
+        return;
+      }
+      const createdAt = storedReceiptTimestamp(row.createdAt);
+      if(!createdAt){
+        showToast('รายการนี้ไม่มีเวลาบันทึกจาก Firebase จึงไม่สามารถออกหลักฐานย้อนหลังได้','warning');
+        return;
+      }
+      const oldDisabled=button.disabled;
+      button.disabled=true;
+      try{
+        // Read the record again so the downloaded receipt matches Firestore.
+        const freshSnap = await getDoc(doc(db,'leave_requests',row.id));
+        if(!freshSnap.exists()) throw new Error('ไม่พบรายการใบลาใน Firebase');
+        const fresh = freshSnap.data();
+        const serverDate=storedReceiptTimestamp(fresh.createdAt);
+        if(!serverDate) throw new Error('ไม่พบเวลาบันทึกจริงใน Firebase');
+        const receipt = {
+          ...fresh,
+          reference:`LV-${bangkokReceiptDateKey(serverDate)}-${freshSnap.id}`,
+          savedAt:new Intl.DateTimeFormat('th-TH',{
+            timeZone:'Asia/Bangkok',day:'2-digit',month:'2-digit',year:'numeric',
+            hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false
+          }).format(serverDate)
+        };
+        const blob=await createReceiptBlob(receipt);
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');
+        a.href=url;a.download=receiptFileName(receipt);
+        document.body.appendChild(a);a.click();a.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),60000);
+        showToast('📥 สั่งดาวน์โหลดหลักฐาน PNG แล้ว','success');
+      }catch(err){
+        console.error('Receipt re-download failed:',err);
+        showToast('ดาวน์โหลดหลักฐานไม่สำเร็จ: '+(err.message||'โปรดลองอีกครั้ง'),'error');
+      }finally{button.disabled=oldDisabled;}
+    }
+
+    document.getElementById('leaveReceiptDownload').addEventListener('click',downloadLeaveReceipt);
+    document.getElementById('leaveReceiptClose').addEventListener('click',()=>receiptModal.style.display='none');
+    function showLeaveReceipt(receipt){
+      lastLeaveReceipt=receipt;
+      receiptInfo.textContent=`เลขอ้างอิง: ${receipt.reference}\nพนักงาน: ${receipt.empName}\nผู้ส่ง (ตามชื่อผู้อนุมัติ): ${receipt.approver}\nเวลาบันทึก: ${receipt.savedAt}`;
+      receiptModal.style.display='block';
+      receiptStatus.textContent='กำลังดาวน์โหลดหลักฐาน PNG อัตโนมัติ...';
+      void downloadLeaveReceipt();
+    }
+
     form.addEventListener('submit', async (e)=>{
       e.preventDefault();
       
@@ -2189,10 +2348,21 @@ if(!ok){
         // ==================================
 
         submitBtn.textContent = 'กำลังบันทึก...';
-        await driver.create({
+        // Never issue a central-system receipt for a local-only write.
+        if(driver.kind !== 'firestore') throw new Error('ไม่สามารถเชื่อมต่อฐานข้อมูลส่วนกลางได้ จึงยังไม่ออกหลักฐานการส่งใบลา');
+        const savedDoc = await driver.create({
          ...value,
-        attachment: attachmentBase64
+         attachment: attachmentBase64
         });
+        if(!savedDoc?.id) throw new Error('ฐานข้อมูลไม่ส่งเลขอ้างอิงกลับมา');
+        const savedAt = new Date().toLocaleString('th-TH',{timeZone:'Asia/Bangkok',hour12:false});
+        const receipt = {...value, reference: `LV-${new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'}).replaceAll('-','')}-${savedDoc.id}`, savedAt};
+        // A client clock is used for display; Firestore createdAt remains the authoritative timestamp.
+        try { showLeaveReceipt(receipt); }
+        catch (receiptErr) {
+          console.error('บันทึกใบลาสำเร็จ แต่แสดงหลักฐานไม่สำเร็จ', receiptErr);
+          showToast('บันทึกใบลาสำเร็จแล้ว แต่ไม่สามารถแสดงหลักฐาน PNG ได้ กรุณาตรวจสอบเลขอ้างอิงในประวัติ', 'warning');
+        }
         
         form.reset();
         confirmAccuracy.checked=false;
@@ -2366,6 +2536,11 @@ if(!ok){
       const action = btn.getAttribute('data-action');
       const id = btn.getAttribute('data-id'); if(!action || !id) return;
       const idx = cache.findIndex(r=> r.id===id); if(idx<0) return;
+
+      if(action==='receipt'){
+        void redownloadSavedLeaveReceipt(cache[idx], btn);
+        return;
+      }
 
       if(action==='history'){
         openEmployeeHistory(cache[idx].empId);
@@ -2729,7 +2904,7 @@ const { ok, errors, warnings, value } =
           import('https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js'),
           import('https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js')
         ]);
-        ({ collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, getDocs, where, serverTimestamp } = firestoreSDK);
+        ({ collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, getDocs, getDoc, where, serverTimestamp } = firestoreSDK);
         const app = appSDK.initializeApp(firebaseConfig);
         auth = authSDK.getAuth(app);
         db = firestoreSDK.getFirestore(app);
