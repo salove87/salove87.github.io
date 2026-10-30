@@ -291,7 +291,6 @@ style="margin-bottom:12px;text-align:center;font-family:'JetBrains Mono',monospa
         <li>ห้ามส่งใบลาในวันหยุด (อาทิตย์)</li>
         <li>กรณีลากิจ ระบบอนุญาตให้ส่งย้อนหลังได้ 2 วันเท่านั้น ถ้าเกินระบบจะตัดเป็นขาดงานทันที</li>
         <li>กรณีลาพักร้อนแล้วระบบมีปัญหาให้แจ้ง HR ทันทีในวันที่ทำรายการ หากไม่แจ้ง ลาพักร้อน ก็ จะเป็นลากิจทันที</li>
-        <li>ผู้ส่งใบลาต้องจัดเก็บหลักฐานการส่งใบลา (PNG) ไว้ตรวจสอบ กรณี HR ไม่พบรายการ การแจ้งว่าส่งแล้วแต่ลบหลักฐานทิ้ง ไม่ถือเป็นการยืนยันการส่งใบลา ทั้งนี้ ให้ยึดข้อมูลในระบบเป็นหลัก</li>
       </ul>
     </div>
 
@@ -2099,7 +2098,7 @@ readonly>
         }).join('');
 
         const historyPayStatus = calculatePayStatuses(rows);
-        historyTableBody.innerHTML=rows.length?rows.map(r=>{ const st=historyPayStatus.get(r.id); const cancelled=r.leaveStatus==='cancelled' ? `<div style="margin-top:4px;font-size:11px;font-weight:800;color:#DC2626;">ยกเลิก</div>` : ''; return `<tr style="border-bottom:1px solid var(--line);"><td class="p-3 mono">${fmtDateDMY(r.startDate)}${r.endDate&&r.endDate!==r.startDate?' - '+fmtDateDMY(r.endDate):''}</td><td class="p-3"><span class="chip" style="${leaveTypeChipStyle(normalizeHistoryLeaveType(r.leaveType))}">${normalizeHistoryLeaveType(r.leaveType)||'-'}</span>${cancelled}${st?statusHtml(st):''}</td><td class="p-3 text-center mono">${r.leaveDays||'-'}${r.halfDayPeriod?' ('+r.halfDayPeriod+')':''}</td><td class="p-3">${r.reason||'-'}</td><td class="p-3">${r.approver||'-'}</td><td class="p-3 text-center no-print"><button type="button" class="history-manage-btn px-3 py-2 rounded-lg" data-leave-id="${escapeHtml(r.id||'')}" style="background:#EEF2FF;color:#1D4ED8;font-weight:700;white-space:nowrap;">⚙️ จัดการ</button></td></tr>`; }).join(''):'<tr><td colspan="6" class="p-5 text-center" style="color:var(--ink-soft);">ยังไม่มีประวัติการลา</td></tr>';
+        historyTableBody.innerHTML=rows.length?rows.map(r=>{ const st=historyPayStatus.get(r.id); const cancelled=r.leaveStatus==='cancelled' ? `<div style="margin-top:4px;font-size:11px;font-weight:800;color:#DC2626;">ยกเลิก</div>` : ''; return `<tr style="border-bottom:1px solid var(--line);"><td class="p-3 mono">${fmtDateDMY(r.startDate)}${r.endDate&&r.endDate!==r.startDate?' - '+fmtDateDMY(r.endDate):''}</td><td class="p-3"><span class="chip" style="${leaveTypeChipStyle(normalizeHistoryLeaveType(r.leaveType))}">${normalizeHistoryLeaveType(r.leaveType)||'-'}</span>${cancelled}${r.hasBeenEdited?'<div style="margin-top:4px;font-size:11px;font-weight:800;color:#B45309;">แก้ไขแล้ว</div>':''}${st?statusHtml(st):''}</td><td class="p-3 text-center mono">${r.leaveDays||'-'}${r.halfDayPeriod?' ('+r.halfDayPeriod+')':''}</td><td class="p-3">${r.reason||'-'}</td><td class="p-3">${r.approver||'-'}</td><td class="p-3 text-center no-print"><button type="button" class="history-manage-btn px-3 py-2 rounded-lg" data-leave-id="${escapeHtml(r.id||'')}" style="background:#EEF2FF;color:#1D4ED8;font-weight:700;white-space:nowrap;">⚙️ จัดการ</button></td></tr>`; }).join(''):'<tr><td colspan="6" class="p-5 text-center" style="color:var(--ink-soft);">ยังไม่มีประวัติการลา</td></tr>';
         historyTableBody.querySelectorAll('.history-manage-btn').forEach(btn=>btn.addEventListener('click',()=>{ const row=rows.find(x=>String(x.id)===String(btn.dataset.leaveId)); if(row) openLeaveActionMenu(row); }));
       }catch(err){ console.error(err); historyTableBody.innerHTML=`<tr><td colspan="5" class="p-5 text-center" style="color:var(--danger);">โหลดประวัติไม่สำเร็จ: ${explainFirestoreError(err)}</td></tr>`; }
     }
@@ -2476,7 +2475,36 @@ if(!ok){
         ? 'ครึ่งวันนับเป็น 0.5 วัน และใช้วันที่เริ่มลากับวันที่สิ้นสุดลาเป็นวันเดียวกัน'
         : 'ระบบจะคำนวณจำนวนวันใหม่จากวันที่เริ่มลาและวันที่สิ้นสุดลา';
     }
-    function openEditLeaveDateModal(row){ pendingEditLeave=row; editLeaveError.classList.add('hidden'); editStartDate.value=toInputDate(row.startDate); editEndDate.value=toInputDate(row.endDate||row.startDate); editLeaveDayMode.value=editDayModeFromRow(row); applyEditLeaveDayMode(); const type=normalizeHistoryLeaveType(row.leaveType)||row.leaveType||'ใบลา'; const submit=getSubmitDate(row), submitText=formatEditDate(submit); editLeaveDetails.innerHTML=`<div><strong>${escapeHtml(row.empName||'-')}</strong> · รหัส ${escapeHtml(row.empId||'-')}</div><div>ประเภท: <strong>${escapeHtml(type)}</strong></div><div>วันที่ส่งใบลา: <strong>${submitText?escapeHtml(submitText):'ไม่พบวันที่ส่งใบลาในข้อมูล'}</strong></div><div class="mt-1">แก้วันที่และเลือกรูปแบบเต็มวันหรือครึ่งวันได้</div>`; editLeaveModal.style.display='block'; }
+    // Thailand-local calendar date; never rely on the browser's timezone for the edit cutoff.
+    function bangkokTodayISO(){ return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Bangkok',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }
+    function leaveISO(v){ const t=String(v||''); return /^\d{4}-\d{2}-\d{2}/.test(t)?t.slice(0,10):toInputDate(v); }
+    function leaveLockedReason(row, nextStart, nextEnd, nextMode){
+      if(['cancelled','canceled'].includes(String(row.leaveStatus||'').toLowerCase())) return 'ใบลานี้ถูกยกเลิกแล้ว ไม่สามารถแก้ไขได้';
+      const today=bangkokTodayISO(), oldStart=leaveISO(row.startDate), oldEnd=leaveISO(row.endDate||row.startDate);
+      if(!oldStart||!oldEnd) return 'ไม่พบวันที่ลาเดิมที่ถูกต้อง กรุณาให้ HR ตรวจสอบ';
+      if(oldEnd<today) return 'ใบลานี้ผ่านไปแล้ว ไม่อนุญาตให้แก้ไขย้อนหลัง';
+      if(oldStart<today){
+        if(nextStart!==oldStart) return 'ใบลาที่เริ่มใช้แล้วต้องคงวันเริ่มลาเดิมไว้';
+        if(nextEnd<today) return 'ไม่สามารถลบวันที่ใช้สิทธิ์ไปแล้ว';
+        const oldMode=editDayModeFromRow(row);
+        if(nextMode!=='full'||oldMode!=='full') return 'ใบลาที่เริ่มใช้แล้วไม่สามารถเปลี่ยนรูปแบบเต็มวัน/ครึ่งวันย้อนหลัง';
+      }else if(nextStart<today) return 'ไม่สามารถย้ายวันลาไปเป็นวันที่ผ่านมาแล้ว';
+      return '';
+    }
+    async function saveLeaveEditWithAudit(row, changes, reason){
+      // Audit snapshot is stored on the same leave document, in the same atomic write.
+      // Server-side Firestore rules must independently enforce authorization and cutoff.
+      const ref=doc(db,'leave_requests',row.id);
+      const freshSnap=await getDoc(ref);
+      if(!freshSnap.exists()) throw new Error('ไม่พบใบลานี้ในระบบ');
+      const fresh={id:row.id,...freshSnap.data()};
+      const err=leaveLockedReason(fresh,leaveISO(changes.startDate),leaveISO(changes.endDate),changes.halfDayPeriod==='เช้า'?'morning':changes.halfDayPeriod==='บ่าย'?'afternoon':'full');
+      if(err) throw new Error(err);
+      const audit=Array.isArray(fresh.editHistory)?fresh.editHistory:[];
+      audit.push({action:'edit',at:new Date().toISOString(),actorName:String(fresh.approver||'ไม่ระบุ'),reason:reason||'ปรับปรุงใบลาก่อนวันลา',before:{startDate:fresh.startDate,endDate:fresh.endDate,leaveDays:fresh.leaveDays,halfDayPeriod:fresh.halfDayPeriod||''},after:{startDate:changes.startDate,endDate:changes.endDate,leaveDays:changes.leaveDays,halfDayPeriod:changes.halfDayPeriod||''}});
+      await updateDoc(ref,{...changes,editHistory:audit,hasBeenEdited:true,lastEditedAt:serverTimestamp(),updatedAt:serverTimestamp()});
+    }
+    function openEditLeaveDateModal(row){ const lock=leaveLockedReason(row,leaveISO(row.startDate),leaveISO(row.endDate||row.startDate),editDayModeFromRow(row)); if(lock){showToast(lock,'warning');return;} pendingEditLeave=row; editLeaveError.classList.add('hidden'); editStartDate.value=toInputDate(row.startDate); editEndDate.value=toInputDate(row.endDate||row.startDate); editLeaveDayMode.value=editDayModeFromRow(row); applyEditLeaveDayMode(); const type=normalizeHistoryLeaveType(row.leaveType)||row.leaveType||'ใบลา'; const submit=getSubmitDate(row), submitText=formatEditDate(submit); editLeaveDetails.innerHTML=`<div><strong>${escapeHtml(row.empName||'-')}</strong> · รหัส ${escapeHtml(row.empId||'-')}</div><div>ประเภท: <strong>${escapeHtml(type)}</strong></div><div>วันที่ส่งใบลา: <strong>${submitText?escapeHtml(submitText):'ไม่พบวันที่ส่งใบลาในข้อมูล'}</strong></div><div class="mt-1">แก้วันที่และเลือกรูปแบบเต็มวันหรือครึ่งวันได้</div>`; editLeaveModal.style.display='block'; }
     function closeEditLeaveModal(){ editLeaveModal.style.display='none'; editEndDate.disabled=false; pendingEditLeave=null; }
     function dateOnly(v){ const d=editDateValueToDate(v); return !d?null:new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
     function countCalendarDaysInclusive(a,b){ return Math.floor((b-a)/86400000)+1; }
@@ -2485,7 +2513,7 @@ if(!ok){
     closeEditLeave?.addEventListener('click',closeEditLeaveModal); cancelEditLeave?.addEventListener('click',closeEditLeaveModal);
     saveEditLeave?.addEventListener('click',async()=>{ if(!pendingEditLeave)return; editLeaveError.classList.add('hidden'); const selectedMode=editLeaveDayMode.value; if(!selectedMode){editLeaveError.textContent='กรุณาเลือกรูปแบบการลา';editLeaveError.classList.remove('hidden');return;} const isHalfDay=selectedMode==='morning'||selectedMode==='afternoon', normalizedEndValue=isHalfDay?editStartDate.value:editEndDate.value, start=dateOnly(editStartDate.value), end=dateOnly(normalizedEndValue), submit=dateOnly(getSubmitDate(pendingEditLeave)); if(!start||!end){editLeaveError.textContent='กรุณาระบุวันที่เริ่มลาและวันที่สิ้นสุดลา';editLeaveError.classList.remove('hidden');return;} if(end<start){editLeaveError.textContent='วันที่สิ้นสุดลาต้องไม่ก่อนวันที่เริ่มลา';editLeaveError.classList.remove('hidden');return;} if(!submit){editLeaveError.textContent='แก้ไขไม่ได้ เพราะไม่พบวันที่ส่งใบลา';editLeaveError.classList.remove('hidden');return;} if(start<=submit){editLeaveError.textContent=`แก้ไขไม่ได้: วันที่เริ่มลาต้องเป็นหลังวันที่ส่งใบลา (${formatEditDate(submit)})`;editLeaveError.classList.remove('hidden');return;} const newDays=isHalfDay?0.5:countCalendarDaysInclusive(start,end), halfDayPeriod=selectedMode==='morning'?'เช้า':selectedMode==='afternoon'?'บ่าย':'', oldDays=numericDays(pendingEditLeave.leaveDays), type=normalizeHistoryLeaveType(pendingEditLeave.leaveType)||pendingEditLeave.leaveType||'ใบลา', newPeriodText=halfDayPeriod?` (${halfDayPeriod})`:''; if(!confirm(`ยืนยันแก้ไข${type}ของ ${pendingEditLeave.empName||''}\
 จาก ${fmtDateDMY(pendingEditLeave.startDate)} - ${fmtDateDMY(pendingEditLeave.endDate||pendingEditLeave.startDate)} (${oldDays} วัน)\
-เป็น ${fmtDateDMY(editStartDate.value)} - ${fmtDateDMY(normalizedEndValue)} (${newDays} วัน${newPeriodText})`))return; try{await updateDoc(doc(db,'leave_requests',pendingEditLeave.id),{startDate:editStartDate.value,endDate:normalizedEndValue,leaveDays:newDays,halfDayPeriod,updatedAt:new Date().toISOString()}); closeEditLeaveModal(); showToast(`✏️ แก้ไข${type}เรียบร้อยแล้ว`,'success'); if(typeof loadLeaves==='function')await loadLeaves(); else if(typeof loadAllLeaves==='function')await loadAllLeaves(); }catch(err){console.error(err);editLeaveError.textContent=`แก้ไขไม่ได้: ${err?.code||err?.message||'เกิดข้อผิดพลาด'}`;editLeaveError.classList.remove('hidden');} });
+เป็น ${fmtDateDMY(editStartDate.value)} - ${fmtDateDMY(normalizedEndValue)} (${newDays} วัน${newPeriodText})`))return; try{await saveLeaveEditWithAudit(pendingEditLeave,{startDate:editStartDate.value,endDate:normalizedEndValue,leaveDays:newDays,halfDayPeriod}); closeEditLeaveModal(); showToast(`✏️ แก้ไข${type}เรียบร้อยแล้ว`,'success'); if(typeof loadLeaves==='function')await loadLeaves(); else if(typeof loadAllLeaves==='function')await loadAllLeaves(); }catch(err){console.error(err);editLeaveError.textContent=`แก้ไขไม่ได้: ${err?.code||err?.message||'เกิดข้อผิดพลาด'}`;editLeaveError.classList.remove('hidden');} });
 
     function openVacationActionModal(row, mode){
       pendingVacationAction = { id: row.id, mode, leaveType: normalizeHistoryLeaveType(row.leaveType) || row.leaveType || 'ใบลา' };
@@ -2578,6 +2606,8 @@ if(!ok){
       }
 
       if(action==='edit'){
+        const current=cache[idx]; const lock=leaveLockedReason(current,leaveISO(current.startDate),leaveISO(current.endDate||current.startDate),editDayModeFromRow(current));
+        if(lock){showToast(lock,'warning');return;}
         editStart.value = cache[idx].startDate || '';
         editEnd.value = cache[idx].endDate || '';
         const currentDays = String(cache[idx].leaveDays || '').replace(' วัน','');
@@ -2622,7 +2652,11 @@ const { ok, errors, warnings, value } =
           if(!ok){ showToast('❌ ' + errors.join(' | '), 'error'); return; }
           
           try{ 
-              await driver.update(id, value); 
+              const current=cache[idx];
+              const next={...value,startDate:editStart.value,endDate:editEnd.value,halfDayPeriod:document.getElementById('editHalfDayPeriod').value||''};
+              const lock=leaveLockedReason(current,leaveISO(next.startDate),leaveISO(next.endDate),next.halfDayPeriod==='เช้า'?'morning':next.halfDayPeriod==='บ่าย'?'afternoon':'full');
+              if(lock) throw new Error(lock);
+              await saveLeaveEditWithAudit(current,next);
               editModal.style.display='none'; 
               
               if(warnings.length > 0){
