@@ -722,7 +722,7 @@ readonly>
     window.addEventListener('error', (e)=>{ showToast(`⚠️ JS Error: ${e.message}`, 'error'); });
 
     let auth = null, db = null;
-    let collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, getDocs, getDoc, where, serverTimestamp;
+    let collection, doc, deleteDoc, onSnapshot, query, orderBy, limit, getDocs, getDocsFromServer, getDoc, getDocFromServer, where, serverTimestamp, runTransaction;
 
     const systemTimeEl = document.getElementById('systemTime');
     function updateSystemTime(){
@@ -1329,6 +1329,94 @@ readonly>
       return { ...row, empId: normalizeEmployeeId(row.empId) };
     }
 
+    // An existing half day with no recognizable period is treated as a full day:
+    // do not guess whether the employee was absent in the morning or afternoon.
+    function overlapDate(value){
+      const text = String(value || '').trim();
+      const iso = /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : '';
+      if(!iso) return '';
+      const date = new Date(iso + 'T00:00:00Z');
+      return !Number.isNaN(date.getTime()) && date.toISOString().slice(0,10) === iso ? iso : '';
+    }
+    function overlapPeriod(row){
+      const period = String(row?.halfDayPeriod || '').trim().toLowerCase();
+      const days = parseFloat(String(row?.leaveDays ?? ''));
+      if(days !== 0.5 || overlapDate(row?.startDate) !== overlapDate(row?.endDate || row?.startDate)) return 'full';
+      if(period === 'เช้า' || period === 'morning' || period === 'am') return 'morning';
+      if(period === 'บ่าย' || period === 'afternoon' || period === 'pm') return 'afternoon';
+      return 'full';
+    }
+    function leaveIsCancelled(row){
+      return ['cancelled','canceled'].includes(String(row?.leaveStatus || '').trim().toLowerCase());
+    }
+    function requireNoOverlappingLeave(candidate, history, ignoredId = ''){
+      const start = overlapDate(candidate.startDate);
+      const end = overlapDate(candidate.endDate || candidate.startDate);
+      if(!start || !end || end < start) throw new Error('วันที่ลาไม่ถูกต้อง กรุณาตรวจสอบวันที่เริ่มและวันที่สิ้นสุด');
+      for(const old of history){
+        if(old.id === ignoredId || leaveIsCancelled(old)) continue;
+        const oldStart = overlapDate(old.startDate);
+        const oldEnd = overlapDate(old.endDate || old.startDate);
+        if(!oldStart || !oldEnd || oldEnd < oldStart){
+          throw new Error('พบข้อมูลวันที่ลาเดิมไม่ครบ กรุณาให้ HR ตรวจสอบก่อนส่งใบลา');
+        }
+        if(start > oldEnd || end < oldStart) continue;
+        const period = overlapPeriod(candidate), oldPeriod = overlapPeriod(old);
+        if(start === end && oldStart === oldEnd && start === oldStart &&
+           period !== 'full' && oldPeriod !== 'full' && period !== oldPeriod) continue;
+        const date = start > oldStart ? start : oldStart;
+        throw new Error(`มีใบลาที่ช่วงเวลาซ้ำกันอยู่แล้วในวันที่ ${fmtDateDMY(date)} กรุณาตรวจสอบประวัติการลา หรือติดต่อ HR`);
+      }
+    }
+    function requireVacationQuota(candidate, history){
+      if(candidate.leaveType !== 'ลาพักร้อน') return;
+      const range = getLeaveYearRange(candidate.startDate);
+      const used = history.reduce((sum, old) =>
+        sum + (normalizeHistoryLeaveType(old.leaveType) === 'ลาพักร้อน' && !leaveIsCancelled(old)
+          ? leaveDaysWithinRange(old, range) : 0), 0);
+      const requested = leaveDaysWithinRange(candidate, range);
+      if(used + requested > MAX_VACATION_DAYS){
+        throw new Error(`ลาพักร้อนเกินโควตา (ใช้ไป ${used}, ขอเพิ่ม ${requested}, รวม ${used + requested} > ${MAX_VACATION_DAYS} วัน)`);
+      }
+    }
+
+    // Updated clients serialize changes per employee. Read history after the
+    // guard and retry the whole read if the guard changes before the commit.
+    async function withEmployeeLeaveTransaction(employeeId, operation, readHistory = true){
+      const canonicalId = normalizeEmployeeId(employeeId);
+      if(!canonicalId) throw new Error('ไม่พบรหัสพนักงาน กรุณาตรวจสอบข้อมูล');
+      const historyDriver = driver;
+      if(readHistory && historyDriver?.kind !== 'firestore') throw new Error('ไม่สามารถเชื่อมต่อฐานข้อมูลส่วนกลางได้');
+      const guardRef = doc(db, 'leave_overlap_guards', encodeURIComponent(canonicalId));
+      function revisionOf(snapshot){
+        const revision = snapshot.exists() ? snapshot.data().revision : 0;
+        if(!Number.isSafeInteger(revision) || revision < 0 || revision >= Number.MAX_SAFE_INTEGER || (snapshot.exists() && revision === 0)){
+          throw new Error('ไม่สามารถตรวจสอบใบลาพร้อมกันได้ กรุณาติดต่อ HR');
+        }
+        return revision;
+      }
+      for(let attempt=0; attempt<8; attempt++){
+        const observedRevision = revisionOf(await getDocFromServer(guardRef));
+        const history = readHistory ? await historyDriver.getEmployeeHistory(canonicalId, true) : [];
+        try{
+          return await runTransaction(db, async transaction => {
+            const revision = revisionOf(await transaction.get(guardRef));
+            if(revision !== observedRevision){
+              const conflict = new Error('ข้อมูลใบลาเปลี่ยนระหว่างตรวจสอบ');
+              conflict.code = 'leave-guard-changed';
+              throw conflict;
+            }
+            const result = await operation(transaction, canonicalId, history);
+            transaction.set(guardRef, {revision:revision + 1, updatedAt:serverTimestamp()}, {merge:true});
+            return result;
+          });
+        }catch(err){
+          if(err?.code !== 'leave-guard-changed') throw err;
+        }
+      }
+      throw new Error('มีการบันทึกใบลาพร้อมกันหลายรายการ กรุณาลองอีกครั้ง');
+    }
+
     function makeLocalDriver(){
       let listeners = [];
       function notify(){ listeners.forEach(fn => fn(lsLoad())); }
@@ -1351,35 +1439,59 @@ readonly>
     
     function makeFirestoreDriver(){
       const colRef = collection(db, 'leave_requests');
+      async function employeeHistory(id, fromServer = false){
+        const canonicalId = normalizeEmployeeId(id);
+        const ids = [canonicalId, ...Object.keys(EMP_ID_ALIASES).filter(k => EMP_ID_ALIASES[k] === canonicalId)];
+        const uniqueIds = [...new Set(ids)];
+        const snaps = await Promise.all(uniqueIds.map(emp => {
+          const q = query(colRef, where('empId', '==', emp));
+          return fromServer ? getDocsFromServer(q) : getDocs(q);
+        }));
+        const seen = new Set();
+        const rows = [];
+        snaps.forEach(snap => snap.docs.forEach(d => {
+          if(seen.has(d.id)) return;
+          seen.add(d.id);
+          rows.push({ ...d.data(), id: d.id });
+        }));
+        return rows.map(normalizeEmployeeRow);
+      }
       return {
         kind: 'firestore',
         subscribe(onData, onError){ 
             const q = query(colRef, orderBy('createdAt','desc')); 
             return onSnapshot(q, snap => { onData(snap.docs.map(d => ({ id: d.id, ...d.data() }))); }, err => onError?.(err)); 
         },
-        async create(payload){ return addDoc(colRef, { ...payload, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }); },
-        async update(id, payload){ return updateDoc(doc(db, 'leave_requests', id), { ...payload, updatedAt: serverTimestamp() }); },
+        async create(payload){
+          const ref = doc(colRef);
+          await withEmployeeLeaveTransaction(payload.empId, async (transaction, _canonicalId, history) => {
+            requireNoOverlappingLeave(payload, history);
+            requireVacationQuota(payload, history);
+            transaction.set(ref, { ...payload, createdAt:serverTimestamp(), updatedAt:serverTimestamp() });
+          });
+          return ref;
+        },
+        async update(id, payload, employeeId){
+          const ref = doc(db, 'leave_requests', id);
+          await withEmployeeLeaveTransaction(employeeId, async (transaction, canonicalId, history) => {
+            const snap = await transaction.get(ref);
+            if(!snap.exists()) throw new Error('ไม่พบใบลานี้ในระบบ');
+            const fresh = {...snap.data(), id};
+            if(normalizeEmployeeId(fresh.empId) !== canonicalId) throw new Error('รหัสพนักงานเปลี่ยนแปลง กรุณาโหลดข้อมูลใหม่');
+            const next = {...fresh, ...payload};
+            if(!leaveIsCancelled(next)){
+              requireNoOverlappingLeave(next, history, id);
+            }
+            transaction.update(ref, {...payload, updatedAt:serverTimestamp()});
+          }, !leaveIsCancelled(payload));
+        },
         async remove(id){ return deleteDoc(doc(db, 'leave_requests', id)); },
         async getAll(){
              const snap = await getDocs(colRef);
              return snap.docs.map(d => ({ id: d.id, ...d.data() }));
         },
         // ADDED: Fetch specific employee history
-        async getEmployeeHistory(id){
-             // รวมประวัติทั้งรหัสหลักและรหัสเก่าที่เป็น alias
-             const canonicalId = normalizeEmployeeId(id);
-             const ids = [canonicalId, ...Object.keys(EMP_ID_ALIASES).filter(k => EMP_ID_ALIASES[k] === canonicalId)];
-             const uniqueIds = [...new Set(ids)];
-             const snaps = await Promise.all(uniqueIds.map(emp => getDocs(query(colRef, where('empId', '==', emp)))));
-             const seen = new Set();
-             const rows = [];
-             snaps.forEach(snap => snap.docs.forEach(d => {
-               if(seen.has(d.id)) return;
-               seen.add(d.id);
-               rows.push({ id: d.id, ...d.data() });
-             }));
-             return rows.map(normalizeEmployeeRow);
-        }
+        async getEmployeeHistory(id, fromServer = false){ return employeeHistory(id, fromServer); }
       };
     }
 
@@ -2326,37 +2438,6 @@ if(!ok){
     submitBtn.textContent = 'ส่งใบลา ✓';
     return; 
 }
-        // === Vacation Leave Quota Check ===
-        if (value.leaveType === 'ลาพักร้อน') {
-            const history = await driver.getEmployeeHistory(value.empId);
-            
-            // ตรวจโควต้าตามปีสิทธิ์แบบรอบ 26 ธ.ค. - 25 ธ.ค.
-            // ตัวอย่าง: 26/12/2025 - 25/12/2026 ถือเป็นปีสิทธิ์ 2026
-            const reqRange = getLeaveYearRange(value.startDate);
-
-            // คำนวณวันพักร้อนที่ใช้ไปเฉพาะในปีสิทธิ์นั้น
-            let usedDays = 0;
-            history.forEach(h => {
-                if (normalizeHistoryLeaveType(h.leaveType) === 'ลาพักร้อน' && h.leaveStatus !== 'cancelled') {
-                    usedDays += leaveDaysWithinRange(h, reqRange);
-                }
-            });
-
-            const requesting = leaveDaysWithinRange({
-                startDate: value.startDate,
-                endDate: value.endDate || value.startDate,
-                leaveDays: value.leaveDays
-            }, reqRange);
-            
-            if (usedDays + requesting > MAX_VACATION_DAYS) {
-                 showToast(`❌ ลาพักร้อนเกินโควตา (ใช้ไป ${usedDays}, ขอเพิ่ม ${requesting}, รวม ${usedDays+requesting} > ${MAX_VACATION_DAYS} วัน)`, 'error');
-                 submitBtn.disabled = !confirmAccuracy.checked;
-                 submitBtn.textContent = 'ส่งใบลา ✓';
-                 return; // Stop submission
-            }
-        }
-        // ==================================
-
         submitBtn.textContent = 'กำลังบันทึก...';
         // Never issue a central-system receipt for a local-only write.
         if(driver.kind !== 'firestore') throw new Error('ไม่สามารถเชื่อมต่อฐานข้อมูลส่วนกลางได้ จึงยังไม่ออกหลักฐานการส่งใบลา');
@@ -2492,17 +2573,23 @@ if(!ok){
       return '';
     }
     async function saveLeaveEditWithAudit(row, changes, reason){
-      // Audit snapshot is stored on the same leave document, in the same atomic write.
-      // Server-side Firestore rules must independently enforce authorization and cutoff.
+      if(driver?.kind !== 'firestore') throw new Error('ไม่สามารถเชื่อมต่อฐานข้อมูลส่วนกลางได้');
       const ref=doc(db,'leave_requests',row.id);
-      const freshSnap=await getDoc(ref);
-      if(!freshSnap.exists()) throw new Error('ไม่พบใบลานี้ในระบบ');
-      const fresh={id:row.id,...freshSnap.data()};
-      const err=leaveLockedReason(fresh,leaveISO(changes.startDate),leaveISO(changes.endDate),changes.halfDayPeriod==='เช้า'?'morning':changes.halfDayPeriod==='บ่าย'?'afternoon':'full');
-      if(err) throw new Error(err);
-      const audit=Array.isArray(fresh.editHistory)?fresh.editHistory:[];
-      audit.push({action:'edit',at:new Date().toISOString(),actorName:String(fresh.approver||'ไม่ระบุ'),reason:reason||'ปรับปรุงใบลาก่อนวันลา',before:{startDate:fresh.startDate,endDate:fresh.endDate,leaveDays:fresh.leaveDays,halfDayPeriod:fresh.halfDayPeriod||''},after:{startDate:changes.startDate,endDate:changes.endDate,leaveDays:changes.leaveDays,halfDayPeriod:changes.halfDayPeriod||''}});
-      await updateDoc(ref,{...changes,editHistory:audit,hasBeenEdited:true,lastEditedAt:serverTimestamp(),updatedAt:serverTimestamp()});
+      await withEmployeeLeaveTransaction(row.empId, async (transaction, canonicalId, history) => {
+        const freshSnap=await transaction.get(ref);
+        if(!freshSnap.exists()) throw new Error('ไม่พบใบลานี้ในระบบ');
+        const fresh={...freshSnap.data(),id:row.id};
+        if(normalizeEmployeeId(fresh.empId)!==canonicalId) throw new Error('รหัสพนักงานเปลี่ยนแปลง กรุณาโหลดข้อมูลใหม่');
+        const err=leaveLockedReason(fresh,leaveISO(changes.startDate),leaveISO(changes.endDate),changes.halfDayPeriod==='เช้า'?'morning':changes.halfDayPeriod==='บ่าย'?'afternoon':'full');
+        if(err) throw new Error(err);
+        const editable={startDate:changes.startDate,endDate:changes.endDate,leaveDays:changes.leaveDays,halfDayPeriod:changes.halfDayPeriod||''};
+        if(Object.prototype.hasOwnProperty.call(changes,'attachment')) editable.attachment=changes.attachment;
+        if(Object.prototype.hasOwnProperty.call(changes,'leaveType')) editable.leaveType=changes.leaveType;
+        requireNoOverlappingLeave({...fresh,...editable},history,row.id);
+        const audit=Array.isArray(fresh.editHistory)?[...fresh.editHistory]:[];
+        audit.push({action:'edit',at:new Date().toISOString(),actorName:String(fresh.approver||'ไม่ระบุ'),reason:reason||'ปรับปรุงใบลาก่อนวันลา',before:{startDate:fresh.startDate,endDate:fresh.endDate,leaveDays:fresh.leaveDays,halfDayPeriod:fresh.halfDayPeriod||''},after:{startDate:editable.startDate,endDate:editable.endDate,leaveDays:editable.leaveDays,halfDayPeriod:editable.halfDayPeriod}});
+        transaction.update(ref,{...editable,editHistory:audit,hasBeenEdited:true,lastEditedAt:serverTimestamp(),updatedAt:serverTimestamp()});
+      });
     }
     function openEditLeaveDateModal(row){ const lock=leaveLockedReason(row,leaveISO(row.startDate),leaveISO(row.endDate||row.startDate),editDayModeFromRow(row)); if(lock){showToast(lock,'warning');return;} pendingEditLeave=row; editLeaveError.classList.add('hidden'); editStartDate.value=toInputDate(row.startDate); editEndDate.value=toInputDate(row.endDate||row.startDate); editLeaveDayMode.value=editDayModeFromRow(row); applyEditLeaveDayMode(); const type=normalizeHistoryLeaveType(row.leaveType)||row.leaveType||'ใบลา'; const submit=getSubmitDate(row), submitText=formatEditDate(submit); editLeaveDetails.innerHTML=`<div><strong>${escapeHtml(row.empName||'-')}</strong> · รหัส ${escapeHtml(row.empId||'-')}</div><div>ประเภท: <strong>${escapeHtml(type)}</strong></div><div>วันที่ส่งใบลา: <strong>${submitText?escapeHtml(submitText):'ไม่พบวันที่ส่งใบลาในข้อมูล'}</strong></div><div class="mt-1">แก้วันที่และเลือกรูปแบบเต็มวันหรือครึ่งวันได้</div>`; editLeaveModal.style.display='block'; }
     function closeEditLeaveModal(){ editLeaveModal.style.display='none'; editEndDate.disabled=false; pendingEditLeave=null; }
@@ -2554,10 +2641,10 @@ if(!ok){
         const ok = await verifyHrPassword(password);
         if(!ok){ showToast('❌ รหัสผ่าน HR ไม่ถูกต้อง','error'); return; }
         if(pendingVacationAction.mode === 'cancel'){
-          await driver.update(row.id, { leaveStatus:'cancelled', cancelledAt:new Date().toISOString() });
+          await driver.update(row.id, { leaveStatus:'cancelled', cancelledAt:new Date().toISOString() }, row.empId);
           showToast(`↩️ ยกเลิก${pendingVacationAction.leaveType || 'ใบลา'}เรียบร้อยแล้ว`,'success');
         } else {
-          await driver.update(row.id, { leaveStatus:'active', restoredAt:new Date().toISOString() });
+          await driver.update(row.id, { leaveStatus:'active', restoredAt:new Date().toISOString() }, row.empId);
           showToast(`✅ คืนสถานะ${pendingVacationAction.leaveType || 'ใบลา'}เรียบร้อยแล้ว`,'success');
         }
         closeVacationActionModal();
@@ -2949,7 +3036,7 @@ const { ok, errors, warnings, value } =
           import('https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js'),
           import('https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js')
         ]);
-        ({ collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, getDocs, getDoc, where, serverTimestamp } = firestoreSDK);
+        ({ collection, doc, deleteDoc, onSnapshot, query, orderBy, limit, getDocs, getDocsFromServer, getDoc, getDocFromServer, where, serverTimestamp, runTransaction } = firestoreSDK);
         const app = appSDK.initializeApp(firebaseConfig);
         auth = authSDK.getAuth(app);
         db = firestoreSDK.getFirestore(app);
